@@ -556,12 +556,44 @@ h2 {
   vertical-align: -0.25em;
 }
 
-.count-main {
-  font-weight: 800;
+/* counts: compact for the narrow left column. label left, number right, details below */
+.counts {
+  display: grid;
+  gap: 10px;
+  margin: 0;
 }
 
-#counts .row dd {
-  white-space: normal;
+.count {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  column-gap: 8px;
+  align-items: baseline;
+}
+
+.count + .count {
+  border-top: 1px dashed var(--line);
+  padding-top: 10px;
+}
+
+.count dt {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.count dd {
+  margin: 0;
+}
+
+.count-main {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.count-sub {
+  grid-column: 1 / -1;
+  font-size: 13px;
+  color: var(--muted);
 }
 
 .swap-in {

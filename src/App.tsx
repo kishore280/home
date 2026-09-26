@@ -73,6 +73,7 @@ export default function App() {
           </Card>
           {site.statusCafe ? <Status user={site.statusCafe} /> : null}
           <Stats counters={counters} />
+          <Counts />
         </aside>
 
         <main className="main" id="main">
@@ -102,7 +103,6 @@ export default function App() {
           </Card>
 
           <RightNow />
-          <Counts />
 
           {updates.length > 0 ? (
             <Card title="updates">

@@ -40,12 +40,10 @@ function tally(entries: Timed[]) {
 
 function Row({ label, main, sub }: { label: ReactNode; main: string; sub: string }) {
   return (
-    <div className="row">
+    <div className="count">
       <dt>{label}</dt>
-      <dd>
-        <span className="count-main">{main}</span>
-        <span className="muted"> · {sub}</span>
-      </dd>
+      <dd className="count-main">{main}</dd>
+      <dd className="count-sub">{sub}</dd>
     </div>
   )
 }
@@ -60,7 +58,7 @@ export function Counts() {
 
   return (
     <Card title="counts" id="counts">
-      <dl className="rows">
+      <dl className="counts">
         {parotta.last ? (
           <Row
             label="🫓 parotta"
