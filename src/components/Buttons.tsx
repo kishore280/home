@@ -2,8 +2,9 @@ import { toast } from 'sonner'
 import { friends, site } from '../data'
 import { Card } from './Card'
 
+// Other sites get the PNG (works everywhere); this page shows the sharper SVG.
 const embed = () =>
-  `<a href="${location.origin}"><img src="${location.origin}/button.svg" width="88" height="31" alt="${site.name}"></a>`
+  `<a href="${location.origin}"><img src="${location.origin}/button.png" width="88" height="31" alt="${site.name}"></a>`
 
 async function copyEmbed() {
   try {
