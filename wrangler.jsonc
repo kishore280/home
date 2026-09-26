@@ -19,9 +19,13 @@
 	"observability": {
 		"enabled": true
 	},
-	"upload_source_maps": true
-	/**
-	 * To turn on views and pats, create the D1 database (see README) and add:
-	 * "d1_databases": [{ "binding": "DB", "database_name": "home", "database_id": "<id from wrangler d1 create>" }]
-	 */
+	"upload_source_maps": true,
+	// D1 database for the view and pat counters (table: migrations/0001_init.sql).
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "home",
+			"database_id": "9c591914-f8fb-419b-9636-9ecb84b4b36d"
+		}
+	]
 }
