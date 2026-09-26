@@ -57,6 +57,26 @@ async function expectEvents(log: Log, events: string[]) {
 // moment to show up. (Everything that can be waited for uses web-first assertions.)
 const settle = (page: Page) => page.waitForTimeout(600)
 
+// A GET /api/log reply (worker/log.ts): the three kinds, with the totals given for some of them.
+// Mocked with context.route, which also sees the service worker's requests (it caches /api/log).
+type Totals = { today: number; month: number; year: number; total: number; last: string; place?: string }
+const logReply = (totals: Partial<Record<'chai' | 'parotta' | 'beach', Totals>>) => ({
+  kinds: (
+    [
+      ['chai', '☕', 'chai', false],
+      ['parotta', '🫓', 'parotta', false],
+      ['beach', '🌊', 'beach days', true],
+    ] as const
+  ).map(([kind, emoji, label, onceADay]) => ({
+    kind,
+    emoji,
+    label,
+    onceADay,
+    ...{ today: 0, month: 0, year: 0, total: 0, last: null, place: null },
+    ...totals[kind],
+  })),
+})
+
 const menu = (page: Page) => page.locator('.cmdk-content')
 async function openMenu(page: Page, press: (t: Locator) => Promise<void>) {
   await expect(page.locator('[data-sonner-toast]')).toHaveCount(0, { timeout: 15_000 })
@@ -413,7 +433,9 @@ test.describe('speed', () => {
     await page.route('**/api/now-playing', (r) => r.fulfill({ json: { title: 'A long song title that fills the line', artist: 'Artist', at, until: at } }))
     await page.route('**/api/github', (r) => r.fulfill({ json: { repo: 'home', url: 'https://github.com/kishore280/home', at } }))
     const totals = { today: 2, month: 14, year: 90, total: 90, last: at }
-    await page.route('**/api/log', (r) => r.fulfill({ json: { chai: totals, parotta: totals, beach: { ...totals, place: 'Marina' } } }))
+    await page
+      .context()
+      .route('**/api/log', (r) => r.fulfill({ json: logReply({ chai: totals, parotta: totals, beach: { ...totals, place: 'Marina' } }) }))
     await page.goto('/')
     // Wait for everything that arrives after the page: the clock, the rows, the mascot's line and the views.
     await expect(page.locator('.clock')).toBeVisible()
@@ -539,7 +561,7 @@ test.describe('now playing (ListenBrainz API)', () => {
   })
 })
 
-// The counts card on the home page reads /api/log (logged from the /log page; tests/log-api.spec.ts).
+// The counts card on the home page reads /api/log (logged from the /log page; tests/log.spec.ts).
 test.describe('counts card', () => {
   const at = new Date().toISOString()
 
@@ -548,10 +570,8 @@ test.describe('counts card', () => {
     expect(html.match(/class="count pending"/g)).toHaveLength(3)
   })
 
-  test('only the kinds that were logged are shown, with their numbers', async ({ page }) => {
-    await page.route('**/api/log', (r) =>
-      r.fulfill({ json: { chai: { today: 2, month: 14, year: 90, total: 90, last: at }, parotta: null, beach: null } }),
-    )
+  test('only the kinds that were logged are shown, with their numbers', async ({ page, context }) => {
+    await context.route('**/api/log', (r) => r.fulfill({ json: logReply({ chai: { today: 2, month: 14, year: 90, total: 90, last: at } }) }))
     await page.goto('/')
     const card = page.locator('#counts')
     await expect(card.locator('.count')).toHaveCount(1)
@@ -559,8 +579,20 @@ test.describe('counts card', () => {
     await expect(card).toContainText('14 this month · last today')
   })
 
-  test('with nothing logged, there is no card', async ({ page }) => {
-    await page.route('**/api/log', (r) => r.fulfill({ json: { chai: null, parotta: null, beach: null } }))
+  test('a once-a-day kind shows days this month and this year, with the place', async ({ page, context }) => {
+    await context.route('**/api/log', (r) =>
+      r.fulfill({ json: logReply({ beach: { today: 1, month: 3, year: 20, total: 20, last: at, place: 'Marina' } }) }),
+    )
+    await page.goto('/')
+    const card = page.locator('#counts')
+    await expect(card).toContainText('beach days')
+    await expect(card).toContainText('3 this month')
+    await expect(card).toContainText('20 this year')
+    await expect(card).toContainText('Marina')
+  })
+
+  test('with nothing logged, there is no card', async ({ page, context }) => {
+    await context.route('**/api/log', (r) => r.fulfill({ json: logReply({}) }))
     await page.goto('/')
     await expect(page.locator('.stats dd')).toHaveCount(2) // the page has loaded its data
     await expect(page.locator('#counts')).toHaveCount(0)

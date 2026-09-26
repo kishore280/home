@@ -1,12 +1,11 @@
-import type { ReactNode } from 'react'
 import useSWR from 'swr'
 import { site } from '../data'
-import { fetcher, type LogSummary, type LogTotals } from '../lib/api'
+import { fetcher, type LogKind, type LogSummary } from '../lib/api'
 import { useNow } from '../lib/client'
 import { Card } from './Card'
 import { chaiIcon } from './ChaiIcon'
 
-// Chai, parotta and beach days, logged from the /log page (worker/log.ts counts them in IST).
+// Everything logged from the /log page, one row per kind (worker/log.ts counts them in IST).
 const dayKey = new Intl.DateTimeFormat('en-CA', { timeZone: site.timeZone }) // YYYY-MM-DD
 const clock = new Intl.DateTimeFormat('en-IN', { timeZone: site.timeZone, hour: 'numeric', minute: '2-digit' })
 const shortDay = new Intl.DateTimeFormat('en-GB', { timeZone: site.timeZone, day: 'numeric', month: 'short' })
@@ -20,79 +19,52 @@ function when(iso: string, now: number) {
   return `${day}, ${clock.format(d)}`
 }
 
-function Row({ label, main, sub }: { label: ReactNode; main: string; sub: string }) {
+// A once-a-day kind (beach days) counts days: this month and this year, with the last day and
+// place. Any other kind counts taps: today and this month, with the time of the last one.
+function Row({ kind, now }: { kind: LogKind & { last: string }; now: number }) {
+  const main = kind.onceADay ? `${kind.month} this month` : `${kind.today} today`
+  const sub = kind.onceADay
+    ? `${kind.year} this year · last ${shortDay.format(new Date(kind.last))}${kind.place ? `, ${kind.place}` : ''}`
+    : `${kind.month} this month · last ${when(kind.last, now)}`
   return (
     <div className="count">
-      <dt>{label}</dt>
+      <dt>
+        {kind.kind === 'chai' ? chaiIcon : <span aria-hidden="true">{kind.emoji}</span>} {kind.label}
+      </dt>
       <dd className="count-main">{main}</dd>
       <dd className="count-sub">{sub}</dd>
     </div>
   )
 }
 
-// A line kept for each kind while the counts load, so the card does not grow when they arrive
-// (web.dev "Optimize CLS"). It is in the pre-rendered HTML.
-const pendingRow = (key: string) => (
-  <div className="count pending" key={key} aria-hidden="true">
+// While the counts load, one line per kind so the card does not grow when they arrive (web.dev
+// "Optimize CLS"). It is in the pre-rendered HTML; 3 is the number of kinds today.
+const PENDING_ROWS = 3
+const pendingRow = (i: number) => (
+  <div className="count pending" key={i} aria-hidden="true">
     <dt />
     <dd className="count-main" />
     <dd className="count-sub" />
   </div>
 )
 
-const rows: [keyof LogSummary, (t: LogTotals, now: number) => ReactNode][] = [
-  [
-    'parotta',
-    (t, now) => (
-      <Row
-        key="parotta"
-        label={
-          <>
-            <span aria-hidden="true">🫓</span> parotta
-          </>
-        }
-        main={`${t.month} this month`}
-        sub={`${t.total} total · last ${when(t.last, now)}`}
-      />
-    ),
-  ],
-  [
-    'chai',
-    (t, now) => (
-      <Row key="chai" label={<>{chaiIcon} chai</>} main={`${t.today} today`} sub={`${t.month} this month · last ${when(t.last, now)}`} />
-    ),
-  ],
-  [
-    'beach',
-    (t) => (
-      <Row
-        key="beach"
-        label={
-          <>
-            <span aria-hidden="true">🌊</span> beach days
-          </>
-        }
-        main={`${t.month} this month`}
-        sub={`${t.year} this year · last ${shortDay.format(new Date(t.last))}${t.place ? `, ${t.place}` : ''}`}
-      />
-    ),
-  ],
-]
+const logged = (kind: LogKind): kind is LogKind & { last: string } => kind.last !== null
 
 export function Counts() {
   const now = useNow(60_000)
   const { data, error } = useSWR('/api/log', fetcher<LogSummary>, { refreshInterval: 60_000 })
   const pending = data === undefined && !error
   // A kind never logged is hidden; with nothing logged at all, so is the card.
-  const shown = rows.flatMap(([kind, render]) => {
-    const totals = data?.[kind]
-    return totals ? [render(totals, now)] : []
-  })
+  const shown = data?.kinds.filter(logged) ?? []
   if (!pending && shown.length === 0) return null
 
   return (
     <Card title="counts" id="counts">
-      <dl className="counts">{pending ? rows.map(([kind]) => pendingRow(kind)) : shown}</dl>
+      <dl className="counts">
+        {pending
+          ? Array.from({ length: PENDING_ROWS }, (_, i) => pendingRow(i))
+          : shown.map((kind) => <Row key={kind.kind} kind={kind} now={now} />)}
+      </dl>
     </Card>
   )
 }

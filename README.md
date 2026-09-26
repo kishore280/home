@@ -63,8 +63,20 @@ logs check-ins); the Worker stores it in D1 and the counts card updates within s
   (Chrome → ⋮ → Install app), then long-press its icon: **Chai +1**, **Parotta +1**, **Beach day**
   ([manifest shortcuts](https://web.dev/learn/pwa/enhancements)). Only the installed app logs from these links.
 - **A short buzz** when a tap is taken (`navigator.vibrate`, Android).
-- **Free-tier safe:** `log_totals` keeps running totals per day, month and year (IST), so a page
-  view reads a few rows, never the whole history (D1 free plan: 5 million rows read a day).
+- **The data** (`migrations/0004_log.sql`), designed the way database people recommend:
+  - `log_entries` keeps **every tap forever**: the time (UTC), the phone's time zone, the day in IST
+    and the place. Undo only marks an entry (`undone_at`), so the history stays whole.
+  - `log_totals` keeps running sums per **day, month, year and all time** (the "raw events + rollup
+    tables" pattern, [Citus](https://www.citusdata.com/blog/2018/10/31/materialized-views-vs-rollup-tables/)),
+    updated in the same transaction. A page view reads about 15 rows by key, never the whole
+    history (D1 bills rows read; free plan: 5 million a day). The grain is part of the key, so a
+    future heatmap is one primary-key range read of 365 day rows.
+  - `STRICT` tables (SQLite refuses wrong types), `WITHOUT ROWID` for the rollups, partial indexes,
+    and foreign keys to `log_kinds` (D1 enforces them).
+- **A new kind** (gym, sleep, …) is one row, no code change: the buttons and the counts card
+  come from `log_kinds`. In the D1 Console:
+  `INSERT INTO log_kinds (kind, emoji, label, once_a_day, sort) VALUES ('gym', '🏋️', 'gym', 0, 4);`
+  (`once_a_day = 1` counts a day once, like beach days.)
 
 ### Set up (from a phone)
 

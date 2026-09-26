@@ -31,6 +31,14 @@ const { count, size, warnings } = await generateSW({
       handler: 'NetworkFirst',
       options: { cacheName: 'pages', networkTimeoutSeconds: 3, precacheFallback: { fallbackURL: 'log.html' } },
     },
+    // The kinds and counts for /log: the network, else the last copy, so the buttons are there with
+    // no signal.
+    {
+      urlPattern: ({ url }) => url.pathname === '/api/log',
+      method: 'GET',
+      handler: 'NetworkFirst',
+      options: { cacheName: 'api', networkTimeoutSeconds: 3 },
+    },
     // A log or undo sent with no signal waits in a queue and is sent when the network is back
     // (workbox-background-sync). 24 h, the oldest `at` the Worker accepts.
     {
