@@ -96,4 +96,4 @@ Each push to `main` then builds and deploys. From the command line: `npx wrangle
 
 ## Agent skills
 
-`.claude/skills/` has MIT-licensed skills: `react-best-practices` and `web-design-guidelines` from [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills), and `seo-mastery` from [kpab/seo-mastery-agent-skills](https://github.com/kpab/seo-mastery-agent-skills).
+`.claude/skills/` has open-source skills: `react-best-practices` and `web-design-guidelines` from [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills), `seo-mastery` from [kpab/seo-mastery-agent-skills](https://github.com/kpab/seo-mastery-agent-skills), and `owasp-security` from [agamm/claude-code-owasp](https://github.com/agamm/claude-code-owasp). `workers-best-practices` is from [cloudflare/skills](https://github.com/cloudflare/skills) (Apache-2.0).
