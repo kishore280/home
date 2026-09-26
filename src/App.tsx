@@ -12,7 +12,11 @@ import type { MenuItem } from './components/CommandMenu'
 import { useCounters } from './hooks/useCounters'
 import { toggleTheme } from './theme'
 
-const CommandMenu = lazy(() => import('./components/CommandMenu'))
+const loadMenu = () => import('./components/CommandMenu')
+const CommandMenu = lazy(loadMenu)
+
+// Count one view per page load (module guard) and per browser session (storage guard).
+let viewCounted = false
 
 async function copyEmail() {
   try {
@@ -27,8 +31,9 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false)
   const { counters, bump, refresh } = useCounters()
 
-  // Count one view per browser session.
   useEffect(() => {
+    if (viewCounted) return
+    viewCounted = true
     try {
       if (sessionStorage.getItem('viewed')) return
       sessionStorage.setItem('viewed', '1')
@@ -121,7 +126,13 @@ export default function App() {
           <Buttons />
 
           <footer>
-            <button type="button" className="link-button" onClick={() => setMenuOpen(true)}>
+            <button
+              type="button"
+              className="link-button"
+              onClick={() => setMenuOpen(true)}
+              onPointerEnter={() => void loadMenu()}
+              onFocus={() => void loadMenu()}
+            >
               <kbd>⌘</kbd>
               <kbd>K</kbd> menu
             </button>

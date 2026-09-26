@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useTransition, type FormEvent } from 'react'
 import useSWR from 'swr'
 import { toast } from 'sonner'
 import { fetcher, post, type Note } from '../lib/api'
@@ -9,27 +9,26 @@ const KEY = '/api/guestbook'
 
 export function Guestbook({ onSigned }: { onSigned: () => void }) {
   const { data: notes, mutate } = useSWR(KEY, fetcher<Note[]>)
-  const [sending, setSending] = useState(false)
+  const [sending, startTransition] = useTransition()
 
   // No list means the guestbook database is not set up yet, so the card stays hidden.
   if (!notes) return null
 
-  const submit = async (e: FormEvent<HTMLFormElement>) => {
+  const submit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const form = e.currentTarget
     const fields = Object.fromEntries(new FormData(form))
-    setSending(true)
-    try {
-      const note = await post<Note>(KEY, fields)
-      await mutate([note, ...notes], { revalidate: false })
-      form.reset()
-      onSigned()
-      toast('Signed. Thank you for the note ♡')
-    } catch (err) {
-      toast.error((err as Error).message)
-    } finally {
-      setSending(false)
-    }
+    startTransition(async () => {
+      try {
+        const note = await post<Note>(KEY, fields)
+        await mutate([note, ...notes], { revalidate: false })
+        form.reset()
+        onSigned()
+        toast('Signed. Thank you for the note ♡')
+      } catch (err) {
+        toast.error((err as Error).message)
+      }
+    })
   }
 
   return (

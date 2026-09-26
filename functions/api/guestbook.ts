@@ -3,9 +3,11 @@ import { fail, ipHash, json, type DbEnv } from './_db'
 
 type Row = { id: number; name: string; text: string; created_at: string }
 
+const WHITESPACE = /\s+/g
+
 const toNote = (r: Row) => ({ id: r.id, name: r.name, text: r.text, at: r.created_at })
 const clean = (v: unknown, max: number) =>
-  typeof v === 'string' ? v.replace(/\s+/g, ' ').trim().slice(0, max) : ''
+  typeof v === 'string' ? v.replace(WHITESPACE, ' ').trim().slice(0, max) : ''
 
 export const onRequestGet: PagesFunction<DbEnv> = async ({ env }) => {
   if (!env.DB) return new Response(null, { status: 204 })

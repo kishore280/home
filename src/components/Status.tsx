@@ -1,9 +1,11 @@
+import { preconnect } from 'react-dom'
 import useSWR from 'swr'
 import { fetcher, type Status as StatusData } from '../lib/api'
 import { Card } from './Card'
 
 // status.cafe allows cross-origin reads, so the browser fetches it directly.
 export function Status({ user }: { user: string }) {
+  preconnect('https://status.cafe')
   const { data } = useSWR(`https://status.cafe/users/${user}/status.json`, fetcher<StatusData>, {
     refreshInterval: 300_000,
   })
