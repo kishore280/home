@@ -3,6 +3,7 @@ import log from '../log.json'
 import { site } from '../data'
 import { Card } from './Card'
 import { chaiIcon } from './ChaiIcon'
+import { useIsClient } from '../lib/client'
 
 // Everything is counted in IST, so "today" and "this month" match kish's day.
 type Timed = { at: string; count?: number }
@@ -63,7 +64,9 @@ for (const b of beachDays) {
 const hasCounts = Boolean(parotta.last || chai.last || lastBeach)
 
 export function Counts() {
-  if (!hasCounts) return null
+  // "today" and "this month" depend on the visitor's clock: render on the client only.
+  const isClient = useIsClient()
+  if (!hasCounts || !isClient) return null
 
   return (
     <Card title="counts" id="counts">

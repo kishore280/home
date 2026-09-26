@@ -3,12 +3,19 @@ import useSWR from 'swr'
 import { fetcher, type Push, type Track } from '../lib/api'
 import { timeAgo } from '../lib/time'
 import { site } from '../data'
+import { useIsClient } from '../lib/client'
 import { Card } from './Card'
 
 // Built once, not every 10 s (Vercel rule js-cache-function-results).
 const timeFormat = new Intl.DateTimeFormat('en-GB', { timeZone: site.timeZone || undefined, hour: '2-digit', minute: '2-digit' })
 
 function Clock() {
+  // The time is only known on the visitor's device; the pre-rendered HTML leaves it empty.
+  if (!useIsClient()) return null
+  return <ClockTime />
+}
+
+function ClockTime() {
   const [now, setNow] = useState(() => new Date())
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 10_000)

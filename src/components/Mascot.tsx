@@ -1,4 +1,5 @@
 import { useImperativeHandle, useRef, useState, type ReactNode, type Ref } from 'react'
+import { useIsClient } from '../lib/client'
 import { site } from '../data'
 import { chaiIcon } from './ChaiIcon'
 
@@ -6,10 +7,10 @@ import { chaiIcon } from './ChaiIcon'
 // evening, coding in the day, the beach at sunset, parotta for dinner, sleep at night.
 type Mode = 'chai' | 'badminton' | 'coding' | 'beach' | 'parotta' | 'sleep'
 
+const hourFormat = new Intl.DateTimeFormat('en-GB', { hour: 'numeric', hourCycle: 'h23', timeZone: site.timeZone })
+
 function modeNow(): Mode {
-  const hour = Number(
-    new Intl.DateTimeFormat('en-GB', { hour: 'numeric', hourCycle: 'h23', timeZone: site.timeZone }).format(new Date()),
-  )
+  const hour = Number(hourFormat.format(new Date()))
   if (hour >= 6 && hour < 9) return 'badminton'
   if (hour >= 10 && hour < 16) return 'coding'
   if (hour >= 5 && hour < 17) return 'chai' // 5–6 am, 9–10 am, 4–5 pm
@@ -92,7 +93,8 @@ const ACCESSORY: Record<Mode, ReactNode> = {
   ),
 }
 
-function Face({ mode }: { mode: Mode }) {
+// `mode` is null while pre-rendering: a plain, awake mascot with no accessory.
+function Face({ mode }: { mode: Mode | null }) {
   const asleep = mode === 'sleep'
   return (
     <svg viewBox="0 0 120 120" aria-hidden="true">
@@ -122,7 +124,7 @@ function Face({ mode }: { mode: Mode }) {
       <ellipse className="m-blush" cx="35" cy="76" rx="6" ry="3.5" />
       <ellipse className="m-blush" cx="85" cy="76" rx="6" ry="3.5" />
       <path className="m-mouth" d={asleep ? 'M57 75q3 2 6 0' : 'M54 73q3 4 6 0q3 4 6 0'} />
-      {ACCESSORY[mode]}
+      {mode ? ACCESSORY[mode] : null}
     </svg>
   )
 }
@@ -138,7 +140,8 @@ export function Mascot({
   onPat: () => void
   ref?: Ref<MascotHandle>
 }) {
-  const [mode] = useState(modeNow)
+  // The mode depends on the visitor's clock, so it is chosen on the client only.
+  const mode = useIsClient() ? modeNow() : null
   // The text stays while the bubble fades out; only `talking` turns it off.
   const [line, setLine] = useState('')
   const [talking, setTalking] = useState(false)
@@ -146,7 +149,7 @@ export function Mascot({
   const timer = useRef<number>(undefined)
 
   const pat = () => {
-    const lines = [...MODES[mode].lines, ...ALWAYS]
+    const lines = mode ? [...MODES[mode].lines, ...ALWAYS] : ALWAYS
     setHop((h) => h + 1)
     setLine(lines[Math.floor(Math.random() * lines.length)])
     setTalking(true)
@@ -171,7 +174,7 @@ export function Mascot({
         </span>
       </button>
       <p className="small">
-        {MODES[mode].label}
+        {mode ? MODES[mode].label : null}
         {pats !== null ? ` · ${pats.toLocaleString()} ${pats === 1 ? 'pat' : 'pats'}` : null}
       </p>
     </div>

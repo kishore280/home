@@ -2,6 +2,12 @@
 
 export const site = {
   name: 'kishore',
+  // The public address of the site, no trailing slash. Used for canonical, sitemap and share cards.
+  url: 'https://kichoow.com',
+  // Search results and share cards. Only real facts about kish.
+  title: 'Kishore (kish)',
+  description:
+    'Kishore’s corner of the internet: code, badminton, beach runs, chai, parotta and a Himalayan, from beach-side South India.',
   // One sentence under "hi, i'm …".
   intro: '',
   // A few lines about you. Each string is one paragraph.
