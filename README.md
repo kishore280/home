@@ -6,6 +6,8 @@ kishore’s little corner of the internet. A soft lavender personal site: React 
 
 Live at **[kichoow.com](https://kichoow.com)**.
 
+Coding agents: read [AGENTS.md](AGENTS.md) for the rules, commands, tests and how to ship.
+
 ## What is on the page
 
 | Part | Data | Needs |
@@ -31,8 +33,20 @@ npm run dev         # Vite dev server (no API functions)
 npm run build       # type-check and build to dist/
 npm run preview     # build, then run the Worker and the site locally (wrangler dev)
 npm run lint        # oxlint
+npm run audit       # build, then the UI tests in a real browser (see Test below)
 npm run cf-typegen  # regenerate worker-configuration.d.ts
 ```
+
+## Test
+
+`npm run audit` builds the site and runs `tests/ui.spec.ts` with [Playwright](https://playwright.dev) on a desktop and a mobile (Pixel 7) browser, with [axe-core](https://github.com/dequelabs/axe-core-npm/tree/develop/packages/playwright) for accessibility. It checks every tap target, the ⌘K menu, the offline page and service worker, the 404 page, layout width, keyboard use and the Umami events (captured, never sent).
+
+```sh
+npx playwright install chromium   # once
+npm run audit                     # or: CHROMIUM_PATH=/path/to/chrome npm run audit
+```
+
+The site runs locally with `wrangler dev`, and the test browser opens it as `http://kichoow.com`, so Umami's domain check and the service worker work as on the live site. A failed test leaves a trace and an HTML report in `.context/` (`npx playwright show-report .context/playwright-report`).
 
 ## Log parotta, chai and beach days
 
@@ -81,8 +95,8 @@ Each push to `main` then builds and deploys. From the command line: `npx wrangle
 - The card and icons are made from `scripts/og/template.html` and `scripts/og/mascot.svg`. The buttons, description and domain come from `src/data.ts`. After you add a button, make them again:
 
   ```sh
-  npm i -D playwright && npx playwright install chromium   # once
-  npm run og                                               # or: CHROMIUM_PATH=/path/to/chrome npm run og
+  npx playwright install chromium   # once
+  npm run og                        # or: CHROMIUM_PATH=/path/to/chrome npm run og
   ```
 
 ## Offline only
