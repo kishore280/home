@@ -1,4 +1,4 @@
-import { toast } from 'sonner'
+import { toast } from '../lib/toast'
 import { friends, myButtons } from '../data'
 import { Card } from './Card'
 
@@ -11,7 +11,7 @@ async function copyEmbed(file: string, alt: string) {
     await navigator.clipboard.writeText(embed(file, alt))
     toast('Button code copied. Paste it on your site ♡')
   } catch {
-    toast.error('Could not copy. Your browser blocked the clipboard.')
+    toast('Copy failed. Right-click the button and copy the image address.', true)
   }
 }
 
@@ -24,14 +24,14 @@ export function Buttons() {
             key={b.file}
             type="button"
             className="b88"
+            data-caption={b.alt}
             onClick={() => copyEmbed(b.file, b.alt)}
-            title="Copy the code for this button"
           >
-            <img src={`/${b.file}.svg`} width={88} height={31} alt={b.alt} />
+            <img src={`/${b.file}.svg`} width={88} height={31} alt={b.alt} loading="lazy" decoding="async" />
           </button>
         ))}
         {friends.map((f) => (
-          <a key={f.href} className="b88" href={f.href} target="_blank" rel="noreferrer">
+          <a key={f.href} className="b88" data-caption={f.name} href={f.href} target="_blank" rel="noreferrer">
             <img src={f.img} width={88} height={31} alt={f.name} loading="lazy" />
           </a>
         ))}

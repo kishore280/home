@@ -14,6 +14,9 @@
 		"not_found_handling": "single-page-application",
 		"run_worker_first": ["/api/*"]
 	},
+	// Serve on home.<account>.workers.dev; no per-version preview URLs.
+	"workers_dev": true,
+	"preview_urls": false,
 	// Keep variables set in the Cloudflare dashboard (e.g. LASTFM_USER) on each deploy.
 	"keep_vars": true,
 	"observability": {

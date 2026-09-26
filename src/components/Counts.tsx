@@ -48,20 +48,33 @@ function Row({ label, main, sub }: { label: ReactNode; main: string; sub: string
   )
 }
 
-export function Counts() {
-  const parotta = tally(log.parotta as Timed[])
-  const chai = tally(log.chai as Timed[])
-  const beach = log.beach as Day[]
-  const lastBeach = beach.at(-1)
+// log.json is static, so everything is counted once when the module loads
+// (Vercel rules rerender-memo, js-cache-function-results, js-combine-iterations).
+const parotta = tally(log.parotta as Timed[])
+const chai = tally(log.chai as Timed[])
+const beachDays = log.beach as Day[]
+const lastBeach = beachDays.at(-1)
+let beachThisMonth = 0
+let beachThisYear = 0
+for (const b of beachDays) {
+  if (b.date.startsWith(year)) beachThisYear++
+  if (b.date.startsWith(month)) beachThisMonth++
+}
+const hasCounts = Boolean(parotta.last || chai.last || lastBeach)
 
-  if (!parotta.last && !chai.last && !lastBeach) return null
+export function Counts() {
+  if (!hasCounts) return null
 
   return (
     <Card title="counts" id="counts">
       <dl className="counts">
         {parotta.last ? (
           <Row
-            label="🫓 parotta"
+            label={
+              <>
+                <span aria-hidden="true">🫓</span> parotta
+              </>
+            }
             main={`${parotta.thisMonth} this month`}
             sub={`${parotta.total} total · last ${when(parotta.last.at)}`}
           />
@@ -75,9 +88,13 @@ export function Counts() {
         ) : null}
         {lastBeach ? (
           <Row
-            label="🌊 beach days"
-            main={`${beach.filter((b) => b.date.startsWith(month)).length} this month`}
-            sub={`${beach.filter((b) => b.date.startsWith(year)).length} this year · last ${shortDay.format(new Date(lastBeach.date))}${lastBeach.place ? `, ${lastBeach.place}` : ''}`}
+            label={
+              <>
+                <span aria-hidden="true">🌊</span> beach days
+              </>
+            }
+            main={`${beachThisMonth} this month`}
+            sub={`${beachThisYear} this year · last ${shortDay.format(new Date(lastBeach.date))}${lastBeach.place ? `, ${lastBeach.place}` : ''}`}
           />
         ) : null}
       </dl>
