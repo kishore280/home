@@ -27,7 +27,7 @@ kishore's personal site, live at **https://kichoow.com**. React 19 + TypeScript 
 - **Style:** soft lavender; colours are tokens in `src/index.css` (light and dark). Text needs 4.5:1 contrast.
 - **Free tier only** (Cloudflare Workers, D1, Umami Cloud Hobby). Nothing that costs money.
 - **Secrets** (API keys, tokens) never go in the code or Git. They are Worker secrets in the Cloudflare dashboard.
-- **Analytics:** a click is tracked with `data-umami-event="Name"`; anything else with `track()` / `trackOnce()` / `trackHover()` from `src/lib/track.ts`. A same-tab navigation must wait for its event (see `CommandMenu.tsx`).
+- **Analytics:** a click is tracked with `data-umami-event="Name"`; anything else with `track()` / `trackOnce()` / `trackHover()` from `src/lib/track.ts`. Umami sends with `fetch` keepalive, so a same-tab navigation does not wait for its event (see `CommandMenu.tsx`).
 
 ## Skills (read the one that fits the task)
 

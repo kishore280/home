@@ -129,6 +129,14 @@ test.describe('⌘K menu', () => {
     await expectEvents(log, ['Menu open'])
   })
 
+  test('opening it does not move the page behind it', async ({ page, press }) => {
+    await page.goto('/')
+    await page.locator('.link-button').scrollIntoViewIfNeeded() // so opening it does not scroll
+    const before = await page.locator('main').boundingBox()
+    await openMenu(page, press)
+    expect(await page.locator('main').boundingBox()).toEqual(before)
+  })
+
   test('Ctrl+K opens and closes it; only opening is counted', async ({ page, log, isMobile }) => {
     test.skip(isMobile, 'keyboard shortcut')
     await page.goto('/')
@@ -146,6 +154,8 @@ test.describe('⌘K menu', () => {
     test(`a tap outside it, over ${name}, closes it and presses nothing`, async ({ page, log, press, isMobile }) => {
       await page.goto('/')
       await openMenu(page, press)
+      // Opening it can scroll the target off screen; bring it back (the scroll lock allows a script scroll).
+      await page.locator(selector).first().evaluate((el) => el.scrollIntoView({ block: 'center' }))
       const target = (await page.locator(selector).first().boundingBox())!
       const box = (await menu(page).boundingBox())!
       const [x, y] = [target.x + target.width / 2, target.y + target.height / 2]
@@ -325,6 +335,53 @@ test.describe('offline page', () => {
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(/^hi, i’m/)
     await page.goto('/never/seen')
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('wifi off, chai on')
+  })
+})
+
+test.describe('speed', () => {
+  test('nothing moves while the home page loads (layout shift)', async ({ page }) => {
+    await page.addInitScript(() => {
+      ;(window as unknown as { __cls: number }).__cls = 0
+      new PerformanceObserver((list) => {
+        for (const e of list.getEntries() as (PerformanceEntry & { value: number; hadRecentInput: boolean })[])
+          if (!e.hadRecentInput) (window as unknown as { __cls: number }).__cls += e.value
+      }).observe({ type: 'layout-shift', buffered: true })
+    })
+    await page.goto('/')
+    // Wait for everything that arrives after the page: the clock, the mascot's line and the views.
+    await expect(page.locator('.clock')).toBeVisible()
+    await expect(page.locator('.stats dd')).toHaveCount(2)
+    await settle(page)
+    expect(await page.evaluate(() => (window as unknown as { __cls: number }).__cls)).toBeLessThan(0.001)
+  })
+
+  test('a same-site link is prefetched on hover and opens from the prefetch', async ({ browser, baseURL, isMobile }) => {
+    test.skip(isMobile, 'hover')
+    // A context with no request interception: Chrome does not use prefetches while Playwright
+    // routes requests (the shared fixture does, to capture analytics).
+    const context = await browser.newContext({ baseURL })
+    const page = await context.newPage()
+    // The rules come from a separate file (the header points to it); hover once it has loaded.
+    const rules = page.waitForResponse((r) => r.url().endsWith('/speculationrules.json'))
+    const response = await page.goto('/offline')
+    expect(response?.headers()['speculation-rules']).toBe('"/speculationrules.json"')
+    expect((await rules).headers()['content-type']).toBe('application/speculationrules+json')
+    // On a first visit the service worker takes control within about a second; a prefetch made
+    // before that is not used for the controlled page, so start once it is in control.
+    await page.evaluate(async () => {
+      await navigator.serviceWorker.ready
+      if (!navigator.serviceWorker.controller)
+        await new Promise((resolve) => navigator.serviceWorker.addEventListener('controllerchange', resolve, { once: true }))
+    })
+    const back = page.getByRole('link', { name: /back to kish/ })
+    await back.hover()
+    await page.waitForTimeout(1000) // "moderate" eagerness: the browser starts after about 200 ms of hover
+    await back.click()
+    await expect(page).toHaveURL('/')
+    expect(await page.evaluate(() => (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming & { deliveryType: string }).deliveryType)).toBe(
+      'navigational-prefetch',
+    )
+    await context.close()
   })
 })
 

@@ -53,12 +53,11 @@ export default function CommandMenu({
                       key={item.label}
                       onSelect={() => {
                         onOpenChange(false)
-                        const sent = track(`Menu: ${item.label}`)
+                        void track(`Menu: ${item.label}`)
                         if ('run' in item) return item.run()
-                        // Leaving the page can drop the event, so wait for it (at most 0.5 s),
-                        // as Umami's own link tracking does.
-                        const wait = new Promise((resolve) => setTimeout(resolve, 500))
-                        void Promise.race([sent, wait]).finally(() => window.location.assign(item.href))
+                        // No wait: Umami sends with fetch({ keepalive: true }), which finishes
+                        // after the page is gone (MDN, "keepalive"), like gtag's beacon transport.
+                        window.location.assign(item.href)
                       }}
                     >
                       {item.label}

@@ -8,6 +8,12 @@
   Permissions-Policy: camera=(), microphone=(), geolocation=()
   # The main CSP is a <meta> tag (vite-plugin-csp-guard); frame-ancestors works only as a header.
   Content-Security-Policy: frame-ancestors 'none'
+  # Speculation Rules: prefetch a same-site page when a link is hovered or touched, so it opens
+  # at once. Prefetch only (no prerender), so no page runs early and no view is counted.
+  Speculation-Rules: "/speculationrules.json"
+
+/speculationrules.json
+  Content-Type: application/speculationrules+json
 
 # Vite puts a content hash in these file names, so they never change: cache for a year.
 /assets/*
