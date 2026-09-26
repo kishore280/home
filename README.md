@@ -13,7 +13,8 @@ kishore's little corner of the internet. A soft lavender personal site: React + 
 | Right now: music | Last.fm | `LASTFM_API_KEY`, `LASTFM_USER` |
 | Right now: building | Latest public GitHub push | `github` in `src/data.ts` |
 | Right now: local time | Browser | `timeZone` in `src/data.ts` |
-| Updates, 88×31 buttons | `src/data.ts`, `public/button.svg` | Nothing |
+| Counts: parotta, chai, beach days | `src/log.json` | Nothing |
+| Updates, 88×31 buttons | `src/data.ts`, `public/*.svg` | Nothing |
 | ⌘K menu | cmdk | Nothing |
 
 Only real data is shown. A part with no data is hidden.
@@ -28,6 +29,18 @@ npm run preview     # build, then run with the functions (wrangler pages dev)
 npm run lint        # oxlint
 npm run cf-typegen  # regenerate worker-configuration.d.ts
 ```
+
+## Log parotta, chai and beach days
+
+Each command adds an entry to `src/log.json` with the current time in IST. Commit and push to update the site.
+
+```sh
+npm run log parotta 2        # 2 parottas now
+npm run log chai             # 1 chai now
+npm run log beach "Marina"   # a beach day today, with an optional place
+```
+
+You can also edit `src/log.json` by hand. Times use ISO format with the IST offset, e.g. `2026-09-26T20:15:00+05:30`.
 
 ## Set up views and pats (Cloudflare D1)
 

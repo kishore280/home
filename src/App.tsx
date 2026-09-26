@@ -6,6 +6,7 @@ import { Mascot } from './components/Mascot'
 import { Status } from './components/Status'
 import { Stats } from './components/Stats'
 import { RightNow } from './components/RightNow'
+import { Counts } from './components/Counts'
 import { Buttons } from './components/Buttons'
 import type { MenuItem } from './components/CommandMenu'
 import { useCounters } from './hooks/useCounters'
@@ -101,6 +102,7 @@ export default function App() {
           </Card>
 
           <RightNow />
+          <Counts />
 
           {updates.length > 0 ? (
             <Card title="updates">

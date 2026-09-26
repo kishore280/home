@@ -549,6 +549,15 @@ h2 {
   font-variant-numeric: tabular-nums;
 }
 
+/* counts: the numbers stand out, and long lines wrap instead of cutting off */
+.count-main {
+  font-weight: 800;
+}
+
+#counts .row dd {
+  white-space: normal;
+}
+
 .swap-in {
   animation: swap-in 0.3s ease-out;
 }
