@@ -3,7 +3,7 @@
 // Method: .claude/skills/ui-test (adversarial checks) and .claude/skills/webapp-testing.
 import { execSync } from 'node:child_process'
 import AxeBuilder from '@axe-core/playwright'
-import { test as base, expect, type Locator, type Page } from '@playwright/test'
+import { test as base, expect, type APIRequestContext, type Locator, type Page } from '@playwright/test'
 
 declare global {
   interface Window {
@@ -457,47 +457,55 @@ test.describe('speed', () => {
 // requests below are the ones it sends (its ListenBrainz.kt). They go straight to the local
 // server, not through the browser's kichoow.com mapping.
 test.describe('now playing (ListenBrainz API)', () => {
-  // One shared row in the local D1: run in order (and with --workers=1 when using --repeat-each).
+  // One shared table in the local D1: run in order (and with --workers=1 when using --repeat-each).
   test.describe.configure({ mode: 'serial' })
   const api = 'http://127.0.0.1:8787/api/scrobble/1/'
   const auth = { authorization: 'token test-token' } // SCROBBLE_TOKEN in playwright.config.ts
-  const listen = (title: string, extra: object = {}) => ({
+  const listen = (title: string, extra: object = {}, durationMs = 180_000) => ({
     ...extra,
-    track_metadata: { artist_name: 'Test Artist', track_name: title, additional_info: { duration_ms: 180_000 } },
+    track_metadata: { artist_name: 'Test Artist', track_name: title, additional_info: { duration_ms: durationMs } },
   })
-  const nowPlaying = async (request: import('@playwright/test').APIRequestContext) =>
-    (await request.get('http://127.0.0.1:8787/api/now-playing')).json()
+  const submit = (request: APIRequestContext, listen_type: string, payload: unknown[]) =>
+    request.post(`${api}submit-listens`, { data: { listen_type, payload }, headers: auth })
+  const nowPlaying = async (request: APIRequestContext) => (await request.get('http://127.0.0.1:8787/api/now-playing')).json()
+  const seconds = () => Math.floor(Date.now() / 1000)
 
   test.beforeEach(({ isMobile }) => test.skip(isMobile, 'API only; one run is enough'))
-  // Start from no song (the local D1 keeps the row between runs).
+  // Start with no music (the local D1 keeps its rows between runs).
   test.beforeAll(() => {
-    execSync('npx wrangler d1 execute home --local --command "DELETE FROM now_playing"', { stdio: 'ignore' })
+    execSync('npx wrangler d1 execute home --local --command "DELETE FROM music"', { stdio: 'ignore' })
   })
 
-  test('the token is checked like ListenBrainz does', async ({ request }) => {
+  test('the token and the request are checked like ListenBrainz does', async ({ request }) => {
     expect(await (await request.get(`${api}validate-token`, { headers: auth })).json()).toMatchObject({ valid: true, user_name: 'kishore' })
     expect(await (await request.get(`${api}validate-token`, { headers: { authorization: 'token wrong' } })).json()).toMatchObject({ valid: false })
     const body = { listen_type: 'playing_now', payload: [listen('Nope')] }
     expect((await request.post(`${api}submit-listens`, { data: body })).status()).toBe(401)
     expect((await request.post(`${api}submit-listens`, { data: body, headers: { authorization: 'token test-tokeN' } })).status()).toBe(401)
-    expect((await request.post(`${api}submit-listens`, { data: { listen_type: 'x' }, headers: auth })).status()).toBe(400)
+    expect((await submit(request, 'x', [listen('Nope')])).status()).toBe(400)
+    expect((await submit(request, 'import', [null, 'text', 42])).status()).toBe(400)
+    expect((await submit(request, 'single', [listen('A', { listened_at: seconds() }), listen('B', { listened_at: seconds() })])).status()).toBe(400)
+    expect((await submit(request, 'single', [listen('Too old', { listened_at: 1_000_000_000 })])).status()).toBe(400)
+    expect((await submit(request, 'single', [listen('Too new', { listened_at: seconds() + 2 * 3600 })])).status()).toBe(400)
+    expect((await request.get('http://127.0.0.1:8787/api/now-playing')).status()).toBe(204)
   })
 
-  test('playing_now shows as listening; the finished listen for it changes nothing', async ({ request, page }) => {
+  test('playing_now shows as listening for the length of the song', async ({ request, page }) => {
     const song = `Song ${Date.now()}`
-    const res = await request.post(`${api}submit-listens?return_msid=true`, { data: { listen_type: 'playing_now', payload: [listen(song)] }, headers: auth })
-    expect(await res.json()).toEqual({ status: 'ok' })
-    // Pano sends the finished listen ("single") half-way through, with the song's start time.
-    await request.post(`${api}submit-listens`, {
-      data: { listen_type: 'single', payload: [listen(song, { listened_at: Math.floor(Date.now() / 1000) - 5 })] },
-      headers: auth,
-    })
+    expect(await (await submit(request, 'playing_now', [listen(song)])).json()).toEqual({ status: 'ok' })
+    // Pano sends the finished listen ("single") half-way through; it goes to its own row.
+    await submit(request, 'single', [listen(song, { listened_at: seconds() - 90 })])
     const track = await nowPlaying(request)
     expect(track).toMatchObject({ title: song, artist: 'Test Artist' })
-    // 3 min song + 1 min: "until" is about 4 min after the start.
-    expect(Date.parse(track.until) - Date.parse(track.at)).toBe(240_000)
+    expect(Date.parse(track.until) - Date.parse(track.at)).toBe(180_000)
     await page.goto('/')
     await expect(page.locator('.row', { hasText: 'listening' })).toContainText(song)
+  })
+
+  test('the same song sent again does not restart it', async ({ request }) => {
+    const before = await nowPlaying(request)
+    await submit(request, 'playing_now', [listen(before.title)])
+    expect(await nowPlaying(request)).toEqual(before)
   })
 
   test('once the song is over it shows as last played, with its time', async ({ request, page }) => {
@@ -509,6 +517,14 @@ test.describe('now playing (ListenBrainz API)', () => {
     await expect(row).toContainText('2 hr. ago')
   })
 
+  test('with nothing playing, the newest listen shows; older ones never replace it', async ({ request }) => {
+    await submit(request, 'playing_now', [listen('Skipped at once', {}, 1)]) // expires after 1 ms
+    const now = seconds()
+    await submit(request, 'import', [listen('Offline A', { listened_at: now - 60 }), listen('Offline B', { listened_at: now - 30 })])
+    expect(await nowPlaying(request)).toMatchObject({ title: 'Offline B' })
+    await submit(request, 'import', [listen('Much older', { listened_at: now - 7200 })])
+    expect(await nowPlaying(request)).toMatchObject({ title: 'Offline B' })
+  })
   test('with no song and no GitHub data, the loading lines go away and nothing else shows', async ({ page }) => {
     await page.route('**/api/now-playing', (r) => r.fulfill({ status: 204 }))
     await page.route('**/api/github', (r) => r.fulfill({ status: 500 }))
@@ -516,22 +532,6 @@ test.describe('now playing (ListenBrainz API)', () => {
     await expect(page.locator('.clock')).toBeVisible()
     await expect(page.locator('.row.pending')).toHaveCount(0)
     await expect(page.locator('.rows .row')).toHaveCount(1) // local time only
-  })
-
-  test('an offline batch: older listens are ignored, the newest newer one is kept', async ({ request }) => {
-    const before = await nowPlaying(request)
-    const now = Math.floor(Date.now() / 1000)
-    await request.post(`${api}submit-listens`, {
-      data: { listen_type: 'import', payload: [listen('Old A', { listened_at: now - 7200 }), listen('Old B', { listened_at: now - 3600 })] },
-      headers: auth,
-    })
-    expect((await nowPlaying(request)).title).toBe(before.title)
-    // Phone clocks can be a little ahead; up to a minute is accepted.
-    await request.post(`${api}submit-listens`, {
-      data: { listen_type: 'import', payload: [listen('New A', { listened_at: now + 20 }), listen('New B', { listened_at: now + 30 })] },
-      headers: auth,
-    })
-    expect((await nowPlaying(request)).title).toBe('New B')
   })
 })
 
