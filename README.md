@@ -85,6 +85,11 @@ Each push to `main` then builds and deploys. From the command line: `npx wrangle
   npm run og                                               # or: CHROMIUM_PATH=/path/to/chrome npm run og
   ```
 
+## Analytics
+
+- Cloudflare Web Analytics: visitors and page speed. Cloudflare adds its script; see **Analytics & Logs → Web Analytics**.
+- [Umami Cloud](https://umami.is) (free plan, no cookies): link and button clicks. The script is in `index.html` and counts only on kichoow.com. To track a new click, add `data-umami-event="Name"` (and optional `data-umami-event-<key>="value"`) to the element.
+
 ## Security
 
 - `public/_headers`: `nosniff`, `Referrer-Policy`, `Permissions-Policy` and `frame-ancestors 'none'` on static files.

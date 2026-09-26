@@ -15,14 +15,14 @@ export default defineConfig({
       override: true,
       policy: {
         'default-src': ["'self'"],
-        // Cloudflare Web Analytics: Cloudflare adds its beacon script to the page.
-        'script-src': ["'self'", 'https://static.cloudflareinsights.com'],
+        // Cloudflare Web Analytics (Cloudflare adds its beacon) and Umami Cloud.
+        'script-src': ["'self'", 'https://static.cloudflareinsights.com', 'https://cloud.umami.is'],
         // React style props and sonner's injected styles.
         'style-src': ["'self'", "'unsafe-inline'"],
         'img-src': ["'self'", 'data:'],
         'font-src': ["'self'", 'data:'],
-        // status.cafe is read directly by the browser; the analytics beacon reports to cloudflareinsights.com.
-        'connect-src': ["'self'", 'https://status.cafe', 'https://cloudflareinsights.com'],
+        // status.cafe is read directly by the browser; the analytics scripts report to their own hosts.
+        'connect-src': ["'self'", 'https://status.cafe', 'https://cloudflareinsights.com', 'https://gateway.umami.is'],
         'object-src': ["'none'"],
         'base-uri': ["'none'"],
         'form-action': ["'none'"],
