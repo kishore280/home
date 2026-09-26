@@ -85,6 +85,14 @@ Each push to `main` then builds and deploys. From the command line: `npx wrangle
   npm run og                                               # or: CHROMIUM_PATH=/path/to/chrome npm run og
   ```
 
+## Offline only
+
+An "offline only" card (idea from [chrisbolin.co/offline](https://chrisbolin.co/offline/)). Online, it asks the visitor to turn on airplane mode and get a chai; offline, it shows a note. The text is `offlineNote` in `src/data.ts`.
+
+- `useOnline()` in `src/lib/client.ts` follows the browser's `online` and `offline` events.
+- `scripts/sw.mjs` makes `dist/sw.js` with [Workbox](https://developer.chrome.com/docs/workbox) after the pre-render. Pages are network first (visitors always get the latest deploy); offline, the page comes from the cache. It runs in the visitor's browser, so it costs nothing.
+- Umami counts `Offline note read` when the visitor comes back online.
+
 ## Analytics
 
 - Cloudflare Web Analytics: visitors and page speed. Cloudflare adds its script; see **Analytics & Logs → Web Analytics**.

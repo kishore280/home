@@ -7,6 +7,7 @@ import { Stats } from './components/Stats'
 import { RightNow } from './components/RightNow'
 import { Counts } from './components/Counts'
 import { Buttons } from './components/Buttons'
+import { OfflineNote } from './components/OfflineNote'
 import type { MenuItem } from './components/CommandMenu'
 import { useCounters } from './hooks/useCounters'
 import { shortDate } from './lib/time'
@@ -92,6 +93,7 @@ export default function App() {
 
         <main className="main" id="main" tabIndex={-1}>
           <RightNow />
+          <OfflineNote />
 
           {updates.length > 0 ? (
             <Card title="updates">

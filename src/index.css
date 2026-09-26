@@ -854,6 +854,21 @@ kbd {
 }
 
 
+.offline-note p:last-child {
+  margin: 0;
+}
+
+.offline-note.open {
+  animation: note-in 0.4s ease-out;
+}
+
+@keyframes note-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
