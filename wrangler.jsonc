@@ -19,8 +19,23 @@
 	"preview_urls": false,
 	// Keep variables set in the Cloudflare dashboard (e.g. LASTFM_USER) on each deploy.
 	"keep_vars": true,
+	// Logs and traces for the Worker (/api/* only; static files do not run it).
+	// Free plan: 200,000 events/day with 3 days retention; past that, 1% sampling, no bill.
 	"observability": {
-		"enabled": true
+		"enabled": true,
+		"head_sampling_rate": 1,
+		"redact_query_string": false,
+		"logs": {
+			"enabled": true,
+			"head_sampling_rate": 1,
+			"invocation_logs": true,
+			"persist": true
+		},
+		"traces": {
+			"enabled": true,
+			"head_sampling_rate": 1,
+			"persist": true
+		}
 	},
 	"upload_source_maps": true,
 	// D1 database for the view and pat counters (table: migrations/0001_init.sql).
