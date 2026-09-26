@@ -464,7 +464,7 @@ test.describe('now playing (ListenBrainz API)', () => {
   // One shared table in the local D1: run in order (and with --workers=1 when using --repeat-each).
   test.describe.configure({ mode: 'serial' })
   const api = 'http://127.0.0.1:8787/api/scrobble/1/'
-  const auth = { authorization: 'token test-token' } // SCROBBLE_TOKEN in playwright.config.ts
+  const auth = { authorization: 'token test-token-0123456789-abcdef' } // SCROBBLE_TOKEN in tests/test.env
   const listen = (title: string, extra: object = {}, durationMs = 180_000) => ({
     ...extra,
     track_metadata: { artist_name: 'Test Artist', track_name: title, additional_info: { duration_ms: durationMs } },

@@ -2,9 +2,10 @@
 //   GET  /api/log        public summary per kind: today, month, year, total, last
 //   POST /api/log        { id, kind, count?, place?, at? } adds one entry
 //   POST /api/log/undo   { id } takes it back
-// A POST needs "Authorization: Bearer <LOG_TOKEN>" (a Worker secret), like the check-in API of
-// anonrig/adamvsyagiz.com. `id` is a UUID made on the phone, so a request the offline queue sends
-// again is counted once, and an undo sent again changes nothing.
+// A POST needs "Authorization: Bearer <token>", like the check-in API of anonrig/adamvsyagiz.com.
+// The token is the Worker secret SCROBBLE_TOKEN: the owner uses one phone token for music and log.
+// `id` is a UUID made on the phone, so a request the offline queue sends again is counted once, and
+// an undo sent again changes nothing.
 // Sums are kept in log_totals (migrations/0004_log.sql): a page view reads a few rows by key.
 import { site } from '../src/data'
 import { fail, json, tokenMatches, type Env } from './db'
@@ -23,17 +24,29 @@ const MAX_AHEAD_MS = 5 * 60_000 // a phone clock a little ahead
 const dayOf = new Intl.DateTimeFormat('en-CA', { timeZone: site.timeZone })
 const periods = (day: string) => [day, day.slice(0, 7), day.slice(0, 4), 'all']
 
+// Say what is missing instead of "wrong token" or a 500, as adamvsyagiz.com's /log page does.
+const notSetUp = (what: string) => fail(`Logging is not set up yet: ${what}.`, 503)
+const orNotSetUp = (reply: Promise<Response>) =>
+  reply.catch((error) =>
+    String(error).includes('no such table') ? notSetUp('run migrations/0004_log.sql in the D1 Console') : Promise.reject(error),
+  )
+
 export async function log(request: Request, env: Env): Promise<Response> {
   if (request.method === 'GET') return summary(env)
   if (request.method !== 'POST') return fail('Use GET or POST.', 405)
   const body = await readPost(request, env)
-  return body instanceof Response ? body : add(env, body)
+  if (body instanceof Response) return body
+  return orNotSetUp(add(env, body))
 }
 
 export async function undo(request: Request, env: Env): Promise<Response> {
   if (request.method !== 'POST') return fail('Use POST.', 405)
   const body = await readPost(request, env)
   if (body instanceof Response) return body
+  return orNotSetUp(remove(env, body))
+}
+
+async function remove(env: Env, body: Body): Promise<Response> {
   // One batch is one transaction (D1 docs, "batch()"): the totals and the entry go together.
   // An unknown id matches no row in either statement.
   const [, { meta }] = await env.DB.batch([
@@ -49,8 +62,9 @@ export async function undo(request: Request, env: Env): Promise<Response> {
 
 // The token, then a small JSON object with an id.
 async function readPost(request: Request, env: Env): Promise<Body | Response> {
+  if (!env.SCROBBLE_TOKEN) return notSetUp('add the SCROBBLE_TOKEN secret in the Cloudflare dashboard')
   const token = /^bearer\s+(\S+)$/i.exec(request.headers.get('authorization') ?? '')?.[1]
-  if (!(await tokenMatches(token, env.LOG_TOKEN))) return fail('Invalid token.', 401)
+  if (!(await tokenMatches(token, env.SCROBBLE_TOKEN))) return fail('Invalid token.', 401)
   if (Number(request.headers.get('content-length')) > MAX_BODY) return fail('Body too large.', 413)
   const text = await request.text()
   if (text.length > MAX_BODY) return fail('Body too large.', 413)
@@ -87,9 +101,11 @@ async function add(env: Env, { id, kind, count = 1, place, at = Date.now() }: Bo
     .first()
   if (seen) return json({ ok: true, duplicate: true })
 
+  let totals: { period: string; count: number }[]
   try {
-    // One transaction: the entry and its four totals (day, month, year, all).
-    await env.DB.batch([
+    // One transaction: the entry and its four totals (day, month, year, all), then the day's and
+    // month's new totals for the reply ("☕ chai +1 · 3 today").
+    const results = await env.DB.batch<{ period: string; count: number }>([
       env.DB.prepare('INSERT INTO log_entries (client_id, kind, count, place, at, day) VALUES (?, ?, ?, ?, ?, ?)').bind(
         id,
         kind,
@@ -102,13 +118,16 @@ async function add(env: Env, { id, kind, count = 1, place, at = Date.now() }: Bo
         `INSERT INTO log_totals (kind, period, count) VALUES (?1, ?2, ?6), (?1, ?3, ?6), (?1, ?4, ?6), (?1, ?5, ?6)
          ON CONFLICT(kind, period) DO UPDATE SET count = count + excluded.count`,
       ).bind(kind, ...periods(day), n),
+      env.DB.prepare('SELECT period, count FROM log_totals WHERE kind = ?1 AND period IN (?2, ?3)').bind(kind, day, day.slice(0, 7)),
     ])
+    totals = results[2].results
   } catch (error) {
     // The same entry sent twice at once: a unique index refuses the second and its batch rolls back.
     if (String(error).includes('UNIQUE constraint failed')) return json({ ok: true, duplicate: true })
     throw error
   }
-  return json({ ok: true, id, kind, count: n, at: new Date(ms).toISOString() })
+  const total = (period: string) => totals.find((t) => t.period === period)?.count ?? 0
+  return json({ ok: true, id, kind, count: n, at: new Date(ms).toISOString(), today: total(day), month: total(day.slice(0, 7)) })
 }
 
 type Total = { kind: Kind; period: string; count: number }

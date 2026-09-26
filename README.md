@@ -19,7 +19,7 @@ Coding agents: read [AGENTS.md](AGENTS.md) for the rules, commands, tests and ho
 | Right now: music | Your phone's scrobbler → D1 | `SCROBBLE_TOKEN` (below) |
 | Right now: building | Latest public GitHub push | `github` in `src/data.ts` |
 | Right now: local time | Browser | `timeZone` in `src/data.ts` |
-| Counts: parotta, chai, beach days | The `/log` page → D1 | `LOG_TOKEN` (below) |
+| Counts: parotta, chai, beach days | The `/log` page → D1 | `SCROBBLE_TOKEN` (below) |
 | Updates, 88×31 buttons | `src/data.ts`, `public/*.svg` | Nothing |
 | ⌘K menu | cmdk | Nothing |
 
@@ -52,7 +52,7 @@ The site runs locally with `wrangler dev`, and the test browser opens it as `htt
 
 `kichoow.com/log` is a private page (`noindex`, not linked) with big buttons: ☕ chai +1,
 🫓 parotta +1 / +2, 🌊 beach day (with an optional place). A tap posts to `POST /api/log` with
-`Authorization: Bearer <LOG_TOKEN>` (the way [anonrig/adamvsyagiz.com](https://github.com/anonrig/adamvsyagiz.com)
+`Authorization: Bearer <token>` (the way [anonrig/adamvsyagiz.com](https://github.com/anonrig/adamvsyagiz.com)
 logs check-ins); the Worker stores it in D1 and the counts card updates within seconds.
 
 - **Undo:** each log shows a toast with **Undo** for 5 s (`POST /api/log/undo`).
@@ -70,9 +70,11 @@ logs check-ins); the Worker stores it in D1 and the counts card updates within s
 
 1. **Table.** Cloudflare dashboard → **Storage & Databases → D1 → `home` → Console**, run
    `migrations/0004_log.sql`. Or: `npx wrangler d1 migrations apply home --remote`.
-2. **Secret.** **Workers & Pages → `home` → Settings → Variables and Secrets → Add**: type
-   **Secret**, name `LOG_TOKEN`, value 20+ random letters and numbers → **Deploy**.
+2. **Token.** Nothing to add: the log uses the music token, `SCROBBLE_TOKEN` (one token for the phone).
 3. Open `kichoow.com/log`, enter the token once (the password manager can keep it), then install the app.
+
+If a table or the token is missing, `/log` says what to set up (the API answers `503`), instead of
+"wrong token".
 
 ## Views and pats (Cloudflare D1)
 
