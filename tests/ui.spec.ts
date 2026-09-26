@@ -205,6 +205,22 @@ test.describe('⌘K menu', () => {
       await expectEvents(log, ['Menu open', ...want.events])
     })
   }
+
+  test('a page item keeps the menu shown until the page leaves; Back shows the page, menu closed', async ({ page, press }) => {
+    await page.goto('/')
+    await openMenu(page, press)
+    // Record, as the page leaves, whether the menu was still there (no glimpse of the page under it).
+    await page.evaluate(() =>
+      addEventListener('pagehide', () => sessionStorage.setItem('menuAtLeave', String(!!document.querySelector('.cmdk-content')))),
+    )
+    await press(page.locator('[cmdk-item]', { hasText: 'Offline only' }))
+    await expect(page).toHaveURL('/offline')
+    expect(await page.evaluate(() => sessionStorage.getItem('menuAtLeave'))).toBe('true')
+    await page.goBack()
+    await expect(page).toHaveURL('/')
+    await expect(page.locator('main')).toBeVisible()
+    await expect(menu(page)).toHaveCount(0)
+  })
 })
 
 test.describe('keyboard and touch', () => {

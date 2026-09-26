@@ -1,6 +1,6 @@
 import * as Dialog from '@radix-ui/react-dialog'
 import { Command } from 'cmdk'
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { track } from '../lib/track'
 
 // An item runs an action, or opens a page on this site in the same tab.
@@ -21,6 +21,14 @@ export default function CommandMenu({
   // Radix returns focus only to a Dialog.Trigger. The menu opens from a button or ⌘K,
   // so remember what had focus and give it back on close.
   const opener = useRef<Element | null>(null)
+
+  // A page item leaves the menu open (below); if Back brings this page back from the
+  // back/forward cache, close it then (web.dev "bfcache": update state on pageshow).
+  useEffect(() => {
+    const onShow = (e: PageTransitionEvent) => e.persisted && onOpenChange(false)
+    window.addEventListener('pageshow', onShow)
+    return () => window.removeEventListener('pageshow', onShow)
+  }, [onOpenChange])
 
   // One pass to group items (Vercel rule js-index-maps).
   const groups = new Map<string, MenuItem[]>()
@@ -52,9 +60,13 @@ export default function CommandMenu({
                     <Command.Item
                       key={item.label}
                       onSelect={() => {
-                        onOpenChange(false)
                         void track(`Menu: ${item.label}`)
-                        if ('run' in item) return item.run()
+                        if ('run' in item) {
+                          onOpenChange(false)
+                          return item.run()
+                        }
+                        // Keep the menu open: the browser shows this page until the next one
+                        // paints (Chrome "paint holding"), so the home page never flashes.
                         // No wait: Umami sends with fetch({ keepalive: true }), which finishes
                         // after the page is gone (MDN, "keepalive"), like gtag's beacon transport.
                         window.location.assign(item.href)
