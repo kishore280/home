@@ -415,7 +415,7 @@ h2 {
 /* Speech bubble: sits above the head, tail points down to the face,
    and pops out from the tail (scale + opacity only). */
 .bubble {
-  --tail: 22px;
+  --tail: 42px;
   position: absolute;
   top: 0;
   left: calc(50% - var(--tail) - 6px);
