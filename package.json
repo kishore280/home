@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build && vite build --ssr src/entry-server.tsx --outDir dist-server && node scripts/prerender.mjs && node scripts/sw.mjs",
     "lint": "oxlint",
+    "audit": "npm run build && playwright test",
     "preview": "npm run build && wrangler dev",
     "deploy": "npm run build && wrangler deploy",
     "cf-typegen": "wrangler types",
@@ -24,6 +25,8 @@
     "swr": "^2.5.1"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.63.0",
     "@types/node": "^24.19.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",

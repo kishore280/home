@@ -1,12 +1,11 @@
-import { lazy, Suspense, useEffect, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { offlineNote } from '../data'
 import { useOnline } from '../lib/client'
 import { trackOnce } from '../lib/track'
 import { BackHome } from './BackHome'
 import { Card } from './Card'
-
-// Loaded only when the visitor goes offline (the service worker has it cached).
-const SandCanvas = lazy(() => import('./SandCanvas'))
+// Part of this page's bundle, not lazy: a lazy chunk cannot load once the visitor is offline.
+import SandCanvas from './SandCanvas'
 
 // The /offline page (idea: chrisbolin.co/offline): the note opens only while the browser is
 // offline. The service worker from scripts/sw.mjs keeps the page working without a network.
@@ -32,9 +31,7 @@ export function OfflinePage() {
       </Card>
       {online ? null : (
         <Card title="draw on the sand">
-          <Suspense fallback={null}>
-            <SandCanvas />
-          </Suspense>
+          <SandCanvas />
         </Card>
       )}
       <BackHome />

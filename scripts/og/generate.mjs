@@ -1,9 +1,9 @@
 // Makes public/og.png (1200×630 share card), public/apple-touch-icon.png and
 // public/icon-512.png from scripts/og/template.html. Run after adding a button:
 //   npm run og
-// Needs Playwright with a Chromium browser (not a project dependency, to keep installs small):
-//   npm i -D playwright && npx playwright install chromium
+// Needs a Chromium for Playwright (a dev dependency): npx playwright install chromium
 // Or use a Chrome/Chromium you already have: CHROMIUM_PATH=/path/to/chrome npm run og
+import { chromium } from '@playwright/test'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -12,13 +12,6 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 const root = fileURLToPath(new URL('../../', import.meta.url))
 const file = (p) => pathToFileURL(join(root, p)).href
 
-let chromium
-try {
-  ;({ chromium } = await import('playwright'))
-} catch {
-  console.error('Playwright is missing. Run: npm i -D playwright && npx playwright install chromium')
-  process.exit(1)
-}
 
 // The buttons, domain and description come from the site data, so the card stays in step.
 const data = readFileSync(join(root, 'src/data.ts'), 'utf8')
