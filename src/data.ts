@@ -56,5 +56,13 @@ export const offlineNote = {
   ],
 }
 
+// The 404 page, for addresses that do not exist.
+export const notFound = {
+  title: 'not found · kish',
+  description: 'This page is not here.',
+  heading: '404: lost at sea',
+  text: 'This page is not here. Maybe the tide took it.',
+}
+
 // 88×31 buttons of friends and webrings: { name, href, img }.
 export const friends: { name: string; href: string; img: string }[] = []

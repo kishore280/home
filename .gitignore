@@ -30,3 +30,6 @@ dist-ssr
 !.dev.vars.example
 .env*
 !.env.example
+
+# ui-test skill output (screenshots, reports)
+.context/

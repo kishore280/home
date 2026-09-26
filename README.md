@@ -91,7 +91,8 @@ A secret page at `/offline` (⌘K → Offline only), from the idea at [chrisboli
 
 - Two pages: `index.html` and `offline.html`. Both get the same icons, theme script and analytics from `src/head.html`, start through `mount()` in `src/lib/mount.tsx`, and are pre-rendered by `scripts/prerender.mjs`.
 - `useOnline()` in `src/lib/client.ts` follows the browser's `online` and `offline` events.
-- `scripts/sw.mjs` makes `dist/sw.js` with [Workbox](https://developer.chrome.com/docs/workbox) after the pre-render. The home page is network first (visitors always get the latest deploy); `/offline` and the JS, fonts and buttons are precached. It runs in the visitor's browser, so it costs nothing.
+- `scripts/sw.mjs` makes `dist/sw.js` with [Workbox](https://developer.chrome.com/docs/workbox) after the pre-render. Pages are network first (visitors always get the latest deploy); offline, a page seen before comes from the cache, and any other page gets `/offline` as the [fallback page](https://developer.chrome.com/docs/workbox/managing-fallback-responses). It runs in the visitor's browser, so it costs nothing.
+- Unknown addresses get `404.html` ("404: lost at sea") with a real 404 status (`not_found_handling: "404-page"` in `wrangler.jsonc`).
 - Umami counts `Offline note read` when the visitor comes back online.
 
 ## Analytics

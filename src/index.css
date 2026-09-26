@@ -209,6 +209,24 @@ h2 {
   text-decoration: none;
 }
 
+/* On touch screens, a 44 px tall tap area with the same look: a transparent pseudo-element
+   with a negative inset (WCAG 2.5.8). */
+@media (pointer: coarse) {
+  .links a,
+  .links button,
+  .link-button {
+    position: relative;
+  }
+
+  .links a::after,
+  .links button::after,
+  .link-button::after {
+    content: '';
+    position: absolute;
+    inset: -12px -4px;
+  }
+}
+
 .links a:hover,
 .links button:hover,
 .link-button:hover {
@@ -854,7 +872,7 @@ kbd {
 }
 
 
-.offline-page {
+.narrow-page {
   max-width: 560px;
   margin: min(12vh, 96px) auto 0;
   display: grid;

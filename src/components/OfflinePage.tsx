@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useRef } from 'react'
 import { offlineNote } from '../data'
 import { useOnline } from '../lib/client'
 import { trackOnce } from '../lib/track'
+import { BackHome } from './BackHome'
 import { Card } from './Card'
 
 // Loaded only when the visitor goes offline (the service worker has it cached).
@@ -20,7 +21,7 @@ export function OfflinePage() {
   }, [online])
 
   return (
-    <main className="offline-page" id="main">
+    <main className="narrow-page" id="main">
       <Card>
         <h1>{online ? 'offline only' : 'wifi off, chai on'}</h1>
         <div className={online ? 'offline-note' : 'offline-note open'} aria-live="polite">
@@ -36,9 +37,7 @@ export function OfflinePage() {
           </Suspense>
         </Card>
       )}
-      <a className="small" href="/">
-        <span aria-hidden="true">←</span> back to kish’s corner
-      </a>
+      <BackHome />
     </main>
   )
 }

@@ -1,7 +1,7 @@
 // Vite plugin: SEO tags in <head>, plus robots.txt, sitemap.xml and llms.txt, all built
 // from src/data.ts so they never drift from the page. Follows .claude/skills/seo-mastery.
 import type { Plugin } from 'vite'
-import { links, offlineNote, site } from './src/data.ts'
+import { links, notFound, offlineNote, site } from './src/data.ts'
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')
 
@@ -55,6 +55,7 @@ export function seo(buildDate: string): Plugin {
       ...meta({ ...offlineNote, url: `${site.url}/offline`, type: 'website' }),
       `<meta name="robots" content="noindex" />`,
     ],
+    '404.html': [...meta({ ...notFound, url: `${site.url}/404`, type: 'website' }), `<meta name="robots" content="noindex" />`],
   }
 
   const robots = `User-agent: *\nAllow: /\n\nSitemap: ${site.url}/sitemap.xml\n`
