@@ -278,6 +278,17 @@ test.describe('offline page', () => {
     await expect(page.getByText('✓ Saved on this device. You can go offline now.')).toBeVisible()
   })
 
+  test('with a VPN or Wi-Fi without internet (the browser still says online), it still switches', async ({ page }) => {
+    await page.goto('/offline')
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('offline only')
+    // navigator.onLine stays true; only real requests fail, as on a phone with a VPN in airplane mode.
+    await page.route('**/robots.txt', (r) => r.abort('internetdisconnected'))
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('wifi off, chai on', { timeout: 10_000 })
+    expect(await page.evaluate(() => navigator.onLine)).toBe(true)
+    await page.unroute('**/robots.txt')
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('offline only', { timeout: 10_000 })
+  })
+
   test('the switch still happens if the page was hidden while going offline', async ({ page, context }) => {
     await page.goto('/offline')
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('offline only')
