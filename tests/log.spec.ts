@@ -93,20 +93,45 @@ test('a beach day counts once, with its place', async ({ request }) => {
   expect((await summary(request)).beach).toMatchObject({ ...counts(1), onceADay: true, last: first.at, place: 'Marina' })
 })
 
-test('undo keeps the entry in the history, and a once-a-day kind can be logged again', async ({ request }) => {
+test('undo deletes the entry, and a once-a-day kind can be logged again', async ({ request }) => {
   const id = crypto.randomUUID()
   await post(request, { id, kind: 'chai' })
   await post(request, { id }, '/undo')
-  const [row] = JSON.parse(sql(`SELECT kind, undone_at FROM log_entries WHERE client_id = '${id}'`))[0].results
-  expect(row.kind).toBe('chai')
-  expect(row.undone_at).toBeGreaterThan(Date.now() - 60_000)
+  expect(JSON.parse(sql(`SELECT count(*) AS n FROM log_entries WHERE client_id = '${id}'`))[0].results[0].n).toBe(0)
   // The beach day from the test above, undone, frees the day.
-  const [beach] = JSON.parse(sql(`SELECT client_id FROM log_entries WHERE kind = 'beach' AND undone_at IS NULL`))[0].results
+  const [beach] = JSON.parse(sql(`SELECT client_id FROM log_entries WHERE kind = 'beach'`))[0].results
   await post(request, { id: beach.client_id }, '/undo')
   expect((await summary(request)).beach).toBeNull()
   const again = await (await post(request, { id: crypto.randomUUID(), kind: 'beach', place: 'Elliot' })).json()
   expect(again).toMatchObject({ ok: true, kind: 'beach', month: 1 })
   expect((await summary(request)).beach).toMatchObject({ ...counts(1), place: 'Elliot' })
+})
+
+test('the totals follow every write, also one typed in the D1 Console (triggers)', async ({ request }) => {
+  const before = (await summary(request)).chai
+  const total = before?.total ?? 0
+  // A chai typed by hand: only kind and time; the day and the totals follow by themselves.
+  const at = Date.now() - 2 * 3600_000
+  sql(`INSERT INTO log_entries (client_id, kind, count, at) VALUES ('console-1', 'chai', 2, ${at})`)
+  expect((await summary(request)).chai?.total).toBe(total + 2)
+  // Fixed by hand to the day before: it leaves today and counts on that day.
+  sql(`UPDATE log_entries SET at = at - 86400000 WHERE client_id = 'console-1'`)
+  const [moved] = JSON.parse(sql(`SELECT day FROM log_entries WHERE client_id = 'console-1'`))[0].results
+  const [dayTotal] = JSON.parse(sql(`SELECT count FROM log_totals WHERE kind = 'chai' AND grain = 'day' AND period = '${moved.day}'`))[0].results
+  expect(dayTotal.count).toBe(2)
+  expect((await summary(request)).chai?.today).toBe(before?.today)
+  sql(`DELETE FROM log_entries WHERE client_id = 'console-1'`)
+  expect((await summary(request)).chai?.total).toBe(total)
+  // The once-a-day rule holds in the Console too.
+  // (wrangler prints the refusal on stdout and exits with an error.)
+  const refusal = (() => {
+    try {
+      return sql(`INSERT INTO log_entries (kind, at) VALUES ('beach', ${Date.now()})`)
+    } catch (error) {
+      return String((error as { stdout?: string }).stdout)
+    }
+  })()
+  expect(refusal).toContain('once a day')
 })
 
 test('each entry keeps the time zone of the phone', async ({ request }) => {
@@ -183,9 +208,12 @@ test('bad requests are refused and change nothing', async ({ request }) => {
   expect(await summary(request)).toEqual(before)
 })
 
-test('an entry from the offline queue keeps its time', async ({ request }) => {
+test('an entry from the offline queue keeps its time, and "last" stays the newest', async ({ request }) => {
+  const last = (await summary(request)).chai?.last
   const at = Date.now() - 3600_000
   expect(await (await post(request, { id: crypto.randomUUID(), kind: 'chai', at })).json()).toMatchObject({ at: new Date(at).toISOString() })
+  // It arrived late but happened earlier: the newest chai is still the one before.
+  expect((await summary(request)).chai?.last).toBe(last)
   expect((await summary(request)).chai?.total).toBe(3)
 })
 

@@ -64,15 +64,23 @@ logs check-ins); the Worker stores it in D1 and the counts card updates within s
   ([manifest shortcuts](https://web.dev/learn/pwa/enhancements)). Only the installed app logs from these links.
 - **A short buzz** when a tap is taken (`navigator.vibrate`, Android).
 - **The data** (`migrations/0004_log.sql`), designed the way database people recommend:
-  - `log_entries` keeps **every tap forever**: the time (UTC), the phone's time zone, the day in IST
-    and the place. Undo only marks an entry (`undone_at`), so the history stays whole.
+  - `log_entries` keeps **every tap**: the time (UTC), the phone's time zone and the place. The
+    day in IST is a generated column, computed from the time, so it can never be wrong.
+    Undo deletes the entry: an undone tap is a mistake, not history
+    ([Brandur Leach](https://brandur.org/soft-deletion)).
   - `log_totals` keeps running sums per **day, month, year and all time** (the "raw events + rollup
-    tables" pattern, [Citus](https://www.citusdata.com/blog/2018/10/31/materialized-views-vs-rollup-tables/)),
-    updated in the same transaction. A page view reads about 15 rows by key, never the whole
-    history (D1 bills rows read; free plan: 5 million a day). The grain is part of the key, so a
-    future heatmap is one primary-key range read of 365 day rows.
-  - `STRICT` tables (SQLite refuses wrong types), `WITHOUT ROWID` for the rollups, partial indexes,
-    and foreign keys to `log_kinds` (D1 enforces them).
+    tables" pattern, [Citus](https://www.citusdata.com/blog/2018/10/31/materialized-views-vs-rollup-tables/)).
+    **SQLite triggers** keep them right for every write, from the API or typed by hand in the D1
+    Console. A page view reads about 15 rows by key, never the whole history (D1 bills rows read;
+    free plan: 5 million a day). The grain is part of the key, so a future heatmap is one
+    primary-key range read of 365 day rows.
+  - `STRICT` tables (SQLite refuses wrong types), `WITHOUT ROWID` for the rollups, and foreign
+    keys to `log_kinds` (D1 enforces them). A once-a-day kind (beach days) is enforced by a trigger.
+  - Remote D1 splits SQL itself, so the trigger bodies use uppercase `BEGIN`/`END` and hold no
+    comments ([workers-sdk #10998](https://github.com/cloudflare/workers-sdk/issues/10998)).
+- **Fix or add a tap by hand** in the D1 Console; the totals follow by themselves:
+  `INSERT INTO log_entries (kind, at) VALUES ('chai', unixepoch('2026-09-25 20:15', '-330 minutes') * 1000);`
+  (a chai at 20:15 IST on 25 Sep), or `DELETE FROM log_entries WHERE id = 42;`.
 - **A new kind** (gym, sleep, …) is one row, no code change: the buttons and the counts card
   come from `log_kinds`. In the D1 Console:
   `INSERT INTO log_kinds (kind, emoji, label, once_a_day, sort) VALUES ('gym', '🏋️', 'gym', 0, 4);`
