@@ -4,9 +4,11 @@
   --dots: #e6def6;
   --card: #ffffff;
   --text: #3a3150;
-  --muted: #857ca0;
+  --muted: #6f6590;
   --line: #e8e0f7;
   --accent: #9b7fe0;
+  /* Accent for text: 4.5:1 contrast on the card and page backgrounds. */
+  --accent-text: #7358c4;
   --accent-2: #f2a7c3;
   --chip: #efe9fb;
   --on-accent: #ffffff;
@@ -29,6 +31,7 @@
     --muted: #a198bd;
     --line: #342c47;
     --accent: #b8a2f2;
+    --accent-text: #b8a2f2;
     --accent-2: #f2a7c3;
     --chip: #2c2540;
     --on-accent: #1b1726;
@@ -46,6 +49,7 @@
   --muted: #a198bd;
   --line: #342c47;
   --accent: #b8a2f2;
+  --accent-text: #b8a2f2;
   --accent-2: #f2a7c3;
   --chip: #2c2540;
   --on-accent: #1b1726;
@@ -75,7 +79,7 @@ p {
 }
 
 a {
-  color: var(--accent);
+  color: var(--accent-text);
   text-underline-offset: 3px;
 }
 
@@ -178,7 +182,7 @@ h1 {
 h2 {
   font: 700 14px/1 var(--display);
   letter-spacing: 0.06em;
-  color: var(--accent);
+  color: var(--accent-text);
   margin: 0 0 12px;
 }
 
@@ -197,7 +201,7 @@ h2 {
 .links button,
 .link-button {
   font: 600 15px var(--body);
-  color: var(--accent);
+  color: var(--accent-text);
   background: none;
   border: 0;
   padding: 0;
@@ -803,7 +807,7 @@ kbd {
 
 [cmdk-group-heading] {
   font: 700 12px var(--display);
-  color: var(--accent);
+  color: var(--accent-text);
   padding: 8px 10px 4px;
 }
 
