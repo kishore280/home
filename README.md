@@ -71,6 +71,12 @@ In the Cloudflare dashboard (**Workers & Pages → the `home` Worker → Setting
 
 Each push to `main` then builds and deploys. From the command line: `npx wrangler login`, then `npm run deploy`.
 
+## SEO and share cards
+
+- `npm run build` pre-renders the page into `dist/index.html` (`src/entry-server.tsx`, `scripts/prerender.mjs`), so search engines and AI crawlers see the content without running JavaScript. Parts that depend on the visitor's clock (mascot mode, local time, counts) render in the browser only (`src/lib/client.ts`).
+- `seo.ts` (a Vite plugin) builds the title, description, canonical, Open Graph / Twitter tags, JSON-LD (`ProfilePage` + `Person`), `robots.txt`, `sitemap.xml` and `llms.txt` from `src/data.ts`. Set `site.url` there to the public address.
+- `public/og.png` (1200×630) is the share card; `public/apple-touch-icon.png`, `public/icon-512.png` and `public/manifest.webmanifest` are the app icons.
+
 ## Libraries
 
 - [cmdk](https://github.com/pacocoursey/cmdk): the ⌘K menu, loaded only when it opens
@@ -80,4 +86,4 @@ Each push to `main` then builds and deploys. From the command line: `npx wrangle
 
 ## Agent skills
 
-`.claude/skills/` has two MIT-licensed skills from [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills): `react-best-practices` and `web-design-guidelines`.
+`.claude/skills/` has MIT-licensed skills: `react-best-practices` and `web-design-guidelines` from [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills), and `seo-mastery` from [kpab/seo-mastery-agent-skills](https://github.com/kpab/seo-mastery-agent-skills).

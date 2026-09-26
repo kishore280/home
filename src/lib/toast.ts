@@ -32,4 +32,5 @@ export const useToastRequested = () =>
       return () => listeners.delete(l)
     },
     () => requested,
+    () => false,
   )
