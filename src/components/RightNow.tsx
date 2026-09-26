@@ -5,7 +5,10 @@ import { timeAgo } from '../lib/time'
 import { site } from '../data'
 import { Card } from './Card'
 
-function Clock({ timeZone }: { timeZone: string }) {
+// Built once, not every 10 s (Vercel rule js-cache-function-results).
+const timeFormat = new Intl.DateTimeFormat('en-GB', { timeZone: site.timeZone || undefined, hour: '2-digit', minute: '2-digit' })
+
+function Clock() {
   const [now, setNow] = useState(() => new Date())
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 10_000)
@@ -13,7 +16,7 @@ function Clock({ timeZone }: { timeZone: string }) {
   }, [])
   return (
     <time className="clock" dateTime={now.toISOString()}>
-      {now.toLocaleTimeString('en-GB', { timeZone, hour: '2-digit', minute: '2-digit' })}
+      {timeFormat.format(now)}
     </time>
   )
 }
@@ -61,7 +64,7 @@ export function RightNow() {
           <div className="row">
             <dt>local time</dt>
             <dd>
-              <Clock timeZone={site.timeZone} />
+              <Clock />
             </dd>
           </div>
         ) : null}

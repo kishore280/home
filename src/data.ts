@@ -24,15 +24,16 @@ export const links: { label: string; href: string }[] = [
 export const updates: { date: string; text: string }[] = []
 
 // My 88×31 buttons: public/<file>.svg on this page, public/<file>.png in the embed code.
+// `alt` is also the label that shows when you hover over the button.
 export const myButtons: { file: string; alt: string }[] = [
-  { file: 'button-kish', alt: 'kish' },
+  { file: 'button-kish', alt: 'hi, i’m kish' },
   { file: 'button', alt: 'kish is from the beach side' },
-  { file: 'button-running', alt: 'kish runs on the beach' },
-  { file: 'button-badminton', alt: 'kish plays badminton' },
+  { file: 'button-running', alt: 'kish loves running on the beach' },
+  { file: 'button-badminton', alt: 'kish loves badminton' },
   { file: 'button-parotta', alt: 'kish loves parotta' },
   { file: 'button-himalayan', alt: 'kish rides a Himalayan' },
-  { file: 'button-chai', alt: 'kish runs on chai' },
-  { file: 'button-coding', alt: 'kish codes' },
+  { file: 'button-chai', alt: 'kish lives on tea' },
+  { file: 'button-coding', alt: 'kish codes all day' },
 ]
 
 // 88×31 buttons of friends and webrings: { name, href, img }.

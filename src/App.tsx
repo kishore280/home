@@ -1,8 +1,7 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
-import { Toaster, toast } from 'sonner'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { links, site, updates } from './data'
 import { Card } from './components/Card'
-import { Mascot } from './components/Mascot'
+import { Mascot, type MascotHandle } from './components/Mascot'
 import { Status } from './components/Status'
 import { Stats } from './components/Stats'
 import { RightNow } from './components/RightNow'
@@ -10,13 +9,13 @@ import { Counts } from './components/Counts'
 import { Buttons } from './components/Buttons'
 import type { MenuItem } from './components/CommandMenu'
 import { useCounters } from './hooks/useCounters'
+import { shortDate } from './lib/time'
+import { toast, useToastRequested } from './lib/toast'
 import { toggleTheme } from './theme'
 
 const loadMenu = () => import('./components/CommandMenu')
 const CommandMenu = lazy(loadMenu)
-
-// Count one view per page load (module guard) and per browser session (storage guard).
-let viewCounted = false
+const Toasts = lazy(() => import('./components/Toasts'))
 
 async function copyEmail() {
   try {
@@ -30,18 +29,8 @@ async function copyEmail() {
 export default function App() {
   const [menuOpen, setMenuOpen] = useState(false)
   const { counters, bump } = useCounters()
-
-  useEffect(() => {
-    if (viewCounted) return
-    viewCounted = true
-    try {
-      if (sessionStorage.getItem('viewed')) return
-      sessionStorage.setItem('viewed', '1')
-    } catch {
-      // Storage blocked: count the view anyway.
-    }
-    bump('views')
-  }, [bump])
+  const mascot = useRef<MascotHandle>(null)
+  const toastRequested = useToastRequested()
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -55,7 +44,7 @@ export default function App() {
   }, [])
 
   const items: MenuItem[] = [
-    { group: 'Do', label: 'Pat the mascot', run: () => document.querySelector<HTMLButtonElement>('.mascot-button')?.click() },
+    { group: 'Do', label: 'Pat the mascot', run: () => mascot.current?.pat() },
     { group: 'Do', label: 'Switch light / dark', run: () => toast(toggleTheme() === 'dark' ? 'Dark mode' : 'Light mode') },
     ...(site.email ? [{ group: 'Do', label: 'Copy email', run: copyEmail }] : []),
     ...links.map((l) => ({ group: 'Links', label: l.label, run: () => window.open(l.href, '_blank', 'noopener') })),
@@ -66,21 +55,11 @@ export default function App() {
       <a className="skip-link" href="#main">
         Skip to content
       </a>
+      {/* DOM order is intro, side, main so headings read in order; CSS places them. */}
       <div className="layout">
-        <aside className="side">
+        <header className="intro-area">
           <Card>
-            <Mascot pats={counters?.pats ?? null} onPat={() => bump('pats')} />
-          </Card>
-          {site.statusCafe ? <Status user={site.statusCafe} /> : null}
-          <Stats counters={counters} />
-          <Counts />
-        </aside>
-
-        <main className="main" id="main">
-          <Card>
-            <h1>
-              hi, i'm {site.name}
-            </h1>
+            <h1>hi, i’m {site.name}</h1>
             {site.intro ? <p className="intro">{site.intro}</p> : null}
             {site.about.map((p) => (
               <p key={p}>{p}</p>
@@ -88,7 +67,7 @@ export default function App() {
             <nav className="links" aria-label="Elsewhere">
               {links.map((l) => (
                 <a key={l.href} href={l.href} target="_blank" rel="noreferrer">
-                  {l.label} ↗
+                  {l.label} <span aria-hidden="true">↗</span>
                 </a>
               ))}
               {site.email ? (
@@ -98,7 +77,18 @@ export default function App() {
               ) : null}
             </nav>
           </Card>
+        </header>
 
+        <aside className="side">
+          <Card>
+            <Mascot ref={mascot} pats={counters?.pats ?? null} onPat={() => bump('pats')} />
+          </Card>
+          {site.statusCafe ? <Status user={site.statusCafe} /> : null}
+          <Stats counters={counters} />
+          <Counts />
+        </aside>
+
+        <main className="main" id="main" tabIndex={-1}>
           <RightNow />
 
           {updates.length > 0 ? (
@@ -106,7 +96,7 @@ export default function App() {
               <ul className="log">
                 {updates.map((u) => (
                   <li key={u.date + u.text}>
-                    <time dateTime={u.date}>{u.date}</time>
+                    <time dateTime={u.date}>{shortDate(u.date)}</time>
                     <span>{u.text}</span>
                   </li>
                 ))}
@@ -136,7 +126,11 @@ export default function App() {
           <CommandMenu open={menuOpen} onOpenChange={setMenuOpen} items={items} />
         </Suspense>
       ) : null}
-      <Toaster position="bottom-center" toastOptions={{ className: 'toast' }} />
+      {toastRequested ? (
+        <Suspense fallback={null}>
+          <Toasts />
+        </Suspense>
+      ) : null}
     </>
   )
 }

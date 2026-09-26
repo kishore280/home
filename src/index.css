@@ -124,8 +124,17 @@ a {
   margin: 0 auto;
   display: grid;
   grid-template-columns: 250px 1fr;
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    'side intro'
+    'side main';
   gap: 18px;
   align-items: start;
+}
+
+.intro-area {
+  grid-area: intro;
+  min-width: 0;
 }
 
 .side,
@@ -136,8 +145,20 @@ a {
 }
 
 .side {
-  position: sticky;
-  top: 16px;
+  grid-area: side;
+}
+
+.main {
+  grid-area: main;
+  outline: none;
+}
+
+/* Only stick the side column when the screen is tall enough to show all of it. */
+@media (min-width: 721px) and (min-height: 760px) {
+  .side {
+    position: sticky;
+    top: 16px;
+  }
 }
 
 .card {
@@ -185,7 +206,8 @@ h2 {
 }
 
 .links a:hover,
-.links button:hover {
+.links button:hover,
+.link-button:hover {
   text-decoration: underline;
 }
 
@@ -236,6 +258,11 @@ h2 {
 }
 
 /* breathing: a slow bob on the outer wrapper; the inner wrapper hops on a pat */
+.mascot-breathe,
+.mascot-art {
+  display: block;
+}
+
 .mascot-breathe {
   animation: breathe 3.2s ease-in-out infinite;
 }
@@ -436,6 +463,14 @@ h2 {
 }
 
 /* status + stats */
+/* User text (status, email, updates) can be long: wrap instead of overflowing. */
+.status > div,
+.links button,
+.log span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .status {
   display: flex;
   gap: 10px;
@@ -514,9 +549,11 @@ h2 {
 
 .eq i {
   width: 3px;
-  height: 3px;
+  height: 12px;
   background: var(--accent);
   border-radius: 1px;
+  transform: scaleY(0.25);
+  transform-origin: bottom;
   animation: eq 1s ease-in-out infinite;
 }
 
@@ -532,7 +569,7 @@ h2 {
 
 @keyframes eq {
   50% {
-    height: 12px;
+    transform: scaleY(1);
   }
 }
 
@@ -641,14 +678,56 @@ h2 {
   padding: 0;
   background: none;
   cursor: pointer;
-  transition: rotate 0.15s, translate 0.15s;
 }
 
 .b88 img {
   display: block;
 }
 
-.b88:hover {
+/* Hover label: shown at the bottom centre, in the same place and style as the copy
+   toast. Decorative, because the same text is the image alt. Not on touch screens,
+   where a tap already shows the copy toast. */
+.b88::after {
+  content: attr(data-caption);
+  position: fixed;
+  z-index: 60;
+  left: 50%;
+  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  translate: -50% 8px;
+  max-width: calc(100vw - 32px);
+  padding: 12px 16px;
+  font: 600 14px var(--body);
+  color: var(--text);
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 8px 24px -12px color-mix(in srgb, var(--accent) 60%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.15s ease-out,
+    translate 0.2s ease-out;
+}
+
+@media (hover: none) {
+  .b88::after {
+    display: none;
+  }
+}
+
+.b88:hover::after,
+.b88:focus-visible::after {
+  opacity: 1;
+  translate: -50% 0;
+}
+
+.b88 img {
+  transition:
+    rotate 0.15s,
+    translate 0.15s;
+}
+
+.b88:hover img {
   translate: 0 -3px;
   rotate: -2deg;
 }
@@ -711,7 +790,12 @@ kbd {
   outline: none;
 }
 
+[cmdk-input]:focus-visible {
+  border-bottom-color: var(--accent);
+}
+
 [cmdk-list] {
+  overscroll-behavior: contain;
   max-height: 300px;
   overflow: auto;
   padding: 6px;
@@ -754,19 +838,14 @@ kbd {
   body {
     padding-block: 16px 40px;
   }
+  /* On phones, one column: intro, then the mascot column, then the rest. */
   .layout {
     grid-template-columns: 1fr;
-  }
-  /* On phones, one column: intro first, then the mascot, then the rest. */
-  .side,
-  .main {
-    display: contents;
-  }
-  .main > :first-child {
-    order: -2;
-  }
-  .side > :first-child {
-    order: -1;
+    grid-template-rows: none;
+    grid-template-areas:
+      'intro'
+      'side'
+      'main';
   }
 }
 

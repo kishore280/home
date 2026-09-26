@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from 'react'
+import { useImperativeHandle, useRef, useState, type ReactNode, type Ref } from 'react'
 import { site } from '../data'
 import { chaiIcon } from './ChaiIcon'
 
@@ -20,11 +20,11 @@ function modeNow(): Mode {
 
 const MODES: Record<Mode, { label: ReactNode; lines: string[] }> = {
   chai: { label: <>chai time {chaiIcon}</>, lines: ['chai first!', 'one strong chai', 'parippu vada pls', 'pazham pori + chai', 'chai kada gossip', 'no chai, no code', 'chai > coffee', 'dip the biscuit', 'less sugar… jk', 'anna, oru tea!', 'one by two podu', 'strong-a oru tea', 'sakkarai kammi', 'tea kudichiya?', 'vadai irukka?', 'semma tea da', 'bun butter jam pls', 'tea kadai meeting', 'tea soodaa irukku', 'tea + biscuit podu', 'tea time-u da'] },
-  badminton: { label: 'badminton time 🏸', lines: ['smash!', 'shuttle in the fan', 'it was IN!!', 'net ball, sorry', 'court booked 6am', 'my court, my rules', 'one more game'] },
-  coding: { label: 'coding time 💻', lines: ['git push!', 'it compiled?!', 'npm install…', 'prod is fine 🔥', 'who wrote this? me', 'semicolon hunt', 'one more bug…'] },
-  beach: { label: 'beach time 🌅', lines: ['sea breeze~', 'sand in my code', 'sundal pls', 'wave > my inbox', 'ran 5k… maybe 2', 'salt air, 0 bugs', 'sunset soon'] },
-  parotta: { label: 'parotta time 🫓', lines: ['porotta + beef = ♥', 'my BF? beef fry', 'beef fry, extra', 'tear it, don’t cut', 'kothu tap tap tap', '2 parotta? no, 5', 'extra gravy pls', 'diet starts tmrw', 'free salna?', '5 layers of joy', 'parotta soori mode', 'salna oothunga!', 'kothu podu anna', 'innum 2 parotta', 'saaptiya?', 'semma parotta da', 'vayiru full-u'] },
-  sleep: { label: 'sleeping 💤', lines: ['zzz… oh, hi', 'brb, dreaming', '404: cat asleep', '5 more min…', 'zzz… parotta?', 'shh, compiling'] },
+  badminton: { label: <>badminton time <span aria-hidden="true">🏸</span></>, lines: ['smash!', 'shuttle in the fan', 'it was IN!!', 'net ball, sorry', 'court booked 6am', 'my court, my rules', 'one more game'] },
+  coding: { label: <>coding time <span aria-hidden="true">💻</span></>, lines: ['git push!', 'it compiled?!', 'npm install…', 'prod is fine 🔥', 'who wrote this? me', 'semicolon hunt', 'one more bug…'] },
+  beach: { label: <>beach time <span aria-hidden="true">🌅</span></>, lines: ['sea breeze~', 'sand in my code', 'sundal pls', 'wave > my inbox', 'ran 5k… maybe 2', 'salt air, 0 bugs', 'sunset soon'] },
+  parotta: { label: <>parotta time <span aria-hidden="true">🫓</span></>, lines: ['porotta + beef = ♥', 'my BF? beef fry', 'beef fry, extra', 'tear it, don’t cut', 'kothu tap tap tap', '2 parotta? no, 5', 'extra gravy pls', 'diet starts tmrw', 'free salna?', '5 layers of joy', 'parotta soori mode', 'salna oothunga!', 'kothu podu anna', 'innum 2 parotta', 'saaptiya?', 'semma parotta da', 'vayiru full-u'] },
+  sleep: { label: <>sleeping <span aria-hidden="true">💤</span></>, lines: ['zzz… oh, hi', 'brb, dreaming', '404: cat asleep', '5 more min…', 'zzz… parotta?', 'shh, compiling'] },
 }
 // Tea and parotta lines mix in Tanglish, the way people talk at the kadai.
 const ALWAYS = ['pat pat pat', 'that tickles', 'more pats, more ♥', '10/10 pat', 'hey, i’m working!', 'again? ok fine ♥', 'you found me!', 'psst… try ⌘K', '*purr*']
@@ -127,7 +127,17 @@ function Face({ mode }: { mode: Mode }) {
   )
 }
 
-export function Mascot({ pats, onPat }: { pats: number | null; onPat: () => void }) {
+export type MascotHandle = { pat: () => void }
+
+export function Mascot({
+  pats,
+  onPat,
+  ref,
+}: {
+  pats: number | null
+  onPat: () => void
+  ref?: Ref<MascotHandle>
+}) {
   const [mode] = useState(modeNow)
   // The text stays while the bubble fades out; only `talking` turns it off.
   const [line, setLine] = useState('')
@@ -144,19 +154,21 @@ export function Mascot({ pats, onPat }: { pats: number | null; onPat: () => void
     timer.current = window.setTimeout(() => setTalking(false), 1400)
     onPat()
   }
+  // Lets the ⌘K menu pat the mascot without reaching into the DOM.
+  useImperativeHandle(ref, () => ({ pat }))
 
   return (
     <div className="mascot">
       <button type="button" className="mascot-button" onClick={pat} aria-label="Pat the mascot">
-        <span className={`bubble${talking ? ' show' : ''}`} aria-live="polite">
+        <span className={`bubble${talking ? ' show' : ''}`} aria-live="polite" translate="no">
           {line}
         </span>
         {/* Animate wrappers, not the SVG, so the browser can use the GPU. */}
-        <div className="mascot-breathe">
-          <div key={hop} className={`mascot-art${hop ? ' hop' : ''}${talking ? ' happy' : ''}`}>
+        <span className="mascot-breathe">
+          <span key={hop} className={`mascot-art${hop ? ' hop' : ''}${talking ? ' happy' : ''}`}>
             <Face mode={mode} />
-          </div>
-        </div>
+          </span>
+        </span>
       </button>
       <p className="small">
         {MODES[mode].label}

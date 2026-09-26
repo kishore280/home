@@ -12,7 +12,9 @@ export default function CommandMenu({
   onOpenChange: (open: boolean) => void
   items: MenuItem[]
 }) {
-  const groups = [...new Set(items.map((i) => i.group))]
+  // One pass to group items (Vercel rule js-index-maps).
+  const groups = new Map<string, MenuItem[]>()
+  for (const item of items) groups.set(item.group, [...(groups.get(item.group) ?? []), item])
 
   return (
     <Command.Dialog
@@ -25,11 +27,9 @@ export default function CommandMenu({
       <Command.Input placeholder="Type to search…" />
       <Command.List>
         <Command.Empty>Nothing found.</Command.Empty>
-        {groups.map((group) => (
+        {[...groups].map(([group, groupItems]) => (
           <Command.Group key={group} heading={group}>
-            {items
-              .filter((i) => i.group === group)
-              .map((item) => (
+            {groupItems.map((item) => (
                 <Command.Item
                   key={item.label}
                   onSelect={() => {
