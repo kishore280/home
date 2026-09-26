@@ -1,5 +1,6 @@
 import * as Dialog from '@radix-ui/react-dialog'
 import { Command } from 'cmdk'
+import { useRef } from 'react'
 import { track } from '../lib/track'
 
 // An item runs an action, or opens a page on this site in the same tab.
@@ -17,6 +18,10 @@ export default function CommandMenu({
   onOpenChange: (open: boolean) => void
   items: MenuItem[]
 }) {
+  // Radix returns focus only to a Dialog.Trigger. The menu opens from a button or ⌘K,
+  // so remember what had focus and give it back on close.
+  const opener = useRef<Element | null>(null)
+
   // One pass to group items (Vercel rule js-index-maps).
   const groups = new Map<string, MenuItem[]>()
   for (const item of items) groups.set(item.group, [...(groups.get(item.group) ?? []), item])
@@ -25,9 +30,19 @@ export default function CommandMenu({
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="cmdk-overlay" onClick={() => onOpenChange(false)} />
-        <Dialog.Content className="cmdk-content" aria-describedby={undefined} onPointerDownOutside={(e) => e.preventDefault()}>
+        <Dialog.Content
+          className="cmdk-content"
+          aria-describedby={undefined}
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onOpenAutoFocus={() => (opener.current = document.activeElement)}
+          onCloseAutoFocus={(e) => {
+            e.preventDefault()
+            if (opener.current instanceof HTMLElement) opener.current.focus()
+          }}
+        >
           <Dialog.Title className="sr-only">Menu</Dialog.Title>
-          <Command label="Menu">
+          {/* Plain "contains" search: cmdk's fuzzy match put "Switch light / dark" first for "git". */}
+          <Command label="Menu" filter={(value, search) => (value.toLowerCase().includes(search.trim().toLowerCase()) ? 1 : 0)}>
             <Command.Input placeholder="Type to search…" />
             <Command.List>
               <Command.Empty>Nothing found.</Command.Empty>

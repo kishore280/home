@@ -41,8 +41,8 @@ export default defineConfig({
     }),
   ],
   build: {
-    // Two pages: the home page and /offline.
-    rollupOptions: { input: ['index.html', 'offline.html'] },
+    // The home page, /offline and the 404 page.
+    rollupOptions: { input: ['index.html', 'offline.html', '404.html'] },
   },
   define: {
     // Shown as "updated" in the stats card.
