@@ -42,5 +42,17 @@ export const myButtons: { file: string; alt: string }[] = [
   { file: 'button-coding', alt: 'kish codes all day' },
 ]
 
+// The /offline page (⌘K → Offline only): `offline` shows only while the visitor is offline;
+// `online` tells them how.
+export const offlineNote = {
+  online: ['There is a note from kish here, but it opens only offline.', 'Turn on airplane mode ✈️, get a chai, and come back.'],
+  offline: [
+    'Wifi poyiduchu. Good 🍵',
+    'No notifications, no tabs, no “one more link”. Just you, a glass of chai and the sound of the sea.',
+    'This is kish’s favourite part of the day: chai in the evening, a walk on the beach, phone in the pocket.',
+    'Stay a while. When you go back online, this note hides again.',
+  ],
+}
+
 // 88×31 buttons of friends and webrings: { name, href, img }.
 export const friends: { name: string; href: string; img: string }[] = []

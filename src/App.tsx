@@ -50,6 +50,7 @@ export default function App() {
     { group: 'Do', label: 'Switch light / dark', run: () => toast(toggleTheme() === 'dark' ? 'Dark mode' : 'Light mode') },
     ...(site.email ? [{ group: 'Do', label: 'Copy email', run: copyEmail }] : []),
     ...links.map((l) => ({ group: 'Links', label: l.label, run: () => window.open(l.href, '_blank', 'noopener') })),
+    { group: 'Secret', label: 'Offline only', run: () => window.location.assign('/offline') },
   ]
 
   return (

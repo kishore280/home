@@ -1,13 +1,24 @@
+import { readFileSync } from 'node:fs'
 import react from '@vitejs/plugin-react'
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import csp from 'vite-plugin-csp-guard'
 import { seo } from './seo.ts'
 
 const buildDate = new Date().toISOString()
 
+// Every page gets the same icons, theme script and analytics from src/head.html.
+const sharedHead = (): Plugin => ({
+  name: 'shared-head',
+  transformIndexHtml: {
+    order: 'pre',
+    handler: (html) => html.replace('<!-- head -->', readFileSync('src/head.html', 'utf8')),
+  },
+})
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
+    sharedHead(),
     react(),
     seo(buildDate),
     // Content-Security-Policy as a <meta> tag; the plugin adds the hash of the inline theme script.
@@ -29,6 +40,10 @@ export default defineConfig({
       },
     }),
   ],
+  build: {
+    // Two pages: the home page and /offline.
+    rollupOptions: { input: ['index.html', 'offline.html'] },
+  },
   define: {
     // Shown as "updated" in the stats card.
     __BUILD_DATE__: JSON.stringify(buildDate),

@@ -1,14 +1,14 @@
-// Build-time pre-render: turns the app into static HTML so search engines and AI
+// Build-time pre-render: turns each page into static HTML so search engines and AI
 // crawlers that do not run JavaScript still see the content (see scripts/prerender.mjs).
-import { StrictMode } from 'react'
+import { StrictMode, type ReactNode } from 'react'
 import { renderToString } from 'react-dom/server'
 import App from './App'
+import { OfflinePage } from './components/OfflinePage'
 
-export { links, site } from './data'
+const html = (page: ReactNode) => () => renderToString(<StrictMode>{page}</StrictMode>)
 
-export const render = () =>
-  renderToString(
-    <StrictMode>
-      <App />
-    </StrictMode>,
-  )
+// HTML file in dist/ → its pre-rendered #root.
+export const pages: Record<string, () => string> = {
+  'index.html': html(<App />),
+  'offline.html': html(<OfflinePage />),
+}
