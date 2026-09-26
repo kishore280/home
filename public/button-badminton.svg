@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="88" height="31" viewBox="0 0 88 31">
+  <title>badminton</title>
+  <defs>
+    <linearGradient id="wall" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#a98ce8"/>
+      <stop offset="1" stop-color="#d9cbfb"/>
+    </linearGradient>
+    <clipPath id="frame"><rect width="88" height="31" rx="2"/></clipPath>
+    <clipPath id="head"><ellipse cx="12" cy="11" rx="5.2" ry="7.2" transform="rotate(-35 12 11)"/></clipPath>
+  </defs>
+  <g clip-path="url(#frame)" stroke="#2e2540" stroke-linejoin="round" stroke-linecap="round">
+    <!-- wall and court floor -->
+    <rect width="88" height="21" fill="url(#wall)" stroke="none"/>
+    <path d="M-1 21h90v11H-1Z" fill="#4caf6e" stroke-width=".8"/>
+    <path d="M-1 25.5h90M30 21l-6 11M62 21l6 11" fill="none" stroke="#fff" stroke-width=".8"/>
+    <!-- net across the back of the court -->
+    <path d="M36 14.5v6.5M86 14.5v6.5" stroke-width=".9"/>
+    <path d="M36 15h50" stroke="#fff" stroke-width="1.2"/>
+    <path d="M36 15h50" stroke-width=".4"/>
+    <path d="M36 17.5h50M36 20h50M40 15v6M45 15v6M50 15v6M55 15v6M60 15v6M65 15v6M70 15v6M75 15v6M80 15v6" stroke-width=".3" opacity=".6"/>
+    <!-- racket: handle, grip, head with strings -->
+    <path d="M15.5 16.5 24 28" stroke-width="2.6"/>
+    <path d="M15.5 16.5 24 28" stroke="#c9cbd6" stroke-width="1.2"/>
+    <path d="M20.5 23.2 24 28" stroke="#f2a7c3" stroke-width="1.6"/>
+    <g clip-path="url(#head)">
+      <ellipse cx="12" cy="11" rx="5.2" ry="7.2" transform="rotate(-35 12 11)" fill="#fff" stroke="none"/>
+      <path d="M4 5h16M4 7h16M4 9h16M4 11h16M4 13h16M4 15h16M4 17h16M6 2v18M8 2v18M10 2v18M12 2v18M14 2v18M16 2v18M18 2v18" stroke="#b8a2f2" stroke-width=".35"/>
+    </g>
+    <ellipse cx="12" cy="11" rx="5.2" ry="7.2" transform="rotate(-35 12 11)" fill="none" stroke-width="1.6"/>
+    <ellipse cx="12" cy="11" rx="5.2" ry="7.2" transform="rotate(-35 12 11)" fill="none" stroke="#9b7fe0" stroke-width=".7"/>
+    <!-- shot: dashed flight path from the racket to the shuttle over the net -->
+    <path d="M19 6.5q16-8 33-1" fill="none" stroke="#fff" stroke-width=".9" stroke-dasharray="1.6 1.8"/>
+    <g transform="rotate(12 60 8) translate(17.25 -0.5) scale(1.5)">
+      <path d="M24.5 3 30.5 5.8 30.5 7.2 24.5 10Z" fill="#fff" stroke-width=".55"/>
+      <path d="M26.5 4v5M28.5 5v3" stroke-width=".3"/>
+      <circle cx="31.5" cy="6.5" r="1.6" fill="#ffd24a" stroke-width=".55"/>
+    </g>
+  </g>
+  <rect x=".5" y=".5" width="87" height="30" rx="2" fill="none" stroke="#2e2540"/>
+</svg>

@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="88" height="31" viewBox="0 0 88 31">
+  <title>himalayan</title>
+  <defs>
+    <linearGradient id="sky" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#a98ce8"/>
+      <stop offset="1" stop-color="#ffc59a"/>
+    </linearGradient>
+    <clipPath id="frame"><rect width="88" height="31" rx="2"/></clipPath>
+  </defs>
+  <g clip-path="url(#frame)" stroke="#2e2540" stroke-linejoin="round" stroke-linecap="round">
+    <rect width="88" height="31" fill="url(#sky)" stroke="none"/>
+    <!-- Himalayan peaks with snow -->
+    <path d="M-2 24 14 7l9 9 10-12 14 14 9-8 12 11 10-9 14 12v6H-2Z" fill="#8c86b8" stroke-width=".8"/>
+    <path d="M14 7l-3.5 3.5 2 1 1.5-1.5 2 1.5 1.5-1Zm19-3-4 4.8 2.2.8 1.8-1.6 2 1.4 1.8-1.2ZM56 10l-2.8 2.5 1.5.8 1.3-1 1.4 1 1.2-.8Z" fill="#fff" stroke-width=".6"/>
+    <path d="M-2 22q30-4 92 1v9H-2Z" fill="#6b6aa0" stroke="none" opacity=".7"/>
+    <!-- road -->
+    <path d="M-1 27h90v5H-1Z" fill="#4a4460" stroke-width=".8"/>
+    <path d="M4 29.3h6M18 29.3h6M32 29.3h6M46 29.3h6M60 29.3h6M74 29.3h6" stroke="#ffd24a" stroke-width=".8"/>
+    <!-- the bike, facing right (Himalayan: tall stance, split seat, rack, tall screen) -->
+    <g>
+      <!-- swingarm and rear shock -->
+      <path d="M46 19.5 35 22" stroke-width="1.6"/>
+      <path d="M46 19.5 35 22" stroke="#5b5670" stroke-width=".7"/>
+      <path d="M41 20.5 43.5 13" stroke-width="1.2"/>
+      <path d="M41 20.5 43.5 13" stroke="#e0b23c" stroke-width=".5"/>
+      <path d="M40.30 22.00L40.80 22.00M39.98 23.81L40.45 23.98M39.06 25.41L39.44 25.73M37.65 26.59L37.90 27.02M35.92 27.22L36.01 27.71M34.08 27.22L33.99 27.71M32.35 26.59L32.10 27.02M30.94 25.41L30.56 25.73M30.02 23.81L29.55 23.98M29.70 22.00L29.20 22.00M30.02 20.19L29.55 20.02M30.94 18.59L30.56 18.27M32.35 17.41L32.10 16.98M34.08 16.78L33.99 16.29M35.92 16.78L36.01 16.29M37.65 17.41L37.90 16.98M39.06 18.59L39.44 18.27M39.98 20.19L40.45 20.02" stroke="#2e2540" stroke-width=".55"/>
+      <circle cx="35" cy="22" r="4.8" fill="none" stroke="#2e2540" stroke-width="2"/>
+      <circle cx="35" cy="22" r="3.6" fill="none" stroke="#e0b23c" stroke-width=".7"/>
+      <path d="M35.0 22.0L38.50 22.00M35.0 22.0L38.03 23.75M35.0 22.0L36.75 25.03M35.0 22.0L35.00 25.50M35.0 22.0L33.25 25.03M35.0 22.0L31.97 23.75M35.0 22.0L31.50 22.00M35.0 22.0L31.97 20.25M35.0 22.0L33.25 18.97M35.0 22.0L35.00 18.50M35.0 22.0L36.75 18.97M35.0 22.0L38.03 20.25" stroke="#e0b23c" stroke-width=".3"/>
+      <circle cx="35" cy="22" r=".9" fill="#c9cbd6" stroke-width=".4"/>
+      <path d="M71.10 21.40L71.60 21.40M70.73 23.49L71.20 23.66M69.67 25.32L70.06 25.64M68.05 26.68L68.30 27.12M66.06 27.41L66.15 27.90M63.94 27.41L63.85 27.90M61.95 26.68L61.70 27.12M60.33 25.32L59.94 25.64M59.27 23.49L58.80 23.66M58.90 21.40L58.40 21.40M59.27 19.31L58.80 19.14M60.33 17.48L59.94 17.16M61.95 16.12L61.70 15.68M63.94 15.39L63.85 14.90M66.06 15.39L66.15 14.90M68.05 16.12L68.30 15.68M69.67 17.48L70.06 17.16M70.73 19.31L71.20 19.14" stroke="#2e2540" stroke-width=".55"/>
+      <circle cx="65" cy="21.4" r="5.6" fill="none" stroke="#2e2540" stroke-width="2"/>
+      <circle cx="65" cy="21.4" r="4.4" fill="none" stroke="#e0b23c" stroke-width=".7"/>
+      <path d="M65.0 21.4L69.30 21.40M65.0 21.4L68.72 23.55M65.0 21.4L67.15 25.12M65.0 21.4L65.00 25.70M65.0 21.4L62.85 25.12M65.0 21.4L61.28 23.55M65.0 21.4L60.70 21.40M65.0 21.4L61.28 19.25M65.0 21.4L62.85 17.68M65.0 21.4L65.00 17.10M65.0 21.4L67.15 17.68M65.0 21.4L68.72 19.25" stroke="#e0b23c" stroke-width=".3"/>
+      <circle cx="65" cy="21.4" r=".9" fill="#c9cbd6" stroke-width=".4"/>
+      <!-- upswept exhaust with heat shield, ending under the rack -->
+      <path d="M50 19.8q-6 .6-9.5-3.6l-5.3-3.4" fill="none" stroke-width="2.1"/>
+      <path d="M50 19.8q-6 .6-9.5-3.6l-5.3-3.4" fill="none" stroke="#c9cbd6" stroke-width="1"/>
+      <path d="M37.2 13.2l3.4 2.2" stroke="#8a84a0" stroke-width="1.6"/>
+      <!-- long front fork with gaiters -->
+      <path d="M65 21.4 60.2 8.6" stroke-width="2.2"/>
+      <path d="M65 21.4 60.2 8.6" stroke="#c9cbd6" stroke-width="1"/>
+      <path d="M64.3 19.5 62.7 15.2" stroke-width="2.6"/>
+      <path d="M64.3 19.5 62.7 15.2" stroke="#4a4458" stroke-width="1.5"/>
+      <!-- front fender close to the tyre -->
+      <path d="M61.2 16.5q5-1.8 8.6 1.4" fill="none" stroke-width="1.7"/>
+      <path d="M61.2 16.5q5-1.8 8.6 1.4" fill="none" stroke="#2b2733" stroke-width=".8"/>
+      <!-- engine, high off the ground, with a bash plate under it -->
+      <path d="M45 13.8h10.2l.8 5.6H45.6Z" fill="#5b5670" stroke-width=".8"/>
+      <path d="M46.6 15.6h7.6M46.6 17.5h7.8" stroke="#8a84a0" stroke-width=".45"/>
+      <path d="M44.8 20.1h11.4l1.6-1.4" fill="none" stroke-width="1.3"/>
+      <path d="M44.8 20.1h11.4l1.6-1.4" fill="none" stroke="#c9cbd6" stroke-width=".6"/>
+      <!-- tail and side panel -->
+      <path d="M32 9.8 40 9.4 46.5 9.8 45.4 13.8 40.5 14.2Z" fill="#2b2733" stroke-width=".8"/>
+      <!-- split seat: rider lower, pillion higher -->
+      <path d="M40.2 9.6 47.2 9.2 47.6 10.9 40.4 11.2Z" fill="#4a4458" stroke-width=".6"/>
+      <path d="M33.8 8.4 40.4 8.1 40.4 9.8 33.8 10Z" fill="#4a4458" stroke-width=".6"/>
+      <!-- rear luggage rack with grab rail -->
+      <path d="M29.8 7.4h6.4M30.4 7.4l1.6 2.4M34.8 7.4l.4 1" fill="none" stroke-width=".9"/>
+      <!-- tall tank with gold graphic -->
+      <path d="M46.8 9.4 48.2 6.8h7.3l2.1 3.2-.9 3.9H45.6Z" fill="#2b2733" stroke-width=".8"/>
+      <path d="M48.4 8.3h6.8l1 1.6h-8.1Z" fill="#e0b23c" stroke="none"/>
+      <path d="M46.2 12.9h9.8" stroke="#e0b23c" stroke-width=".5"/>
+      <!-- tank-guard tubes from the tank down to the engine (jerry-can rack) -->
+      <path d="M55.4 7.4l3 2 .4 6.6-3.2.6" fill="none" stroke="#c9cbd6" stroke-width=".8"/>
+      <!-- handlebar -->
+      <path d="M58 7.1 55.8 4.6l-2 .3" fill="none" stroke-width=".95"/>
+      <!-- tall windscreen on the headlight cowl, round headlight -->
+      <path d="M60 7.2l1.8-6.4 2.6.9-1.3 6.1Z" fill="#dff2ff" fill-opacity=".75" stroke-width=".6"/>
+      <path d="M59.4 7.3h4.6l.5 4.6h-4.6Z" fill="#2b2733" stroke-width=".7"/>
+      <circle cx="63" cy="9.6" r="1.9" fill="#ffe27a" stroke-width=".8"/>
+      <circle cx="63" cy="9.6" r=".75" fill="#fff" stroke="none"/>
+    </g>
+  </g>
+  <rect x=".5" y=".5" width="87" height="30" rx="2" fill="none" stroke="#2e2540"/>
+</svg>
