@@ -62,11 +62,6 @@ export function RightNow() {
             <dt>local time</dt>
             <dd>
               <Clock timeZone={site.timeZone} />
-              <span className="muted">
-                {' '}
-                {site.city ? `in ${site.city} · ` : ''}
-                {site.timeZoneLabel}
-              </span>
             </dd>
           </div>
         ) : null}

@@ -6,10 +6,8 @@ export const site = {
   intro: '',
   // A few lines about you. Each string is one paragraph.
   about: [] as string[],
-  // IANA time zone for the live clock, its short label, and an optional city.
+  // IANA time zone for the live clock.
   timeZone: 'Asia/Kolkata',
-  timeZoneLabel: 'IST · UTC+5:30',
-  city: '',
   email: '',
   // Public GitHub user for the live "building" row.
   github: 'kishore280',
