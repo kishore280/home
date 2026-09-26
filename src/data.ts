@@ -26,6 +26,7 @@ export const updates: { date: string; text: string }[] = []
 export const myButtons: { file: string; alt: string }[] = [
   { file: 'button', alt: 'kish' },
   { file: 'button-badminton', alt: 'kish plays badminton' },
+  { file: 'button-parotta', alt: 'kish loves parotta' },
 ]
 
 // 88×31 buttons of friends and webrings: { name, href, img }.
