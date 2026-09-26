@@ -33,24 +33,25 @@ export default function App() {
   const mascot = useRef<MascotHandle>(null)
   const toastRequested = useToastRequested()
 
+  // ⌘K / Ctrl+K opens and closes the menu; only opening counts as a shortcut use.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault()
-        track('Menu shortcut ⌘K')
-        setMenuOpen((open) => !open)
+        if (!menuOpen) track('Menu shortcut ⌘K')
+        setMenuOpen(!menuOpen)
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [])
+  }, [menuOpen])
 
   const items: MenuItem[] = [
     { group: 'Do', label: 'Pat the mascot', run: () => mascot.current?.pat() },
     { group: 'Do', label: 'Switch light / dark', run: () => toast(toggleTheme() === 'dark' ? 'Dark mode' : 'Light mode') },
     ...(site.email ? [{ group: 'Do', label: 'Copy email', run: copyEmail }] : []),
     ...links.map((l) => ({ group: 'Links', label: l.label, run: () => window.open(l.href, '_blank', 'noopener') })),
-    { group: 'Secret', label: 'Offline only', run: () => window.location.assign('/offline') },
+    { group: 'Secret', label: 'Offline only', href: '/offline' },
   ]
 
   return (
