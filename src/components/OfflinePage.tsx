@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { offlineNote } from '../data'
-import { useOfflineReady, useOnline } from '../lib/client'
+import { useConnection, type Connection } from '../lib/client'
 import { trackOnce } from '../lib/track'
 import { BackHome } from './BackHome'
 import { Card } from './Card'
@@ -9,26 +9,27 @@ import SandCanvas from './SandCanvas'
 
 // The /offline page (idea: chrisbolin.co/offline): the note opens only while the browser is
 // offline. The service worker from scripts/sw.mjs keeps the page working without a network.
-export function OfflinePage() {
-  const online = useOnline(true)
-  const ready = useOfflineReady()
+// `initial` is the state it was pre-rendered in: /offline is built twice (online and offline), and
+// the service worker serves the offline one when the real request fails, so the first paint is right.
+export function OfflinePage({ initial }: { initial: Connection }) {
+  const connection = useConnection(initial)
+  const online = connection === 'online'
   const wasOffline = useRef(false)
 
   // Umami cannot send while offline, so count the read when the visitor comes back online.
   useEffect(() => {
-    if (!online) wasOffline.current = true
-    else if (wasOffline.current) trackOnce('Offline note read')
-  }, [online])
+    if (connection === 'offline') wasOffline.current = true
+    else if (connection === 'online' && wasOffline.current) trackOnce('Offline note read')
+  }, [connection])
 
   return (
-    <main className="narrow-page" id="main">
+    <main className="narrow-page" id="main" data-connection={connection}>
       <Card>
         <h1>{online ? 'offline only' : 'wifi off, chai on'}</h1>
-        <div className={online ? 'offline-note' : 'offline-note open'} aria-live="polite">
+        <div className="offline-note" aria-live="polite">
           {(online ? offlineNote.online : offlineNote.offline).map((line) => (
             <p key={line}>{line}</p>
           ))}
-          {online ? <p className="small">{ready ? offlineNote.ready : offlineNote.saving}</p> : null}
         </div>
       </Card>
       {online ? null : (

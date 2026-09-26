@@ -48,9 +48,6 @@ export const offlineNote = {
   title: 'offline only · kish',
   description: 'A note from kish that opens only when you are offline.',
   online: ['There is a note from kish here, but it opens only offline.', 'Turn on airplane mode ✈️, get a chai, and come back.'],
-  // Shown under `online` while the page is saved for offline use, then when it is ready.
-  saving: 'Saving this page on your device…',
-  ready: '✓ Saved on this device. You can go offline now.',
   offline: [
     'Wifi poyiduchu. Good 🍵',
     'No notifications, no tabs, no “one more link”. Just you, a glass of chai and the sound of the sea.',

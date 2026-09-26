@@ -882,7 +882,8 @@ kbd {
 .sand {
   display: block;
   width: 100%;
-  aspect-ratio: 2 / 1;
+  /* A big patch of sand: most of the screen height, never tiny or huge. */
+  height: clamp(280px, 55vh, 560px);
   border-radius: 12px;
   touch-action: none;
   cursor: crosshair;
@@ -917,17 +918,6 @@ kbd {
 
 .offline-note p:last-child {
   margin: 0;
-}
-
-.offline-note.open {
-  animation: note-in 0.4s ease-out;
-}
-
-@keyframes note-in {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
