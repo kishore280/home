@@ -1,60 +1,64 @@
 # home
 
-Personal site. React + TypeScript + Vite. Hosted on Cloudflare Pages.
-Made with the Cloudflare CLI (`npm create cloudflare@latest -- --framework=react --platform=pages`).
+kishore's little corner of the internet. A soft lavender personal site: React + TypeScript + Vite, on Cloudflare Pages.
+
+## What is on the page
+
+| Part | Data | Needs |
+|---|---|---|
+| Intro, about, links, email | `src/data.ts` | Nothing |
+| Mascot (click to pat) and pat count | Cloudflare D1 | D1 binding (below) |
+| Status | [status.cafe](https://status.cafe) | `statusCafe` in `src/data.ts` |
+| Stats: updated, views, notes | Build date + D1 | D1 binding |
+| Right now: music | Last.fm | `LASTFM_API_KEY`, `LASTFM_USER` |
+| Right now: building | Latest public GitHub push | `github` in `src/data.ts` |
+| Right now: local time | Browser | `timeZone` in `src/data.ts` |
+| Guestbook | Cloudflare D1 | D1 binding |
+| Site updates, 88×31 buttons | `src/data.ts`, `public/button.svg` | Nothing |
+| ⌘K menu | cmdk | Nothing |
+
+Only real data is shown. A part with no data is hidden.
 
 ## Local development
 
 ```sh
 npm install
-npm run dev         # start the Vite dev server
+npm run dev         # Vite dev server (no API functions)
 npm run build       # type-check and build to dist/
-npm run preview     # build, then serve with wrangler pages dev
-npm run lint        # run oxlint
+npm run preview     # build, then run with the functions (wrangler pages dev)
+npm run lint        # oxlint
 npm run cf-typegen  # regenerate worker-configuration.d.ts
 ```
 
-Cloudflare settings are in `wrangler.jsonc`.
+## Set up the guestbook, views and pats (Cloudflare D1)
 
-## Edit the content
+1. Create the database: `npx wrangler d1 create home`
+2. Create the tables: `npx wrangler d1 execute home --remote --file migrations/0001_init.sql`
+3. In the Cloudflare dashboard, open the Pages project → **Settings → Bindings → Add → D1 database**. Variable name: `DB`. Database: `home`.
+4. Deploy again.
 
-All content is in `src/data.ts`. The site shows only real data: a section with no data is hidden.
+Without the binding, the guestbook and the counters are hidden. The rest of the site still works.
 
-- The **building** row shows your latest public GitHub push (`functions/api/github.ts`, no key needed).
-- The **clock** shows when `timeZone` is set.
-- **Photos** show when you add images to `photos`.
+## Live music (Last.fm)
 
-## Libraries
-
-- [cmdk](https://github.com/pacocoursey/cmdk) (Paco Coursey): the ⌘K menu
-- [sonner](https://github.com/emilkowalski/sonner) (Emil Kowalski): toasts
-- [motion](https://motion.dev): animations and the photo viewer
-- [Geist](https://vercel.com/font) (Vercel): fonts, through Fontsource
-
-## Now playing (Last.fm)
-
-`functions/api/now-playing.ts` is a Pages Function. To show live music, add these variables in the Pages project settings:
+In the Pages project settings, add these variables:
 
 - `LASTFM_API_KEY`: get one at https://www.last.fm/api/account/create
 - `LASTFM_USER`: your Last.fm user name
 
-Without them, the music row is hidden.
+## Deploy
 
-## Deploy from the command line
+From Git: in the Cloudflare dashboard, go to **Workers & Pages → Create → Pages → Connect to Git**, select this repository, production branch `main`, build command `npm run build`, output directory `dist`.
 
-```sh
-npx wrangler login
-npm run deploy      # build, then wrangler pages deploy
-```
+From the command line: `npx wrangler login`, then `npm run deploy`.
 
-## Deploy from Git (Cloudflare Pages)
+## Libraries
 
-1. In the Cloudflare dashboard, go to **Workers & Pages → Create → Pages → Connect to Git**.
-2. Select this repository.
-3. Use these build settings:
-   - Framework preset: **React (Vite)**
-   - Build command: `npm run build`
-   - Build output directory: `dist`
-4. Save and deploy. Each push to the production branch deploys the site. Other branches get preview URLs.
+- [cmdk](https://github.com/pacocoursey/cmdk): the ⌘K menu, loaded only when it opens
+- [sonner](https://github.com/emilkowalski/sonner): toasts
+- [SWR](https://swr.vercel.app): data fetching and caching
+- [Nunito](https://fonts.google.com/specimen/Nunito) and [Pixelify Sans](https://fonts.google.com/specimen/Pixelify+Sans), through Fontsource
 
-The Node version for the build is in `.nvmrc`.
+## Agent skills
+
+`.claude/skills/` has two MIT-licensed skills from [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills): `react-best-practices` and `web-design-guidelines`.

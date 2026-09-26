@@ -1,13 +1,9 @@
 import { Command } from 'cmdk'
 
-export type MenuItem = {
-  group: string
-  label: string
-  shortcut?: string
-  run: () => void
-}
+export type MenuItem = { group: string; label: string; run: () => void }
 
-export function CommandMenu({
+// Loaded with React.lazy, so cmdk is only downloaded when someone opens the menu.
+export default function CommandMenu({
   open,
   onOpenChange,
   items,
@@ -22,13 +18,13 @@ export function CommandMenu({
     <Command.Dialog
       open={open}
       onOpenChange={onOpenChange}
-      label="Command menu"
+      label="Menu"
       overlayClassName="cmdk-overlay"
       contentClassName="cmdk-content"
     >
-      <Command.Input placeholder="Type a command or search…" />
+      <Command.Input placeholder="Type to search…" />
       <Command.List>
-        <Command.Empty>No results</Command.Empty>
+        <Command.Empty>Nothing found.</Command.Empty>
         {groups.map((group) => (
           <Command.Group key={group} heading={group}>
             {items
@@ -38,11 +34,10 @@ export function CommandMenu({
                   key={item.label}
                   onSelect={() => {
                     onOpenChange(false)
-                    setTimeout(item.run, 120)
+                    item.run()
                   }}
                 >
-                  <span>{item.label}</span>
-                  {item.shortcut && <kbd>{item.shortcut}</kbd>}
+                  {item.label}
                 </Command.Item>
               ))}
           </Command.Group>

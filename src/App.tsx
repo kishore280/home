@@ -1,126 +1,140 @@
-import { useCallback, useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { Toaster, toast } from 'sonner'
-import { links, photos, site } from './data'
-import { Clock } from './components/Clock'
-import { NowPlaying, type Track } from './components/NowPlaying'
-import { Building, type Activity } from './components/Building'
-import { Photos } from './components/Photos'
-import { CommandMenu, type MenuItem } from './components/CommandMenu'
-import { useLive } from './hooks/useLive'
-import { toggleTheme, useTheme } from './theme'
+import { links, site, updates } from './data'
+import { Card } from './components/Card'
+import { Mascot } from './components/Mascot'
+import { Status } from './components/Status'
+import { Stats } from './components/Stats'
+import { RightNow } from './components/RightNow'
+import { Guestbook } from './components/Guestbook'
+import { Buttons } from './components/Buttons'
+import type { MenuItem } from './components/CommandMenu'
+import { useCounters } from './hooks/useCounters'
+import { toggleTheme } from './theme'
+
+const CommandMenu = lazy(() => import('./components/CommandMenu'))
+
+async function copyEmail() {
+  try {
+    await navigator.clipboard.writeText(site.email)
+    toast('Email copied')
+  } catch {
+    toast(site.email)
+  }
+}
 
 export default function App() {
   const [menuOpen, setMenuOpen] = useState(false)
-  const [photo, setPhoto] = useState<number | null>(null)
-  const track = useLive<Track>('/api/now-playing', 30_000)
-  const activity = useLive<Activity>(site.github ? `/api/github?user=${site.github}` : null, 300_000)
-  const theme = useTheme()
+  const { counters, bump, refresh } = useCounters()
+
+  // Count one view per browser session.
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem('viewed')) return
+      sessionStorage.setItem('viewed', '1')
+    } catch {
+      // Storage blocked: count the view anyway.
+    }
+    bump('views')
+  }, [bump])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault()
-        setMenuOpen((o) => !o)
+        setMenuOpen((open) => !open)
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
-  const copyEmail = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(site.email)
-      toast('Email copied')
-    } catch {
-      toast(site.email)
-    }
-  }, [])
-
   const items: MenuItem[] = [
-    ...(photos.length
-      ? [
-          {
-            group: 'Navigate',
-            label: 'Photos',
-            run: () => document.getElementById('photos')?.scrollIntoView({ behavior: 'smooth' }),
-          },
-          {
-            group: 'Actions',
-            label: 'Open a random photo',
-            run: () => setPhoto(Math.floor(Math.random() * photos.length)),
-          },
-        ]
-      : []),
-    ...(site.email ? [{ group: 'Actions', label: 'Copy email', run: copyEmail }] : []),
     {
-      group: 'Actions',
-      label: theme === 'dark' ? 'Light theme' : 'Dark theme',
-      run: () => toast(toggleTheme() === 'dark' ? 'Dark theme' : 'Light theme'),
+      group: 'Go to',
+      label: 'Guestbook',
+      run: () => {
+        document.getElementById('guestbook')?.scrollIntoView({ behavior: 'smooth' })
+        document.getElementById('gb-text')?.focus({ preventScroll: true })
+      },
     },
-    ...links.map((l) => ({ group: 'Links', label: l.label, shortcut: '↗', run: () => window.open(l.href, '_blank') })),
+    { group: 'Do', label: 'Pat the mascot', run: () => document.querySelector<HTMLButtonElement>('.mascot-button')?.click() },
+    { group: 'Do', label: 'Switch light / dark', run: () => toast(toggleTheme() === 'dark' ? 'Dark mode' : 'Light mode') },
+    ...(site.email ? [{ group: 'Do', label: 'Copy email', run: copyEmail }] : []),
+    ...links.map((l) => ({ group: 'Links', label: l.label, run: () => window.open(l.href, '_blank', 'noopener') })),
   ]
 
   return (
     <>
-      <main>
-        <header>
-          <div>
-            <h1>{site.name}</h1>
-            {site.bio && <p className="muted">{site.bio}</p>}
-          </div>
-          {site.timeZone && <Clock />}
-        </header>
+      <a className="skip-link" href="#main">
+        Skip to content
+      </a>
+      <div className="layout">
+        <aside className="side">
+          <Card>
+            <Mascot pats={counters?.pats ?? null} onPat={() => bump('pats')} />
+          </Card>
+          {site.statusCafe ? <Status user={site.statusCafe} /> : null}
+          <Stats counters={counters} />
+        </aside>
 
-        {(track || activity) && (
-          <section aria-labelledby="now">
-            <h2 id="now">right now</h2>
-            <div className="status">
-              {track && <NowPlaying track={track} />}
-              {activity && <Building activity={activity} />}
-            </div>
-          </section>
-        )}
-
-        {site.about && (
-          <section aria-labelledby="about">
-            <h2 id="about">about</h2>
-            <p className="prose">{site.about}</p>
-          </section>
-        )}
-
-        {photos.length > 0 && (
-          <section id="photos" aria-labelledby="photos-heading">
-            <h2 id="photos-heading">photos</h2>
-            <Photos open={photo} onOpen={setPhoto} />
-          </section>
-        )}
-
-        <section aria-labelledby="elsewhere">
-          <h2 id="elsewhere">elsewhere</h2>
-          <div className="links">
-            {links.map((l) => (
-              <a key={l.label} href={l.href} target="_blank" rel="noopener noreferrer">
-                {l.label} ↗
-              </a>
+        <main className="main" id="main">
+          <Card>
+            <h1>
+              hi, i'm {site.name}{' '}
+              <span className="wave" aria-hidden="true">
+                👋
+              </span>
+            </h1>
+            {site.intro ? <p className="intro">{site.intro}</p> : null}
+            {site.about.map((p) => (
+              <p key={p}>{p}</p>
             ))}
-            {site.email && (
-              <button type="button" onClick={copyEmail}>
-                {site.email}
-              </button>
-            )}
-          </div>
-        </section>
+            <nav className="links" aria-label="Elsewhere">
+              {links.map((l) => (
+                <a key={l.href} href={l.href} target="_blank" rel="noreferrer">
+                  {l.label} ↗
+                </a>
+              ))}
+              {site.email ? (
+                <button type="button" onClick={copyEmail}>
+                  {site.email}
+                </button>
+              ) : null}
+            </nav>
+          </Card>
 
-        <footer>
-          <span>built with cmdk · sonner · motion · geist</span>
-          <button type="button" className="menu-button" onClick={() => setMenuOpen(true)}>
-            <kbd>⌘</kbd> <kbd>K</kbd> menu
-          </button>
-        </footer>
-      </main>
+          <RightNow />
+          <Guestbook onSigned={refresh} />
 
-      <CommandMenu open={menuOpen} onOpenChange={setMenuOpen} items={items} />
-      <Toaster position="bottom-center" theme={theme} toastOptions={{ className: 'toast' }} />
+          <Card title="site updates">
+            <ul className="log">
+              {updates.map((u) => (
+                <li key={u.date + u.text}>
+                  <time dateTime={u.date}>{u.date}</time>
+                  <span>{u.text}</span>
+                </li>
+              ))}
+            </ul>
+          </Card>
+
+          <Buttons />
+
+          <footer>
+            <button type="button" className="link-button" onClick={() => setMenuOpen(true)}>
+              <kbd>⌘</kbd>
+              <kbd>K</kbd> menu
+            </button>
+          </footer>
+        </main>
+      </div>
+
+      {menuOpen ? (
+        <Suspense fallback={null}>
+          <CommandMenu open={menuOpen} onOpenChange={setMenuOpen} items={items} />
+        </Suspense>
+      ) : null}
+      <Toaster position="bottom-center" toastOptions={{ className: 'toast' }} />
     </>
   )
 }
