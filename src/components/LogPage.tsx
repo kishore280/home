@@ -1,5 +1,5 @@
 import { useEffect, useEffectEvent, useState, type FormEvent } from 'react'
-import { mutate } from 'swr'
+import useSWR, { mutate } from 'swr'
 import { logPage } from '../data'
 import { fetcher, type LogKind, type LogSummary } from '../lib/api'
 import { useIsClient } from '../lib/client'
@@ -15,9 +15,8 @@ import Toasts from './Toasts'
 // The private /log page: kish taps a button, the Worker stores it (worker/log.ts, Bearer token,
 // the way anonrig/adamvsyagiz.com logs check-ins). With no signal, the service worker keeps the
 // request and sends it later (Workbox background sync, scripts/sw.mjs).
+// The buttons come from the kinds in the database (log_kinds): a new kind needs no code change.
 const TOKEN_KEY = 'log-token'
-const KINDS: LogKind[] = ['chai', 'parotta', 'beach']
-const EMOJI: Record<LogKind, string> = { chai: '☕', parotta: '🫓', beach: '🌊' }
 
 const post = (token: string, path: string, body: object) =>
   fetch(path, {
@@ -48,20 +47,22 @@ async function sendUndo(token: string, id: string) {
 async function sendLog(token: string, kind: LogKind, count: number, place?: string): Promise<'ok' | 'unauthorized' | 'failed'> {
   navigator.vibrate?.(30) // a short buzz as the tap is taken (Android; other browsers ignore it)
   const id = crypto.randomUUID() // the Worker counts a replayed request once
-  const label = `${EMOJI[kind]} ${kind} +${count}`
+  const label = `${kind.emoji} ${kind.kind} +${count}`
   const action = { label: 'Undo', onClick: () => void sendUndo(token, id) }
+  // The phone's time zone, kept with the entry (days are counted in IST; this keeps the truth).
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
   try {
-    const res = await post(token, '/api/log', { id, kind, count, at: Date.now(), place })
+    const res = await post(token, '/api/log', { id, kind: kind.kind, count, at: Date.now(), tz, place })
     if (res.status === 401) return 'unauthorized'
     const reply = (await res.json().catch(() => ({}))) as { duplicate?: boolean; today?: number; month?: number; error?: string }
     if (!res.ok) {
       // e.g. 503 "Logging is not set up yet: …" says what to do.
-      toast(reply.error ?? `Could not log ${kind}. Try again.`, { error: true })
+      toast(reply.error ?? `Could not log ${kind.kind}. Try again.`, { error: true })
       return 'failed'
     }
-    if (reply.duplicate) toast(`${EMOJI.beach} today is already a beach day`)
+    if (reply.duplicate) toast(`${kind.emoji} today is already a ${kind.kind} day`)
     // With the new total, as adamvsyagiz.com's log page does: "☕ chai +1 · 3 today".
-    else toast(`${label} · ${kind === 'beach' ? `${reply.month} this month` : `${reply.today} today`}`, { action })
+    else toast(`${label} · ${kind.onceADay ? `${reply.month} this month` : `${reply.today} today`}`, { action })
     return 'ok'
   } catch {
     if (!queued()) {
@@ -80,6 +81,10 @@ export function LogPage() {
   const [token, setToken] = useState<string | null>(() => (typeof window === 'undefined' ? null : load(TOKEN_KEY)))
   const [place, setPlace] = useState('')
   const toastRequested = useToastRequested()
+  // The same request as the counts card (SWR shares it). Offline, the service worker answers with
+  // the last copy, so the buttons are there with no signal too.
+  const { data, error } = useSWR('/api/log', fetcher<LogSummary>)
+  const kinds = data?.kinds
 
   function forget(message?: string) {
     remove(TOKEN_KEY)
@@ -89,9 +94,10 @@ export function LogPage() {
 
   async function log(kind: LogKind, count = 1) {
     if (!token) return
-    const result = await sendLog(token, kind, count, kind === 'beach' ? place.trim() || undefined : undefined)
+    // The place goes with a once-a-day kind (a beach day at "Marina").
+    const result = await sendLog(token, kind, count, kind.onceADay ? place.trim() || undefined : undefined)
     if (result === 'unauthorized') forget('That token is not right. Enter it again.')
-    else if (result === 'ok' && kind === 'beach') setPlace('')
+    else if (result === 'ok' && kind.onceADay) setPlace('')
   }
 
   // The installed app's long-press shortcuts open /log?add=chai (public/log.webmanifest). Only the
@@ -103,11 +109,11 @@ export function LogPage() {
   })
   useEffect(() => {
     const add = new URLSearchParams(location.search).get('add')
-    if (!token || !add) return
+    if (!token || !add || !kinds) return // wait for the token and the kinds
     history.replaceState(null, '', location.pathname) // a reload does not log again
-    if (KINDS.includes(add as LogKind) && matchMedia('(display-mode: standalone)').matches)
-      void sendLog(token, add as LogKind, 1).then(onShortcutResult)
-  }, [token])
+    const kind = kinds.find((k) => k.kind === add)
+    if (kind && matchMedia('(display-mode: standalone)').matches) void sendLog(token, kind, 1).then(onShortcutResult)
+  }, [token, kinds])
 
   function saveToken(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -123,24 +129,28 @@ export function LogPage() {
         <h1>{logPage.heading}</h1>
         {!isClient ? null : token ? (
           <>
-            <div className="log-buttons">
-              <button type="button" onClick={() => void log('chai')}>
-                <span aria-hidden="true">☕</span> chai +1
-              </button>
-              <button type="button" onClick={() => void log('parotta')}>
-                <span aria-hidden="true">🫓</span> parotta +1
-              </button>
-              <button type="button" onClick={() => void log('parotta', 2)}>
-                <span aria-hidden="true">🫓</span> parotta +2
-              </button>
-              <button type="button" onClick={() => void log('beach')}>
-                <span aria-hidden="true">🌊</span> beach day
-              </button>
-            </div>
-            <label className="log-place">
-              beach place (optional)
-              <input value={place} onChange={(e) => setPlace(e.target.value)} maxLength={60} autoComplete="off" />
-            </label>
+            {kinds ? (
+              <div className="log-buttons">
+                {/* A once-a-day kind has one button ("beach day"); others +1 and +2. */}
+                {kinds.flatMap((kind) =>
+                  (kind.onceADay ? [0] : [1, 2]).map((count) => (
+                    <button key={`${kind.kind}${count}`} type="button" onClick={() => void log(kind, count || 1)}>
+                      <span aria-hidden="true">{kind.emoji}</span> {kind.kind} {count ? `+${count}` : 'day'}
+                    </button>
+                  )),
+                )}
+              </div>
+            ) : (
+              <p className="log-status" role="status">
+                {error ? 'Could not load the buttons. Open this page once with a signal.' : 'Loading…'}
+              </p>
+            )}
+            {kinds?.some((k) => k.onceADay) ? (
+              <label className="log-place">
+                {kinds.filter((k) => k.onceADay).map((k) => k.kind).join(' / ')} place (optional)
+                <input value={place} onChange={(e) => setPlace(e.target.value)} maxLength={60} autoComplete="off" />
+              </label>
+            ) : null}
             <button type="button" className="link-button" onClick={() => forget()}>
               forget token on this device
             </button>

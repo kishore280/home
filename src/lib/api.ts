@@ -21,7 +21,18 @@ export type Track = { title: string; artist: string; at: string; until: string }
 export type Push = { repo: string; url: string; at: string }
 export type Status = { content: string; face: string; timeAgo: string }
 export type Counters = { views: number; pats: number }
-// GET /api/log (worker/log.ts): totals per kind in IST; null for a kind never logged.
-export type LogKind = 'chai' | 'parotta' | 'beach'
-export type LogTotals = { today: number; month: number; year: number; total: number; last: string; place?: string | null }
-export type LogSummary = Record<LogKind, LogTotals | null>
+// GET /api/log (worker/log.ts): every kind in log_kinds with its totals in IST. `last` is null for
+// a kind never logged (or with every entry undone).
+export type LogKind = {
+  kind: string
+  emoji: string
+  label: string
+  onceADay: boolean
+  today: number
+  month: number
+  year: number
+  total: number
+  last: string | null
+  place: string | null
+}
+export type LogSummary = { kinds: LogKind[] }

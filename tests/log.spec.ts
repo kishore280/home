@@ -9,10 +9,17 @@ const api = 'http://127.0.0.1:8787/api/log'
 const auth = { authorization: 'Bearer test-token-0123456789-abcdef' }
 const post = (request: APIRequestContext, data: unknown, path = '') =>
   request.post(`${api}${path}`, { data, headers: auth })
+// GET /api/log lists every kind; here as { chai: totals | null, … } (null: never logged).
+type Kind = { kind: string; emoji: string; label: string; onceADay: boolean; last: string | null; place: string | null } & Record<
+  'today' | 'month' | 'year' | 'total',
+  number
+>
+const byKind = ({ kinds }: { kinds: Kind[] }): Record<string, Kind | null> =>
+  Object.fromEntries(kinds.map((k) => [k.kind, k.last ? k : null]))
 const summary = async (request: APIRequestContext) => {
   const res = await request.get(api)
   expect(res.headers()['cache-control']).toBe('public, max-age=15')
-  return res.json()
+  return byKind(await res.json())
 }
 const counts = (n: number) => ({ today: n, month: n, year: n, total: n })
 const sql = (command: string) => execSync(`npx wrangler d1 execute home --local --json --command "${command}"`, { encoding: 'utf8' })
@@ -42,7 +49,7 @@ test('a POST needs the token; other methods are refused', async ({ request }) =>
 
 test('before any log every kind is empty', async ({ request }) => {
   const res = await request.get(api)
-  if (res.status() !== 204) expect(await res.json()).toEqual({ chai: null, parotta: null, beach: null })
+  if (res.status() !== 204) expect(byKind(await res.json())).toEqual({ chai: null, parotta: null, beach: null })
 })
 
 test('a chai counts in today, month, year and total', async ({ request }) => {
@@ -55,8 +62,8 @@ test('a chai counts in today, month, year and total', async ({ request }) => {
   expect(Math.abs(Date.parse(body.at) - Date.now())).toBeLessThan(60_000)
   const { chai: totals, parotta: none } = await summary(request)
   expect(totals).toMatchObject(counts(1))
-  expect(totals.last).toBe(body.at)
-  expect(totals).not.toHaveProperty('place')
+  expect(totals?.last).toBe(body.at)
+  expect(totals).toMatchObject({ emoji: '☕', label: 'chai', onceADay: false, place: null })
   expect(none).toBeNull()
 })
 
@@ -83,7 +90,57 @@ test('a beach day counts once, with its place', async ({ request }) => {
   const first = await (await post(request, { id: crypto.randomUUID(), kind: 'beach', count: 4, place: '  Marina  ' })).json()
   expect(first).toMatchObject({ ok: true, kind: 'beach', count: 1 })
   expect(await (await post(request, { id: crypto.randomUUID(), kind: 'beach', place: 'Besant Nagar' })).json()).toEqual({ ok: true, duplicate: true })
-  expect((await summary(request)).beach).toEqual({ ...counts(1), last: first.at, place: 'Marina' })
+  expect((await summary(request)).beach).toMatchObject({ ...counts(1), onceADay: true, last: first.at, place: 'Marina' })
+})
+
+test('undo keeps the entry in the history, and a once-a-day kind can be logged again', async ({ request }) => {
+  const id = crypto.randomUUID()
+  await post(request, { id, kind: 'chai' })
+  await post(request, { id }, '/undo')
+  const [row] = JSON.parse(sql(`SELECT kind, undone_at FROM log_entries WHERE client_id = '${id}'`))[0].results
+  expect(row.kind).toBe('chai')
+  expect(row.undone_at).toBeGreaterThan(Date.now() - 60_000)
+  // The beach day from the test above, undone, frees the day.
+  const [beach] = JSON.parse(sql(`SELECT client_id FROM log_entries WHERE kind = 'beach' AND undone_at IS NULL`))[0].results
+  await post(request, { id: beach.client_id }, '/undo')
+  expect((await summary(request)).beach).toBeNull()
+  const again = await (await post(request, { id: crypto.randomUUID(), kind: 'beach', place: 'Elliot' })).json()
+  expect(again).toMatchObject({ ok: true, kind: 'beach', month: 1 })
+  expect((await summary(request)).beach).toMatchObject({ ...counts(1), place: 'Elliot' })
+})
+
+test('each entry keeps the time zone of the phone', async ({ request }) => {
+  const id = crypto.randomUUID()
+  await post(request, { id, kind: 'chai', tz: 'Europe/Paris' })
+  expect(JSON.parse(sql(`SELECT tz FROM log_entries WHERE client_id = '${id}'`))[0].results[0].tz).toBe('Europe/Paris')
+  await post(request, { id }, '/undo')
+  const res = await post(request, { id: crypto.randomUUID(), kind: 'chai', tz: 'Mars/Olympus' })
+  expect(res.status()).toBe(400)
+})
+
+test('the rollups are kept per grain, so a range of days reads only day rows', async () => {
+  const rows = JSON.parse(sql(`SELECT grain, period FROM log_totals WHERE kind = 'chai' ORDER BY grain`))[0].results
+  const day = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(Date.now())
+  expect(rows).toEqual([
+    { grain: 'all', period: 'all' },
+    { grain: 'day', period: day },
+    { grain: 'month', period: day.slice(0, 7) },
+    { grain: 'year', period: day.slice(0, 4) },
+  ])
+  // What a year heatmap would ask: only day rows, by primary key.
+  const range = `SELECT period FROM log_totals WHERE kind = 'chai' AND grain = 'day' AND period BETWEEN '${day.slice(0, 4)}-01-01' AND '${day.slice(0, 4)}-12-31'`
+  expect(JSON.parse(sql(range))[0].results).toEqual([{ period: day }])
+  expect(sql(`EXPLAIN QUERY PLAN ${range}`)).toContain('USING PRIMARY KEY')
+})
+
+test('a new kind is one row in log_kinds, no code change', async ({ request }) => {
+  sql(`INSERT INTO log_kinds (kind, emoji, label, once_a_day, sort) VALUES ('gym', '🏋️', 'gym', 0, 9)`)
+  try {
+    expect(await (await post(request, { id: crypto.randomUUID(), kind: 'gym' })).json()).toMatchObject({ ok: true, today: 1 })
+    expect((await summary(request)).gym).toMatchObject({ ...counts(1), emoji: '🏋️', label: 'gym' })
+  } finally {
+    sql(`DELETE FROM log_totals WHERE kind = 'gym'; DELETE FROM log_entries WHERE kind = 'gym'; DELETE FROM log_kinds WHERE kind = 'gym'`)
+  }
 })
 
 test('undo takes an entry back once', async ({ request }) => {
@@ -129,7 +186,7 @@ test('bad requests are refused and change nothing', async ({ request }) => {
 test('an entry from the offline queue keeps its time', async ({ request }) => {
   const at = Date.now() - 3600_000
   expect(await (await post(request, { id: crypto.randomUUID(), kind: 'chai', at })).json()).toMatchObject({ at: new Date(at).toISOString() })
-  expect((await summary(request)).chai.total).toBe(3)
+  expect((await summary(request)).chai?.total).toBe(3)
 })
 
 test('totals never go below zero', async ({ request }) => {
@@ -137,7 +194,7 @@ test('totals never go below zero', async ({ request }) => {
   await post(request, { id, kind: 'chai', count: 20 })
   await post(request, { id }, '/undo')
   await post(request, { id }, '/undo')
-  expect((await summary(request)).chai.total).toBe(3)
+  expect((await summary(request)).chai?.total).toBe(3)
   expect(JSON.parse(sql('SELECT count(*) AS n FROM log_totals WHERE count < 0'))[0].results[0].n).toBe(0)
 })
 
