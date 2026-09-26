@@ -411,7 +411,7 @@ test.describe('speed', () => {
     // access and may have no song). Their lines are kept in the HTML while they load.
     const at = new Date().toISOString()
     await page.route('**/api/now-playing', (r) => r.fulfill({ json: { title: 'A long song title that fills the line', artist: 'Artist', at, until: at } }))
-    await page.route('**/api/github', (r) => r.fulfill({ json: { repo: 'kishore280/home', url: 'https://github.com/kishore280/home', message: null, at } }))
+    await page.route('**/api/github', (r) => r.fulfill({ json: { repo: 'home', url: 'https://github.com/kishore280/home', at } }))
     await page.goto('/')
     // Wait for everything that arrives after the page: the clock, the rows, the mascot's line and the views.
     await expect(page.locator('.clock')).toBeVisible()

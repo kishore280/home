@@ -18,6 +18,6 @@ export async function post<T>(url: string, body: unknown): Promise<T> {
 }
 
 export type Track = { title: string; artist: string; at: string; until: string }
-export type Push = { repo: string; url: string; message: string | null; at: string }
+export type Push = { repo: string; url: string; at: string }
 export type Status = { content: string; face: string; timeAgo: string }
 export type Counters = { views: number; pats: number }
