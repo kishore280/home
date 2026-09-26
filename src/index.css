@@ -14,7 +14,6 @@
   --face: #3a3150;
   --body: 'Nunito Variable', ui-rounded, system-ui, sans-serif;
   --display: 'Pixelify Sans Variable', 'Nunito Variable', system-ui, sans-serif;
-  --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
   --radius: 16px;
   color-scheme: light;
 }
@@ -87,10 +86,6 @@ a {
 .small {
   font-size: 13px;
   margin: 0;
-}
-
-.mono {
-  font-family: var(--mono);
 }
 
 .skip-link {
@@ -325,7 +320,7 @@ h2 {
   grid-template-columns: auto 1fr;
   gap: 4px 12px;
   margin: 0;
-  font: 13px var(--mono);
+  font: 600 13px var(--body);
 }
 
 .stats dt {
@@ -358,7 +353,7 @@ h2 {
 }
 
 .row dt {
-  font: 13px var(--mono);
+  font: 600 13px var(--body);
   color: var(--muted);
   display: flex;
   gap: 8px;
@@ -405,6 +400,11 @@ h2 {
   }
 }
 
+.clock {
+  font: 700 18px/1 var(--display);
+  letter-spacing: 0.02em;
+}
+
 .swap-in {
   animation: swap-in 0.3s ease-out;
 }
@@ -439,7 +439,7 @@ h2 {
 }
 
 .log time {
-  font: 13px/1.9 var(--mono);
+  font: 600 13px/1.9 var(--body);
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
@@ -476,7 +476,7 @@ footer {
 }
 
 .link-button {
-  font: 13px var(--mono);
+  font: 600 13px var(--body);
   color: var(--muted);
   display: inline-flex;
   gap: 4px;
@@ -484,7 +484,7 @@ footer {
 }
 
 kbd {
-  font: 11px var(--mono);
+  font: 600 11px var(--body);
   border: 1px solid var(--line);
   border-bottom-width: 2px;
   border-radius: 4px;

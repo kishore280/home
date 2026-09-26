@@ -41,7 +41,7 @@ export function Mascot({ pats, onPat }: { pats: number | null; onPat: () => void
         </div>
       </button>
       {pats !== null ? (
-        <p className="small mono">
+        <p className="small">
           {pats.toLocaleString()} {pats === 1 ? 'pat' : 'pats'}
         </p>
       ) : null}

@@ -12,7 +12,7 @@ function Clock({ timeZone }: { timeZone: string }) {
     return () => clearInterval(id)
   }, [])
   return (
-    <time dateTime={now.toISOString()}>
+    <time className="clock" dateTime={now.toISOString()}>
       {now.toLocaleTimeString('en-GB', { timeZone, hour: '2-digit', minute: '2-digit' })}
     </time>
   )
