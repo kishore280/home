@@ -31,7 +31,7 @@ function ClockTime() {
 export function RightNow() {
   const { data: track } = useSWR('/api/now-playing', fetcher<Track>, { refreshInterval: 30_000 })
   const { data: push } = useSWR(
-    site.github ? `/api/github?user=${site.github}` : null,
+    site.github ? '/api/github' : null,
     fetcher<Push>,
     { refreshInterval: 300_000 },
   )

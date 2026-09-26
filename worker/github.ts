@@ -1,5 +1,7 @@
-// GET /api/github?user=<name>
-// Returns the user's latest public push. No key needed; responses are cached for 5 minutes.
+// GET /api/github
+// Returns the latest public push of site.github. No key needed; responses are cached for 5 minutes.
+// The user is fixed here, not taken from the request, so the route is not an open GitHub proxy.
+import { site } from '../src/data'
 
 type PushEvent = {
   type: string
@@ -8,11 +10,10 @@ type PushEvent = {
   payload: { commits?: { message: string }[] }
 }
 
-export async function github(request: Request): Promise<Response> {
-  const user = new URL(request.url).searchParams.get('user') ?? ''
-  if (!/^[a-z\d](?:[a-z\d-]{0,38})$/i.test(user)) return new Response(null, { status: 400 })
+export async function github(): Promise<Response> {
+  if (!site.github) return new Response(null, { status: 204 })
 
-  const res = await fetch(`https://api.github.com/users/${user}/events/public?per_page=30`, {
+  const res = await fetch(`https://api.github.com/users/${site.github}/events/public?per_page=30`, {
     headers: { 'user-agent': 'home-site', accept: 'application/vnd.github+json' },
     cf: { cacheTtl: 300, cacheEverything: true },
   })

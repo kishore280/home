@@ -46,15 +46,13 @@ npm run log beach "Marina"   # a beach day today, with an optional place
 
 You can also edit `src/log.json` by hand. Times use ISO format with the IST offset, e.g. `2026-09-26T20:15:00+05:30`.
 
-## Set up views and pats (Cloudflare D1)
+## Views and pats (Cloudflare D1)
 
-1. Create the database: `npx wrangler d1 create home`. It prints a `database_id`.
-2. In `wrangler.jsonc`, add the binding with that ID (the comment at the end of the file shows the line to add):
-   `"d1_databases": [{ "binding": "DB", "database_name": "home", "database_id": "<id>" }]`
+`wrangler.jsonc` binds the D1 database `home` as `DB`. To use your own database:
+
+1. Create it: `npx wrangler d1 create home`. It prints a `database_id`.
+2. Put that ID in `d1_databases` in `wrangler.jsonc`, then run `npm run cf-typegen`.
 3. Create the table: `npx wrangler d1 execute home --remote --file migrations/0001_init.sql`
-4. Commit and push. The next deploy turns the counters on.
-
-Without the binding, the counters are hidden. The rest of the site still works.
 
 ## Live music (Last.fm)
 
@@ -87,11 +85,19 @@ Each push to `main` then builds and deploys. From the command line: `npx wrangle
   npm run og                                               # or: CHROMIUM_PATH=/path/to/chrome npm run og
   ```
 
+## Security
+
+- `public/_headers`: `nosniff`, `Referrer-Policy`, `Permissions-Policy` and `frame-ancestors 'none'` on static files.
+- `vite-plugin-csp-guard` adds a Content-Security-Policy `<meta>` tag at build time, with the hash of the inline theme script.
+- The Worker reads the GitHub user from `src/data.ts`, not from the request, so `/api/github` is not an open proxy.
+- Secrets (the Last.fm key) go in the Worker settings as secrets, never in Git.
+
 ## Libraries
 
 - [cmdk](https://github.com/pacocoursey/cmdk): the ⌘K menu, loaded only when it opens
 - [sonner](https://github.com/emilkowalski/sonner): toasts
 - [SWR](https://swr.vercel.app): data fetching and caching
+- [vite-plugin-csp-guard](https://github.com/tsotimus/vite-plugin-csp-guard): the Content-Security-Policy
 - [Nunito](https://fonts.google.com/specimen/Nunito) and [Pixelify Sans](https://fonts.google.com/specimen/Pixelify+Sans), through Fontsource
 
 ## Agent skills

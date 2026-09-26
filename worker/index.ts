@@ -11,7 +11,7 @@ export default {
       case '/api/now-playing':
         return nowPlaying(env)
       case '/api/github':
-        return github(request)
+        return github()
       case '/api/counters':
         return counters(request, env)
     }
