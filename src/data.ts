@@ -17,6 +17,7 @@ export const site = {
 
 export const links: { label: string; href: string }[] = [
   { label: 'GitHub', href: 'https://github.com/kishore280' },
+  { label: 'LinkedIn', href: 'https://www.linkedin.com/in/kishooreeee/' },
 ]
 
 // Newest first, e.g. { date: '2026-10-01', text: 'Added a photos page.' }. Empty hides the card.
