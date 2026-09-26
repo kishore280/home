@@ -386,6 +386,19 @@ h2 {
   stroke: #c9832f;
   stroke-width: 1;
 }
+.m-lid {
+  fill: #4a4458;
+  stroke: var(--face);
+  stroke-width: 1.8;
+}
+.m-sticker {
+  fill: var(--accent-2);
+}
+.m-code {
+  font: 700 10px var(--body);
+  fill: var(--accent-deep);
+  animation: zzz 2.8s ease-in-out infinite;
+}
 .m-zzz {
   font: 700 11px var(--display);
   fill: var(--accent-deep);

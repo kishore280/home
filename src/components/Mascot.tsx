@@ -2,17 +2,18 @@ import { useRef, useState, type ReactNode } from 'react'
 import { site } from '../data'
 import { chaiIcon } from './ChaiIcon'
 
-// The mascot follows kish's day in IST: badminton 6–9 am, chai the rest of the day,
-// the beach at sunset, parotta for dinner, and sleep at night.
-type Mode = 'chai' | 'badminton' | 'beach' | 'parotta' | 'sleep'
+// The mascot follows kish's day in IST: badminton 6–9 am, chai in the morning and
+// evening, coding in the day, the beach at sunset, parotta for dinner, sleep at night.
+type Mode = 'chai' | 'badminton' | 'coding' | 'beach' | 'parotta' | 'sleep'
 
 function modeNow(): Mode {
   const hour = Number(
     new Intl.DateTimeFormat('en-GB', { hour: 'numeric', hourCycle: 'h23', timeZone: site.timeZone }).format(new Date()),
   )
   if (hour >= 6 && hour < 9) return 'badminton'
-  if (hour >= 5 && hour < 16) return 'chai'
-  if (hour >= 16 && hour < 19) return 'beach'
+  if (hour >= 10 && hour < 16) return 'coding'
+  if (hour >= 5 && hour < 17) return 'chai' // 5–6 am, 9–10 am, 4–5 pm
+  if (hour >= 17 && hour < 19) return 'beach'
   if (hour >= 19 && hour < 23) return 'parotta'
   return 'sleep'
 }
@@ -20,6 +21,7 @@ function modeNow(): Mode {
 const MODES: Record<Mode, { label: ReactNode; lines: string[] }> = {
   chai: { label: <>chai time {chaiIcon}</>, lines: ['chai first!', 'one more chai?', 'strong chai pls', 'hi!'] },
   badminton: { label: 'badminton time 🏸', lines: ['smash!', 'rally?', 'one more game', 'hehe'] },
+  coding: { label: 'coding time 💻', lines: ['git push!', 'one more bug…', 'works on my machine', 'shipping…'] },
   beach: { label: 'beach time 🌅', lines: ['sea breeze~', 'sunset soon', 'beach time!', 'hi!'] },
   parotta: { label: 'parotta time 🫓', lines: ['parotta time!', 'with salna pls', 'two more parotta', 'yum'] },
   sleep: { label: 'sleeping 💤', lines: ['zzz… oh, hi', '5 more minutes', 'sleepy…', '💤'] },
@@ -47,6 +49,20 @@ const ACCESSORY: Record<Mode, ReactNode> = {
       <path className="m-strings" d="M102 46l12 4M101 51l13 4M101 56l12 4M105 43l-3 17M109 43l-3 18M113 46l-3 15" />
       <ellipse className="m-line" cx="108" cy="52" rx="8" ry="11" transform="rotate(22 108 52)" />
       {paw}
+    </g>
+  ),
+  coding: (
+    <g>
+      <g className="m-code">
+        <text x="96" y="46">&lt;/&gt;</text>
+        <text x="6" y="52" fontSize="9">{'{ }'}</text>
+      </g>
+      {/* laptop seen from behind: the lid covers the belly, paws rest on the keyboard */}
+      <rect className="m-lid" x="33" y="72" width="54" height="32" rx="3" />
+      <path className="m-sticker" d="M60 91q-5-3.5-5-6.5a2.6 2.6 0 0 1 5-1 2.6 2.6 0 0 1 5 1q0 3-5 6.5Z" />
+      <path className="m-line" d="M28 104h64" />
+      <ellipse className="m-body" cx="44" cy="72" rx="7" ry="5" />
+      <ellipse className="m-body" cx="76" cy="72" rx="7" ry="5" />
     </g>
   ),
   beach: (
