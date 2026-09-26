@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { site } from '../data'
 
 const format = (d: Date) =>
-  d.toLocaleTimeString('en-GB', { timeZone: site.timeZone, hour12: false })
+  d.toLocaleTimeString('en-GB', { timeZone: site.timeZone, hour12: false, timeZoneName: 'short' })
 
 export function Clock() {
   const [now, setNow] = useState(() => format(new Date()))
@@ -14,9 +14,13 @@ export function Clock() {
 
   return (
     <div className="clock">
-      <span className="clock-time">{now}</span> {site.timeZoneLabel}
-      <br />
-      {site.city}
+      <span className="clock-time">{now}</span>
+      {site.city && (
+        <>
+          <br />
+          {site.city}
+        </>
+      )}
     </div>
   )
 }

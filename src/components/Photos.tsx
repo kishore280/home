@@ -2,8 +2,7 @@ import { useEffect } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { photos, type Photo } from '../data'
 
-const background = (p: Photo) =>
-  p.src ? `center / cover url(${p.src})` : `linear-gradient(160deg, ${p.from}, ${p.to})`
+const background = (p: Photo) => `center / cover url("${p.src}")`
 
 export function Photos({ open, onOpen }: { open: number | null; onOpen: (i: number | null) => void }) {
   useEffect(() => {

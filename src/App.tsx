@@ -1,18 +1,19 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Toaster, toast } from 'sonner'
-import { building, links, photos, reading, site } from './data'
+import { links, photos, site } from './data'
 import { Clock } from './components/Clock'
-import { NowPlaying } from './components/NowPlaying'
-import { useNowPlaying } from './hooks/useNowPlaying'
+import { NowPlaying, type Track } from './components/NowPlaying'
+import { Building, type Activity } from './components/Building'
 import { Photos } from './components/Photos'
-import { Guestbook } from './components/Guestbook'
 import { CommandMenu, type MenuItem } from './components/CommandMenu'
+import { useLive } from './hooks/useLive'
 import { toggleTheme, useTheme } from './theme'
 
 export default function App() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [photo, setPhoto] = useState<number | null>(null)
-  const music = useNowPlaying()
+  const track = useLive<Track>('/api/now-playing', 30_000)
+  const activity = useLive<Activity>(site.github ? `/api/github?user=${site.github}` : null, 300_000)
   const theme = useTheme()
 
   useEffect(() => {
@@ -35,31 +36,26 @@ export default function App() {
     }
   }, [])
 
-  const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
-
   const items: MenuItem[] = [
-    { group: 'Navigate', label: 'Photos', run: () => scrollTo('photos') },
-    {
-      group: 'Navigate',
-      label: 'Guestbook',
-      run: () => {
-        scrollTo('guestbook')
-        setTimeout(() => document.getElementById('guestbook-input')?.focus(), 400)
-      },
-    },
-    { group: 'Actions', label: 'Copy email', run: copyEmail },
+    ...(photos.length
+      ? [
+          {
+            group: 'Navigate',
+            label: 'Photos',
+            run: () => document.getElementById('photos')?.scrollIntoView({ behavior: 'smooth' }),
+          },
+          {
+            group: 'Actions',
+            label: 'Open a random photo',
+            run: () => setPhoto(Math.floor(Math.random() * photos.length)),
+          },
+        ]
+      : []),
+    ...(site.email ? [{ group: 'Actions', label: 'Copy email', run: copyEmail }] : []),
     {
       group: 'Actions',
       label: theme === 'dark' ? 'Light theme' : 'Dark theme',
       run: () => toast(toggleTheme() === 'dark' ? 'Dark theme' : 'Light theme'),
-    },
-    ...(music.live
-      ? []
-      : [{ group: 'Actions', label: 'Skip to next song', run: () => toast(`Now playing: ${music.next().title}`) }]),
-    {
-      group: 'Actions',
-      label: 'Open a random photo',
-      run: () => setPhoto(Math.floor(Math.random() * photos.length)),
     },
     ...links.map((l) => ({ group: 'Links', label: l.label, shortcut: '↗', run: () => window.open(l.href, '_blank') })),
   ]
@@ -70,49 +66,34 @@ export default function App() {
         <header>
           <div>
             <h1>{site.name}</h1>
-            <p className="muted">{site.bio}</p>
+            {site.bio && <p className="muted">{site.bio}</p>}
           </div>
-          <Clock />
+          {site.timeZone && <Clock />}
         </header>
 
-        <section aria-labelledby="now">
-          <h2 id="now">right now</h2>
-          <div className="status">
-            <NowPlaying state={music} />
-            <div className="row">
-              <div className="row-key">
-                <span className="dot" aria-hidden="true" />
-                building
-              </div>
-              <div className="row-value">
-                {building.project} <span className="muted">— “{building.message}”</span>
-              </div>
-              <div className="row-meta">{building.ago}</div>
+        {(track || activity) && (
+          <section aria-labelledby="now">
+            <h2 id="now">right now</h2>
+            <div className="status">
+              {track && <NowPlaying track={track} />}
+              {activity && <Building activity={activity} />}
             </div>
-            <div className="row">
-              <div className="row-key">reading</div>
-              <div className="row-value">
-                {reading.title} <span className="muted">— {reading.detail}</span>
-              </div>
-              <div className="row-meta">{reading.progress}</div>
-            </div>
-          </div>
-        </section>
+          </section>
+        )}
 
-        <section aria-labelledby="about">
-          <h2 id="about">about</h2>
-          <p className="prose">{site.about}</p>
-        </section>
+        {site.about && (
+          <section aria-labelledby="about">
+            <h2 id="about">about</h2>
+            <p className="prose">{site.about}</p>
+          </section>
+        )}
 
-        <section id="photos" aria-labelledby="photos-heading">
-          <h2 id="photos-heading">photos</h2>
-          <Photos open={photo} onOpen={setPhoto} />
-        </section>
-
-        <section id="guestbook" aria-labelledby="guestbook-heading">
-          <h2 id="guestbook-heading">guestbook</h2>
-          <Guestbook />
-        </section>
+        {photos.length > 0 && (
+          <section id="photos" aria-labelledby="photos-heading">
+            <h2 id="photos-heading">photos</h2>
+            <Photos open={photo} onOpen={setPhoto} />
+          </section>
+        )}
 
         <section aria-labelledby="elsewhere">
           <h2 id="elsewhere">elsewhere</h2>
@@ -122,9 +103,11 @@ export default function App() {
                 {l.label} ↗
               </a>
             ))}
-            <button type="button" onClick={copyEmail}>
-              {site.email}
-            </button>
+            {site.email && (
+              <button type="button" onClick={copyEmail}>
+                {site.email}
+              </button>
+            )}
           </div>
         </section>
 

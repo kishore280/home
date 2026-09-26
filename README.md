@@ -18,7 +18,11 @@ Cloudflare settings are in `wrangler.jsonc`.
 
 ## Edit the content
 
-All text, links, songs, photos, and guestbook examples are in `src/data.ts`. The values there now are example data.
+All content is in `src/data.ts`. The site shows only real data: a section with no data is hidden.
+
+- The **building** row shows your latest public GitHub push (`functions/api/github.ts`, no key needed).
+- The **clock** shows when `timeZone` is set.
+- **Photos** show when you add images to `photos`.
 
 ## Libraries
 
@@ -34,7 +38,7 @@ All text, links, songs, photos, and guestbook examples are in `src/data.ts`. The
 - `LASTFM_API_KEY`: get one at https://www.last.fm/api/account/create
 - `LASTFM_USER`: your Last.fm user name
 
-Without them, the site shows the example tracks from `src/data.ts`.
+Without them, the music row is hidden.
 
 ## Deploy from the command line
 
