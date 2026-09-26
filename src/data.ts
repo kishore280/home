@@ -26,6 +26,7 @@ export const updates: { date: string; text: string }[] = []
 export const myButtons: { file: string; alt: string }[] = [
   { file: 'button-kish', alt: 'kish' },
   { file: 'button', alt: 'kish is from the beach side' },
+  { file: 'button-running', alt: 'kish runs on the beach' },
   { file: 'button-badminton', alt: 'kish plays badminton' },
   { file: 'button-parotta', alt: 'kish loves parotta' },
   { file: 'button-himalayan', alt: 'kish rides a Himalayan' },

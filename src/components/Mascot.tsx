@@ -2,7 +2,7 @@ import { useRef, useState, type ReactNode } from 'react'
 import { site } from '../data'
 import { chaiIcon } from './ChaiIcon'
 
-// The mascot follows kish's day in IST: chai in the morning, badminton by day,
+// The mascot follows kish's day in IST: badminton 6–9 am, chai the rest of the day,
 // the beach at sunset, parotta for dinner, and sleep at night.
 type Mode = 'chai' | 'badminton' | 'beach' | 'parotta' | 'sleep'
 
@@ -10,15 +10,15 @@ function modeNow(): Mode {
   const hour = Number(
     new Intl.DateTimeFormat('en-GB', { hour: 'numeric', hourCycle: 'h23', timeZone: site.timeZone }).format(new Date()),
   )
-  if (hour >= 5 && hour < 11) return 'chai'
-  if (hour >= 11 && hour < 16) return 'badminton'
+  if (hour >= 6 && hour < 9) return 'badminton'
+  if (hour >= 5 && hour < 16) return 'chai'
   if (hour >= 16 && hour < 19) return 'beach'
   if (hour >= 19 && hour < 23) return 'parotta'
   return 'sleep'
 }
 
 const MODES: Record<Mode, { label: ReactNode; lines: string[] }> = {
-  chai: { label: <>chai time {chaiIcon}</>, lines: ['chai first, then talk', 'one more chai?', 'strong chai pls', 'hi!'] },
+  chai: { label: <>chai time {chaiIcon}</>, lines: ['chai first!', 'one more chai?', 'strong chai pls', 'hi!'] },
   badminton: { label: 'badminton time 🏸', lines: ['smash!', 'rally?', 'one more game', 'hehe'] },
   beach: { label: 'beach time 🌅', lines: ['sea breeze~', 'sunset soon', 'beach time!', 'hi!'] },
   parotta: { label: 'parotta time 🫓', lines: ['parotta time!', 'with salna pls', 'two more parotta', 'yum'] },
