@@ -7,7 +7,6 @@ import { Stats } from './components/Stats'
 import { RightNow } from './components/RightNow'
 import { Counts } from './components/Counts'
 import { Buttons } from './components/Buttons'
-import { OfflineNote } from './components/OfflineNote'
 import type { MenuItem } from './components/CommandMenu'
 import { useCounters } from './hooks/useCounters'
 import { shortDate } from './lib/time'
@@ -51,6 +50,7 @@ export default function App() {
     { group: 'Do', label: 'Switch light / dark', run: () => toast(toggleTheme() === 'dark' ? 'Dark mode' : 'Light mode') },
     ...(site.email ? [{ group: 'Do', label: 'Copy email', run: copyEmail }] : []),
     ...links.map((l) => ({ group: 'Links', label: l.label, run: () => window.open(l.href, '_blank', 'noopener') })),
+    { group: 'Secret', label: 'Offline only', run: () => window.location.assign('/offline') },
   ]
 
   return (
@@ -93,7 +93,6 @@ export default function App() {
 
         <main className="main" id="main" tabIndex={-1}>
           <RightNow />
-          <OfflineNote />
 
           {updates.length > 0 ? (
             <Card title="updates">

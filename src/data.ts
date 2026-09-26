@@ -42,7 +42,8 @@ export const myButtons: { file: string; alt: string }[] = [
   { file: 'button-coding', alt: 'kish codes all day' },
 ]
 
-// "offline only" card: `offline` shows only while the visitor is offline; `online` tells them how.
+// The /offline page (⌘K → Offline only): `offline` shows only while the visitor is offline;
+// `online` tells them how.
 export const offlineNote = {
   online: ['There is a note from kish here, but it opens only offline.', 'Turn on airplane mode ✈️, get a chai, and come back.'],
   offline: [

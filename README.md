@@ -87,10 +87,11 @@ Each push to `main` then builds and deploys. From the command line: `npx wrangle
 
 ## Offline only
 
-An "offline only" card (idea from [chrisbolin.co/offline](https://chrisbolin.co/offline/)). Online, it asks the visitor to turn on airplane mode and get a chai; offline, it shows a note. The text is `offlineNote` in `src/data.ts`.
+A secret page at `/offline` (⌘K → Offline only), from the idea at [chrisbolin.co/offline](https://chrisbolin.co/offline/). Online, it asks the visitor to turn on airplane mode and get a chai; offline, it shows a note. The text is `offlineNote` in `src/data.ts`.
 
+- Two pages: `index.html` and `offline.html`. Both get the same icons, theme script and analytics from `src/head.html`, start through `mount()` in `src/lib/mount.tsx`, and are pre-rendered by `scripts/prerender.mjs`.
 - `useOnline()` in `src/lib/client.ts` follows the browser's `online` and `offline` events.
-- `scripts/sw.mjs` makes `dist/sw.js` with [Workbox](https://developer.chrome.com/docs/workbox) after the pre-render. Pages are network first (visitors always get the latest deploy); offline, the page comes from the cache. It runs in the visitor's browser, so it costs nothing.
+- `scripts/sw.mjs` makes `dist/sw.js` with [Workbox](https://developer.chrome.com/docs/workbox) after the pre-render. The home page is network first (visitors always get the latest deploy); `/offline` and the JS, fonts and buttons are precached. It runs in the visitor's browser, so it costs nothing.
 - Umami counts `Offline note read` when the visitor comes back online.
 
 ## Analytics

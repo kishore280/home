@@ -1,0 +1,21 @@
+<!-- Shared head tags for every page; vite.config.ts inserts this file at the head marker. -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#f6f3fc" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#1b1726" media="(prefers-color-scheme: dark)" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<!-- Umami Cloud: link and button clicks (data-umami-event attributes), no cookies. Only counts on kichoow.com. -->
+<script defer src="https://cloud.umami.is/script.js" data-website-id="ec202c37-bd23-491c-a9c0-a32f5ac923ce" data-domains="kichoow.com"></script>
+<script>
+  // Apply the saved theme before first paint, so the page does not flash.
+  try {
+    var t = localStorage.getItem('theme:v1')
+    if (t === 'light' || t === 'dark') {
+      document.documentElement.dataset.theme = t
+      // Match the browser bar colour to the saved theme, not the OS setting.
+      var c = t === 'dark' ? '#1b1726' : '#f6f3fc'
+      document.querySelectorAll('meta[name="theme-color"]').forEach(function (m) { m.content = c })
+    }
+  } catch (e) {}
+</script>
