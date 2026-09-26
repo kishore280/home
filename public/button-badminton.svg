@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="88" height="31" viewBox="0 0 88 31">
-  <title>kish plays badminton</title>
+  <title>badminton</title>
   <defs>
     <linearGradient id="wall" x1="0" x2="0" y1="0" y2="1">
       <stop offset="0" stop-color="#a98ce8"/>
@@ -28,13 +28,13 @@
     </g>
     <ellipse cx="12" cy="11" rx="5.2" ry="7.2" transform="rotate(-35 12 11)" fill="none" stroke-width="1.6"/>
     <ellipse cx="12" cy="11" rx="5.2" ry="7.2" transform="rotate(-35 12 11)" fill="none" stroke="#9b7fe0" stroke-width=".7"/>
-    <!-- shuttlecock flying right, with speed lines -->
-    <path d="M20 5.5h3M19 8h3.5M21 3h2" fill="none" stroke="#fff" stroke-width=".8"/>
-    <path d="M24.5 3 30.5 5.8 30.5 7.2 24.5 10Z" fill="#fff" stroke-width=".7"/>
-    <path d="M26.5 4v5M28.5 5v3" stroke-width=".35"/>
-    <circle cx="31.5" cy="6.5" r="1.6" fill="#ffd24a" stroke-width=".7"/>
-    <!-- word, in Pixelify Sans turned into shapes -->
-    <path transform="translate(37.2 11)" d="M1.28 0.09V-0.64H0.52V-5.49H1.62V-4.02H3.89V-3.28H4.66V-0.64H3.9V0.09ZM1.62 -1.07H3.56V-2.85H1.62Z M6.47 0.09V-0.64H5.71V-3.28H6.47V-4.02H9.08V-3.28H9.85V-1.07H10.61V0.09H9.51V-0.64H9.08V0.09ZM6.8 -1.07H8.75V-2.85H6.8Z M12.42 0.09V-0.64H11.66V-3.28H12.42V-4.02H14.71V-5.49H15.81V-0.64H15.03V0.09ZM12.75 -1.07H14.7V-2.85H12.75Z M16.85 0.09V-4.02H19.46V-3.28H19.88V-4.02H21.75V-3.28H22.5V0.09H21.41V-2.85H20.22V0.09H19.13V-2.85H17.94V0.09Z M23.55 0.09V-4.02H24.64V0.09ZM23.55 -4.31V-5.49H24.64V-4.31Z M25.69 0.09V-4.02H29.06V-3.28H29.82V0.09H28.72V-2.85H26.78V0.09Z M32.39 0.09V-0.64H31.63V-2.85H30.87V-4.02H31.63V-5.49H32.72V-4.02H35.01V-2.85H32.72V-1.07H34.68V-1.81H35.78V-0.64H35.01V0.09Z M37.58 0.09V-0.64H36.83V-3.28H37.58V-4.02H40.2V-3.28H40.96V-0.64H40.2V0.09ZM37.92 -1.07H39.86V-2.85H37.92Z M42.01 0.09V-4.02H45.38V-3.28H46.15V0.09H45.05V-2.85H43.1V0.09Z" fill="#fff" stroke-width="2" paint-order="stroke"/>
+    <!-- shot: dashed flight path from the racket to the shuttle over the net -->
+    <path d="M19 6.5q16-8 33-1" fill="none" stroke="#fff" stroke-width=".9" stroke-dasharray="1.6 1.8"/>
+    <g transform="rotate(12 60 8) translate(17.25 -0.5) scale(1.5)">
+      <path d="M24.5 3 30.5 5.8 30.5 7.2 24.5 10Z" fill="#fff" stroke-width=".55"/>
+      <path d="M26.5 4v5M28.5 5v3" stroke-width=".3"/>
+      <circle cx="31.5" cy="6.5" r="1.6" fill="#ffd24a" stroke-width=".55"/>
+    </g>
   </g>
   <rect x=".5" y=".5" width="87" height="30" rx="2" fill="none" stroke="#2e2540"/>
 </svg>
