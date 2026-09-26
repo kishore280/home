@@ -1,6 +1,8 @@
+import type { ReactNode } from 'react'
 import log from '../log.json'
 import { site } from '../data'
 import { Card } from './Card'
+import { chaiIcon } from './ChaiIcon'
 
 // Everything is counted in IST, so "today" and "this month" match kish's day.
 type Timed = { at: string; count?: number }
@@ -36,7 +38,7 @@ function tally(entries: Timed[]) {
   return { total, thisMonth, today: todayCount, last: entries.at(-1) }
 }
 
-function Row({ label, main, sub }: { label: string; main: string; sub: string }) {
+function Row({ label, main, sub }: { label: ReactNode; main: string; sub: string }) {
   return (
     <div className="row">
       <dt>{label}</dt>
@@ -68,7 +70,7 @@ export function Counts() {
         ) : null}
         {chai.last ? (
           <Row
-            label="☕ chai"
+            label={<>{chaiIcon} chai</>}
             main={`${chai.today} today`}
             sub={`${chai.thisMonth} this month · last ${when(chai.last.at)}`}
           />

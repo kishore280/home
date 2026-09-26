@@ -1,5 +1,6 @@
 import { useRef, useState, type ReactNode } from 'react'
 import { site } from '../data'
+import { chaiIcon } from './ChaiIcon'
 
 // The mascot follows kish's day in IST: chai in the morning, badminton by day,
 // the beach at sunset, parotta for dinner, and sleep at night.
@@ -16,8 +17,8 @@ function modeNow(): Mode {
   return 'sleep'
 }
 
-const MODES: Record<Mode, { label: string; lines: string[] }> = {
-  chai: { label: 'chai time ☕', lines: ['chai first, then talk', 'one more chai?', 'strong chai pls', 'hi!'] },
+const MODES: Record<Mode, { label: ReactNode; lines: string[] }> = {
+  chai: { label: <>chai time {chaiIcon}</>, lines: ['chai first, then talk', 'one more chai?', 'strong chai pls', 'hi!'] },
   badminton: { label: 'badminton time 🏸', lines: ['smash!', 'rally?', 'one more game', 'hehe'] },
   beach: { label: 'beach time 🌅', lines: ['sea breeze~', 'sunset soon', 'beach time!', 'hi!'] },
   parotta: { label: 'parotta time 🫓', lines: ['parotta time!', 'with salna pls', 'two more parotta', 'yum'] },
@@ -142,7 +143,7 @@ export function Mascot({ pats, onPat }: { pats: number | null; onPat: () => void
       </button>
       <p className="small">
         {MODES[mode].label}
-        {pats !== null ? ` · ${pats.toLocaleString()} ${pats === 1 ? 'pat' : 'pats'}` : ''}
+        {pats !== null ? ` · ${pats.toLocaleString()} ${pats === 1 ? 'pat' : 'pats'}` : null}
       </p>
     </div>
   )

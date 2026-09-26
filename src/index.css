@@ -550,6 +550,12 @@ h2 {
 }
 
 /* counts: the numbers stand out, and long lines wrap instead of cutting off */
+.chai-icon {
+  width: 1.1em;
+  height: 1.25em;
+  vertical-align: -0.25em;
+}
+
 .count-main {
   font-weight: 800;
 }
