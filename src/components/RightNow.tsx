@@ -28,34 +28,49 @@ function ClockTime() {
   )
 }
 
-export function RightNow() {
-  const { data: track } = useSWR('/api/now-playing', fetcher<Track>, { refreshInterval: 30_000 })
-  const { data: push } = useSWR(
-    site.github ? '/api/github' : null,
-    fetcher<Push>,
-    { refreshInterval: 300_000 },
-  )
+// A line kept for a row whose data is still loading, so the card does not grow when it arrives
+// (web.dev "Optimize CLS": reserve space for late content). It is in the pre-rendered HTML.
+const pendingRow = (
+  <div className="row pending" aria-hidden="true">
+    <dt />
+    <dd />
+  </div>
+)
 
-  if (!track && !push && !site.timeZone) return null
+export function RightNow() {
+  const music = useSWR('/api/now-playing', fetcher<Track>, { refreshInterval: 30_000 })
+  const github = useSWR(site.github ? '/api/github' : null, fetcher<Push>, { refreshInterval: 300_000 })
+  // Still loading: no data yet and no error. A 204 or an error gives null or an error: row hidden.
+  const musicPending = music.data === undefined && !music.error
+  const githubPending = Boolean(site.github) && github.data === undefined && !github.error
+  const track = music.data
+  const push = github.data
+
+  if (!track && !push && !site.timeZone && !musicPending && !githubPending) return null
+  // Data from the API only arrives in the browser, so reading the clock here is pre-render safe.
+  const playing = track ? Date.now() < Date.parse(track.until) : false
 
   return (
     <Card title="right now">
       <dl className="rows">
+        {musicPending ? pendingRow : null}
         {track ? (
           <div className="row">
             <dt>
-              <span className={`eq${track.playing ? '' : ' paused'}`} aria-hidden="true">
+              <span className={`eq${playing ? '' : ' paused'}`} aria-hidden="true">
                 <i />
                 <i />
                 <i />
               </span>
-              {track.playing ? 'listening' : 'last played'}
+              {playing ? 'listening' : 'last played'}
             </dt>
             <dd key={track.title} className="swap-in">
               {track.title} <span className="muted">— {track.artist}</span>
+              {playing ? null : <span className="muted"> · {timeAgo(track.at)}</span>}
             </dd>
           </div>
         ) : null}
+        {githubPending ? pendingRow : null}
         {push ? (
           <div className="row">
             <dt>building</dt>

@@ -1,39 +1,25 @@
 // GET /api/now-playing
-// Set LASTFM_API_KEY and LASTFM_USER in the Worker settings to turn it on.
-// Without them it returns 204 and the music row stays hidden.
+// The latest song the phone sent (worker/scrobble.ts): when it started, and until when it can
+// still be playing (its length, or 10 min when unknown, plus a minute). The page compares
+// "until" with the visitor's clock, so the 30 s cache never shows a stale "listening".
+// With no song yet, 204 and the music row stays hidden.
 import type { Env } from './db'
 
-type LastFmTrack = {
-  name: string
-  artist: { '#text': string }
-  '@attr'?: { nowplaying?: string }
-}
+const UNKNOWN_LENGTH_MS = 10 * 60_000
+const GRACE_MS = 60_000
+
+type Row = { title: string; artist: string; started_at: number; duration_ms: number | null }
 
 export async function nowPlaying(env: Env): Promise<Response> {
-  if (!env.LASTFM_API_KEY || !env.LASTFM_USER) return new Response(null, { status: 204 })
+  // Before the table exists (migration not applied yet), treat it as no data.
+  const row = await env.DB.prepare('SELECT title, artist, started_at, duration_ms FROM now_playing WHERE id = 1')
+    .first<Row>()
+    .catch(() => null)
+  if (!row) return new Response(null, { status: 204 })
 
-  const url = new URL('https://ws.audioscrobbler.com/2.0/')
-  url.search = new URLSearchParams({
-    method: 'user.getrecenttracks',
-    user: env.LASTFM_USER,
-    api_key: env.LASTFM_API_KEY,
-    format: 'json',
-    limit: '1',
-  }).toString()
-
-  const res = await fetch(url, { cf: { cacheTtl: 30 } })
-  if (!res.ok) return new Response(null, { status: 204 })
-
-  const data = (await res.json()) as { recenttracks?: { track?: LastFmTrack[] } }
-  const track = data.recenttracks?.track?.[0]
-  if (!track) return new Response(null, { status: 204 })
-
+  const until = row.started_at + (row.duration_ms ?? UNKNOWN_LENGTH_MS) + GRACE_MS
   return Response.json(
-    {
-      title: track.name,
-      artist: track.artist['#text'],
-      playing: track['@attr']?.nowplaying === 'true',
-    },
+    { title: row.title, artist: row.artist, at: new Date(row.started_at).toISOString(), until: new Date(until).toISOString() },
     { headers: { 'cache-control': 'public, max-age=30' } },
   )
 }

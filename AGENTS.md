@@ -11,10 +11,11 @@ kishore's personal site, live at **https://kichoow.com**. React 19 + TypeScript 
 | `src/data.ts` | **All content** (text, links, buttons, offline note, 404 text). Change content here only. |
 | `src/` | The React app. Pages: `index.html` → `main.tsx` (home), `offline.html` → `offline.tsx`, `404.html` → `notfound.tsx`. All start through `mount()` in `src/lib/mount.tsx`. |
 | `src/head.html` | Head tags shared by every page (icons, theme script, Umami). |
-| `worker/` | The Worker: `/api/counters` (D1), `/api/github`, `/api/now-playing`. Everything else is a static file. |
+| `worker/` | The Worker: `/api/counters` (D1), `/api/github`, `/api/now-playing` (D1), `/api/scrobble/` (ListenBrainz-compatible, the phone sends songs). Everything else is a static file. |
 | `seo.ts` | Vite plugin: title, meta, Open Graph, JSON-LD, robots.txt, sitemap.xml, llms.txt, all from `src/data.ts`. |
 | `scripts/prerender.mjs` | Pre-renders every page into `dist/`, inlines the CSS (Beasties), preloads the fonts. |
 | `scripts/sw.mjs` | Makes the service worker (Workbox) after the pre-render. |
+| `migrations/` | D1 tables. Apply new ones with `npx wrangler d1 migrations apply home --remote`. |
 | `tests/ui.spec.ts` | UI tests (Playwright + axe-core). |
 | `.claude/skills/` | The skills listed below. |
 
@@ -77,4 +78,4 @@ For a wider check, follow `.claude/skills/ui-test` (three planning rounds: funct
 4. Cloudflare builds and deploys `main` by itself (about 1–2 minutes).
 5. Check the live site (`curl` the changed page or file on https://kichoow.com) before you say it is done.
 
-Things that are set in the Cloudflare dashboard, not in code: Worker secrets (`LASTFM_API_KEY`), the WAF rate-limiting rule on `/api/counters`, HSTS, the `www` → apex redirect and Web Analytics.
+Things that are set in the Cloudflare dashboard, not in code: Worker secrets (`SCROBBLE_TOKEN`), the WAF rate-limiting rule on `/api/counters`, HSTS, the `www` → apex redirect and Web Analytics.

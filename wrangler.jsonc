@@ -17,7 +17,7 @@
 	// Serve on home.<account>.workers.dev; no per-version preview URLs.
 	"workers_dev": true,
 	"preview_urls": false,
-	// Keep variables set in the Cloudflare dashboard (e.g. LASTFM_USER) on each deploy.
+	// Keep variables set in the Cloudflare dashboard (e.g. the SCROBBLE_TOKEN secret) on each deploy.
 	"keep_vars": true,
 	// Logs and traces for the Worker (/api/* only; static files do not run it).
 	// Free plan: 200,000 events/day with 3 days retention; past that, 1% sampling, no bill.
@@ -38,7 +38,7 @@
 		}
 	},
 	"upload_source_maps": true,
-	// D1 database for the view and pat counters (table: migrations/0001_init.sql).
+	// D1 database: view and pat counters, and the latest song (tables: migrations/).
 	"d1_databases": [
 		{
 			"binding": "DB",
