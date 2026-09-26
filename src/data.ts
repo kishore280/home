@@ -24,7 +24,8 @@ export const updates: { date: string; text: string }[] = []
 
 // My 88×31 buttons: public/<file>.svg on this page, public/<file>.png in the embed code.
 export const myButtons: { file: string; alt: string }[] = [
-  { file: 'button', alt: 'kish' },
+  { file: 'button-kish', alt: 'kish' },
+  { file: 'button', alt: 'kish is from the beach side' },
   { file: 'button-badminton', alt: 'kish plays badminton' },
   { file: 'button-parotta', alt: 'kish loves parotta' },
   { file: 'button-himalayan', alt: 'kish rides a Himalayan' },
