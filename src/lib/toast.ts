@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react'
 
-// Toasts only appear after a click, so sonner is loaded on the first toast
+// Toasts only appear after a click, so sonner is not in the first download; it is mounted on the first toast
 // (Vercel rule bundle-defer-third-party). Messages wait in a queue until it mounts.
 type Message = { text: string; error: boolean }
 

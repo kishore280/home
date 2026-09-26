@@ -6,7 +6,7 @@ import { track } from '../lib/track'
 // An item runs an action, or opens a page on this site in the same tab.
 export type MenuItem = { group: string; label: string } & ({ run: () => void } | { href: string })
 
-// Loaded with React.lazy, so cmdk is only downloaded when someone opens the menu.
+// Loaded with lazyPreload (src/lib/lazy.tsx): cmdk is not in the first download; it loads when idle.
 // Built on Radix Dialog (what cmdk's Command.Dialog uses) so a tap outside closes the menu
 // on the click, not on pointer down: the overlay takes that click, and nothing under it does.
 export default function CommandMenu({
