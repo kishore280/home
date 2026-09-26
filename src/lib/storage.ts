@@ -9,6 +9,14 @@ export function load(key: string): string | null {
   }
 }
 
+export function remove(key: string) {
+  try {
+    localStorage.removeItem(`${key}:${VERSION}`)
+  } catch {
+    // Nothing to do: storage is blocked.
+  }
+}
+
 export function save(key: string, value: string) {
   try {
     localStorage.setItem(`${key}:${VERSION}`, value)

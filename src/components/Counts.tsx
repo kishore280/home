@@ -1,42 +1,23 @@
 import type { ReactNode } from 'react'
-import log from '../log.json'
+import useSWR from 'swr'
 import { site } from '../data'
+import { fetcher, type LogSummary, type LogTotals } from '../lib/api'
+import { useNow } from '../lib/client'
 import { Card } from './Card'
 import { chaiIcon } from './ChaiIcon'
-import { useIsClient } from '../lib/client'
 
-// Everything is counted in IST, so "today" and "this month" match kish's day.
-type Timed = { at: string; count?: number }
-type Day = { date: string; place?: string }
-
+// Chai, parotta and beach days, logged from the /log page (worker/log.ts counts them in IST).
 const dayKey = new Intl.DateTimeFormat('en-CA', { timeZone: site.timeZone }) // YYYY-MM-DD
 const clock = new Intl.DateTimeFormat('en-IN', { timeZone: site.timeZone, hour: 'numeric', minute: '2-digit' })
 const shortDay = new Intl.DateTimeFormat('en-GB', { timeZone: site.timeZone, day: 'numeric', month: 'short' })
 
-const today = dayKey.format(new Date())
-const yesterday = dayKey.format(new Date(Date.now() - 86_400_000))
-const month = today.slice(0, 7)
-const year = today.slice(0, 4)
-
-function when(iso: string) {
+// "today, 8:15 pm" / "yesterday, 9:02 am" / "3 Sep, 7:40 pm". `now` is from useNow(); the data
+// only arrives in the browser, so it is the visitor's clock (pre-render safe).
+function when(iso: string, now: number) {
   const d = new Date(iso)
   const key = dayKey.format(d)
-  const day = key === today ? 'today' : key === yesterday ? 'yesterday' : shortDay.format(d)
+  const day = key === dayKey.format(now) ? 'today' : key === dayKey.format(now - 86_400_000) ? 'yesterday' : shortDay.format(d)
   return `${day}, ${clock.format(d)}`
-}
-
-function tally(entries: Timed[]) {
-  let total = 0
-  let thisMonth = 0
-  let todayCount = 0
-  for (const e of entries) {
-    const n = e.count ?? 1
-    const key = dayKey.format(new Date(e.at))
-    total += n
-    if (key.startsWith(month)) thisMonth += n
-    if (key === today) todayCount += n
-  }
-  return { total, thisMonth, today: todayCount, last: entries.at(-1) }
 }
 
 function Row({ label, main, sub }: { label: ReactNode; main: string; sub: string }) {
@@ -49,58 +30,69 @@ function Row({ label, main, sub }: { label: ReactNode; main: string; sub: string
   )
 }
 
-// log.json is static, so everything is counted once when the module loads
-// (Vercel rules rerender-memo, js-cache-function-results, js-combine-iterations).
-const parotta = tally(log.parotta as Timed[])
-const chai = tally(log.chai as Timed[])
-const beachDays = log.beach as Day[]
-const lastBeach = beachDays.at(-1)
-let beachThisMonth = 0
-let beachThisYear = 0
-for (const b of beachDays) {
-  if (b.date.startsWith(year)) beachThisYear++
-  if (b.date.startsWith(month)) beachThisMonth++
-}
-const hasCounts = Boolean(parotta.last || chai.last || lastBeach)
+// A line kept for each kind while the counts load, so the card does not grow when they arrive
+// (web.dev "Optimize CLS"). It is in the pre-rendered HTML.
+const pendingRow = (key: string) => (
+  <div className="count pending" key={key} aria-hidden="true">
+    <dt />
+    <dd className="count-main" />
+    <dd className="count-sub" />
+  </div>
+)
+
+const rows: [keyof LogSummary, (t: LogTotals, now: number) => ReactNode][] = [
+  [
+    'parotta',
+    (t, now) => (
+      <Row
+        key="parotta"
+        label={
+          <>
+            <span aria-hidden="true">🫓</span> parotta
+          </>
+        }
+        main={`${t.month} this month`}
+        sub={`${t.total} total · last ${when(t.last, now)}`}
+      />
+    ),
+  ],
+  [
+    'chai',
+    (t, now) => (
+      <Row key="chai" label={<>{chaiIcon} chai</>} main={`${t.today} today`} sub={`${t.month} this month · last ${when(t.last, now)}`} />
+    ),
+  ],
+  [
+    'beach',
+    (t) => (
+      <Row
+        key="beach"
+        label={
+          <>
+            <span aria-hidden="true">🌊</span> beach days
+          </>
+        }
+        main={`${t.month} this month`}
+        sub={`${t.year} this year · last ${shortDay.format(new Date(t.last))}${t.place ? `, ${t.place}` : ''}`}
+      />
+    ),
+  ],
+]
 
 export function Counts() {
-  // "today" and "this month" depend on the visitor's clock: render on the client only.
-  const isClient = useIsClient()
-  if (!hasCounts || !isClient) return null
+  const now = useNow(60_000)
+  const { data, error } = useSWR('/api/log', fetcher<LogSummary>, { refreshInterval: 60_000 })
+  const pending = data === undefined && !error
+  // A kind never logged is hidden; with nothing logged at all, so is the card.
+  const shown = rows.flatMap(([kind, render]) => {
+    const totals = data?.[kind]
+    return totals ? [render(totals, now)] : []
+  })
+  if (!pending && shown.length === 0) return null
 
   return (
     <Card title="counts" id="counts">
-      <dl className="counts">
-        {parotta.last ? (
-          <Row
-            label={
-              <>
-                <span aria-hidden="true">🫓</span> parotta
-              </>
-            }
-            main={`${parotta.thisMonth} this month`}
-            sub={`${parotta.total} total · last ${when(parotta.last.at)}`}
-          />
-        ) : null}
-        {chai.last ? (
-          <Row
-            label={<>{chaiIcon} chai</>}
-            main={`${chai.today} today`}
-            sub={`${chai.thisMonth} this month · last ${when(chai.last.at)}`}
-          />
-        ) : null}
-        {lastBeach ? (
-          <Row
-            label={
-              <>
-                <span aria-hidden="true">🌊</span> beach days
-              </>
-            }
-            main={`${beachThisMonth} this month`}
-            sub={`${beachThisYear} this year · last ${shortDay.format(new Date(lastBeach.date))}${lastBeach.place ? `, ${lastBeach.place}` : ''}`}
-          />
-        ) : null}
-      </dl>
+      <dl className="counts">{pending ? rows.map(([kind]) => pendingRow(kind)) : shown}</dl>
     </Card>
   )
 }

@@ -5,7 +5,6 @@
 import { defineConfig, devices } from '@playwright/test'
 
 const PORT = 8787
-const SCROBBLE_TOKEN = 'test-token' // also in tests/ui.spec.ts
 
 export default defineConfig({
   testDir: 'tests',
@@ -27,8 +26,8 @@ export default defineConfig({
     { name: 'mobile', use: { ...devices['Pixel 7'] } },
   ],
   webServer: {
-    // The local D1 gets the tables, and a test token for /api/scrobble (tests/ui.spec.ts).
-    command: `npx wrangler d1 migrations apply home --local && npx wrangler dev --port ${PORT} --ip 127.0.0.1 --var SCROBBLE_TOKEN:${SCROBBLE_TOKEN}`,
+    // The local D1 gets the tables, and fake tokens for /api/scrobble and /api/log (tests/test.env).
+    command: `npx wrangler d1 migrations apply home --local && npx wrangler dev --port ${PORT} --ip 127.0.0.1 --env-file tests/test.env`,
     url: `http://127.0.0.1:${PORT}`,
     reuseExistingServer: !process.env.CI,
   },

@@ -41,8 +41,8 @@ export default defineConfig({
     }),
   ],
   build: {
-    // The home page, /offline and the 404 page.
-    rollupOptions: { input: ['index.html', 'offline.html', '404.html'] },
+    // The home page, /offline, the 404 page and the private /log page.
+    rollupOptions: { input: ['index.html', 'offline.html', '404.html', 'log.html'] },
   },
   define: {
     // Shown as "updated" in the stats card.

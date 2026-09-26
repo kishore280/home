@@ -677,6 +677,29 @@ h2 {
   grid-column: 1 / -1;
   font-size: 13px;
   color: var(--muted);
+  /* One line, so a loaded row is as tall as its loading line. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A loading row: soft bars where the label, the number and the line under them will be. */
+.count.pending dt::before,
+.count.pending dd::before {
+  content: '';
+  display: inline-block;
+  height: 0.7em;
+  width: 6em;
+  border-radius: 4px;
+  background: var(--line);
+}
+
+.count.pending .count-main::before {
+  width: 5em;
+}
+
+.count.pending .count-sub::before {
+  width: 12em;
 }
 
 .swap-in {
@@ -909,6 +932,54 @@ kbd {
   margin: min(12vh, 96px) auto 0;
   display: grid;
   gap: 16px;
+}
+
+/* /log: big buttons for one-thumb logging. */
+.log-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin: 12px 0 14px;
+}
+
+.log-buttons button,
+.log-token button {
+  font: 700 17px var(--body);
+  color: var(--text);
+  background: var(--chip);
+  border: 2px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px 12px;
+  min-height: 56px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.log-buttons button:active {
+  transform: scale(0.97);
+}
+
+.log-place,
+.log-token label {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 14px;
+  font: 600 13px var(--body);
+  color: var(--muted);
+}
+
+.log-place input,
+.log-token input {
+  font: 16px var(--body); /* 16 px: no zoom on focus in iOS Safari */
+  color: var(--text);
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.log-token {
+  margin-top: 12px;
 }
 
 .sand {

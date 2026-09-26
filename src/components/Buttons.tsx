@@ -12,7 +12,7 @@ async function copyEmbed(file: string, alt: string) {
     await navigator.clipboard.writeText(embed(file, alt))
     toast('Button code copied. Paste it on your site ♡')
   } catch {
-    toast('Copy failed. Right-click the button and copy the image address.', true)
+    toast('Copy failed. Right-click the button and copy the image address.', { error: true })
   }
 }
 

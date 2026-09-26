@@ -412,12 +412,16 @@ test.describe('speed', () => {
     const at = new Date().toISOString()
     await page.route('**/api/now-playing', (r) => r.fulfill({ json: { title: 'A long song title that fills the line', artist: 'Artist', at, until: at } }))
     await page.route('**/api/github', (r) => r.fulfill({ json: { repo: 'home', url: 'https://github.com/kishore280/home', at } }))
+    const totals = { today: 2, month: 14, year: 90, total: 90, last: at }
+    await page.route('**/api/log', (r) => r.fulfill({ json: { chai: totals, parotta: totals, beach: { ...totals, place: 'Marina' } } }))
     await page.goto('/')
     // Wait for everything that arrives after the page: the clock, the rows, the mascot's line and the views.
     await expect(page.locator('.clock')).toBeVisible()
     await expect(page.locator('.row', { hasText: 'last played' })).toBeVisible()
     await expect(page.locator('.row', { hasText: 'building' })).toBeVisible()
     await expect(page.locator('.row.pending')).toHaveCount(0)
+    await expect(page.locator('.count')).toHaveCount(3)
+    await expect(page.locator('.count.pending')).toHaveCount(0)
     await expect(page.locator('.stats dd')).toHaveCount(2)
     await settle(page)
     expect(await page.evaluate(() => (window as unknown as { __cls: number }).__cls)).toBeLessThan(0.001)
@@ -535,6 +539,34 @@ test.describe('now playing (ListenBrainz API)', () => {
   })
 })
 
+// The counts card on the home page reads /api/log (logged from the /log page; tests/log-api.spec.ts).
+test.describe('counts card', () => {
+  const at = new Date().toISOString()
+
+  test('the pre-rendered page keeps a loading line for each kind', async ({ request }) => {
+    const html = await (await request.get('http://127.0.0.1:8787/')).text()
+    expect(html.match(/class="count pending"/g)).toHaveLength(3)
+  })
+
+  test('only the kinds that were logged are shown, with their numbers', async ({ page }) => {
+    await page.route('**/api/log', (r) =>
+      r.fulfill({ json: { chai: { today: 2, month: 14, year: 90, total: 90, last: at }, parotta: null, beach: null } }),
+    )
+    await page.goto('/')
+    const card = page.locator('#counts')
+    await expect(card.locator('.count')).toHaveCount(1)
+    await expect(card).toContainText('2 today')
+    await expect(card).toContainText('14 this month · last today')
+  })
+
+  test('with nothing logged, there is no card', async ({ page }) => {
+    await page.route('**/api/log', (r) => r.fulfill({ json: { chai: null, parotta: null, beach: null } }))
+    await page.goto('/')
+    await expect(page.locator('.stats dd')).toHaveCount(2) // the page has loaded its data
+    await expect(page.locator('#counts')).toHaveCount(0)
+  })
+})
+
 test.describe('404 and layout', () => {
   test('an unknown address gets a real 404 page', async ({ page }) => {
     const response = await page.goto('/does/not/exist')
@@ -544,7 +576,7 @@ test.describe('404 and layout', () => {
   })
 
   for (const width of [320, 375]) {
-    for (const path of ['/', '/offline', '/nope']) {
+    for (const path of ['/', '/offline', '/nope', '/log']) {
       test(`${width} px wide, ${path}: no sideways scroll`, async ({ page, isMobile }) => {
         test.skip(isMobile, 'the width is set here')
         await page.setViewportSize({ width, height: 800 })
@@ -574,12 +606,25 @@ test.describe('accessibility (axe-core)', () => {
       },
     ],
     ['404', '/nope', 'dark'],
+    ['/log, token form', '/log', 'light'],
+    [
+      '/log, buttons',
+      '/log',
+      'dark',
+      async (page) => {
+        await page.getByLabel('token').fill('x'.repeat(24))
+        await page.getByRole('button', { name: 'save' }).click()
+        await expect(page.getByRole('button', { name: /chai \+1/ })).toBeVisible()
+      },
+    ],
   ]
   for (const [name, path, scheme, setup] of states) {
     test(`${name}: no violations`, async ({ page }) => {
-      await page.emulateMedia({ colorScheme: scheme })
+      // Reduced motion: axe checks the final colours, not a row that is still fading in.
+      await page.emulateMedia({ colorScheme: scheme, reducedMotion: 'reduce' })
       await page.goto(path)
       await setup?.(page)
+      await expect(page.locator('.pending')).toHaveCount(0) // loaded, as a visitor sees it
       const { violations } = await new AxeBuilder({ page }).analyze()
       expect(violations.map((v) => `${v.id} (${v.impact})`)).toEqual([])
     })

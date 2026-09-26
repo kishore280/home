@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 
 const noop = () => () => {}
 
@@ -11,6 +11,17 @@ export const useIsClient = () =>
     () => true,
     () => false,
   )
+
+// The current time (ms), updated every `every` ms. Render stays pure: the clock is read in state
+// and in a timer, not during render (React: "Keeping components pure"; oxlint react/purity).
+export function useNow(every: number) {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), every)
+    return () => clearInterval(id)
+  }, [every])
+  return now
+}
 
 // Besides 'online'/'offline', check again when the page comes back into view: a phone can miss
 // the event while the visitor is in Settings turning on airplane mode (Safari on iOS).

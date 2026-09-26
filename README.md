@@ -19,7 +19,7 @@ Coding agents: read [AGENTS.md](AGENTS.md) for the rules, commands, tests and ho
 | Right now: music | Your phone's scrobbler → D1 | `SCROBBLE_TOKEN` (below) |
 | Right now: building | Latest public GitHub push | `github` in `src/data.ts` |
 | Right now: local time | Browser | `timeZone` in `src/data.ts` |
-| Counts: parotta, chai, beach days | `src/log.json` | Nothing |
+| Counts: parotta, chai, beach days | The `/log` page → D1 | `LOG_TOKEN` (below) |
 | Updates, 88×31 buttons | `src/data.ts`, `public/*.svg` | Nothing |
 | ⌘K menu | cmdk | Nothing |
 
@@ -48,17 +48,31 @@ npm run audit                     # or: CHROMIUM_PATH=/path/to/chrome npm run au
 
 The site runs locally with `wrangler dev`, and the test browser opens it as `http://kichoow.com`, so Umami's domain check and the service worker work as on the live site. A failed test leaves a trace and an HTML report in `.context/` (`npx playwright show-report .context/playwright-report`).
 
-## Log parotta, chai and beach days
+## Log chai, parotta and beach days (from the phone)
 
-Each command adds an entry to `src/log.json` with the current time in IST. Commit and push to update the site.
+`kichoow.com/log` is a private page (`noindex`, not linked) with big buttons: ☕ chai +1,
+🫓 parotta +1 / +2, 🌊 beach day (with an optional place). A tap posts to `POST /api/log` with
+`Authorization: Bearer <LOG_TOKEN>` (the way [anonrig/adamvsyagiz.com](https://github.com/anonrig/adamvsyagiz.com)
+logs check-ins); the Worker stores it in D1 and the counts card updates within seconds.
 
-```sh
-npm run log parotta 2        # 2 parottas now
-npm run log chai             # 1 chai now
-npm run log beach "Marina"   # a beach day today, with an optional place
-```
+- **Undo:** each log shows a toast with **Undo** for 5 s (`POST /api/log/undo`).
+- **No signal:** the service worker keeps the request and sends it when the network is back
+  ([Workbox background sync](https://developer.chrome.com/docs/workbox/modules/workbox-background-sync), up to 24 h).
+  Each log has an id, so a replayed request is counted once. The page itself opens offline too.
+- **Shortcuts:** `/log` is its own installable app ("kish log", `public/log.webmanifest`). Install it
+  (Chrome → ⋮ → Install app), then long-press its icon: **Chai +1**, **Parotta +1**, **Beach day**
+  ([manifest shortcuts](https://web.dev/learn/pwa/enhancements)). Only the installed app logs from these links.
+- **A short buzz** when a tap is taken (`navigator.vibrate`, Android).
+- **Free-tier safe:** `log_totals` keeps running totals per day, month and year (IST), so a page
+  view reads a few rows, never the whole history (D1 free plan: 5 million rows read a day).
 
-You can also edit `src/log.json` by hand. Times use ISO format with the IST offset, e.g. `2026-09-26T20:15:00+05:30`.
+### Set up (from a phone)
+
+1. **Table.** Cloudflare dashboard → **Storage & Databases → D1 → `home` → Console**, run
+   `migrations/0004_log.sql`. Or: `npx wrangler d1 migrations apply home --remote`.
+2. **Secret.** **Workers & Pages → `home` → Settings → Variables and Secrets → Add**: type
+   **Secret**, name `LOG_TOKEN`, value 20+ random letters and numbers → **Deploy**.
+3. Open `kichoow.com/log`, enter the token once (the password manager can keep it), then install the app.
 
 ## Views and pats (Cloudflare D1)
 
