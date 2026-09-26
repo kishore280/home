@@ -1,4 +1,4 @@
-// Cloudflare Pages Function: GET /api/github?user=<name>
+// GET /api/github?user=<name>
 // Returns the user's latest public push. No key needed; responses are cached for 5 minutes.
 
 type PushEvent = {
@@ -8,7 +8,7 @@ type PushEvent = {
   payload: { commits?: { message: string }[] }
 }
 
-export const onRequestGet: PagesFunction = async ({ request }) => {
+export async function github(request: Request): Promise<Response> {
   const user = new URL(request.url).searchParams.get('user') ?? ''
   if (!/^[a-z\d](?:[a-z\d-]{0,38})$/i.test(user)) return new Response(null, { status: 400 })
 

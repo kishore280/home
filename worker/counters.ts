@@ -1,6 +1,6 @@
-// Cloudflare Pages Function: GET/POST /api/counters
+// GET/POST /api/counters
 // POST { key: 'views' | 'pats' } adds one and returns all counters.
-import { fail, json, type DbEnv } from './_db'
+import { fail, json, type Env } from './db'
 
 const KEYS = new Set(['views', 'pats'])
 
@@ -10,10 +10,9 @@ async function read(db: D1Database) {
   return { views: all.views ?? 0, pats: all.pats ?? 0 }
 }
 
-export const onRequestGet: PagesFunction<DbEnv> = async ({ env }) =>
-  env.DB ? json(await read(env.DB)) : new Response(null, { status: 204 })
-
-export const onRequestPost: PagesFunction<DbEnv> = async ({ env, request }) => {
+export async function counters(request: Request, env: Env): Promise<Response> {
+  if (request.method === 'GET') return env.DB ? json(await read(env.DB)) : new Response(null, { status: 204 })
+  if (request.method !== 'POST') return fail('Use GET or POST.', 405)
   if (!env.DB) return fail('Counters are not set up yet.', 503)
   const { key } = ((await request.json().catch(() => ({}))) ?? {}) as { key?: string }
   if (!key || !KEYS.has(key)) return fail('Unknown counter.')

@@ -1,11 +1,7 @@
-// Cloudflare Pages Function: GET /api/now-playing
-// Set LASTFM_API_KEY and LASTFM_USER in the Pages project settings to turn it on.
-// Without them it returns 204 and the site shows example tracks.
-
-interface NowPlayingEnv {
-  LASTFM_API_KEY?: string
-  LASTFM_USER?: string
-}
+// GET /api/now-playing
+// Set LASTFM_API_KEY and LASTFM_USER in the Worker settings to turn it on.
+// Without them it returns 204 and the music row stays hidden.
+import type { Env } from './db'
 
 type LastFmTrack = {
   name: string
@@ -13,7 +9,7 @@ type LastFmTrack = {
   '@attr'?: { nowplaying?: string }
 }
 
-export const onRequestGet: PagesFunction<NowPlayingEnv> = async ({ env }) => {
+export async function nowPlaying(env: Env): Promise<Response> {
   if (!env.LASTFM_API_KEY || !env.LASTFM_USER) return new Response(null, { status: 204 })
 
   const url = new URL('https://ws.audioscrobbler.com/2.0/')
