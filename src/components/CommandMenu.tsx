@@ -2,7 +2,8 @@ import * as Dialog from '@radix-ui/react-dialog'
 import { Command } from 'cmdk'
 import { track } from '../lib/track'
 
-export type MenuItem = { group: string; label: string; run: () => void }
+// An item runs an action, or opens a page on this site in the same tab.
+export type MenuItem = { group: string; label: string } & ({ run: () => void } | { href: string })
 
 // Loaded with React.lazy, so cmdk is only downloaded when someone opens the menu.
 // Built on Radix Dialog (what cmdk's Command.Dialog uses) so a tap outside closes the menu
@@ -37,8 +38,12 @@ export default function CommandMenu({
                       key={item.label}
                       onSelect={() => {
                         onOpenChange(false)
-                        track(`Menu: ${item.label}`)
-                        item.run()
+                        const sent = track(`Menu: ${item.label}`)
+                        if ('run' in item) return item.run()
+                        // Leaving the page can drop the event, so wait for it (at most 0.5 s),
+                        // as Umami's own link tracking does.
+                        const wait = new Promise((resolve) => setTimeout(resolve, 500))
+                        void Promise.race([sent, wait]).finally(() => window.location.assign(item.href))
                       }}
                     >
                       {item.label}
