@@ -1,4 +1,5 @@
 import { Command } from 'cmdk'
+import { track } from '../lib/track'
 
 export type MenuItem = { group: string; label: string; run: () => void }
 
@@ -34,7 +35,7 @@ export default function CommandMenu({
                   key={item.label}
                   onSelect={() => {
                     onOpenChange(false)
-                    window.umami?.track('Menu item', { item: item.label })
+                    track(`Menu: ${item.label}`)
                     item.run()
                   }}
                 >

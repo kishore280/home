@@ -1,4 +1,5 @@
 import { toast } from '../lib/toast'
+import { trackOnce } from '../lib/track'
 import { friends, myButtons } from '../data'
 import { Card } from './Card'
 
@@ -29,6 +30,7 @@ export function Buttons() {
             data-umami-event={`Button copy: ${b.alt}`}
             data-umami-event-button={b.file}
             onClick={() => copyEmbed(b.file, b.alt)}
+            onPointerEnter={(e) => e.pointerType === 'mouse' && trackOnce(`Button hover: ${b.alt}`)}
           >
             <img src={`/${b.file}.svg`} width={88} height={31} alt={b.alt} loading="lazy" decoding="async" />
           </button>
