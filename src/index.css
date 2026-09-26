@@ -861,6 +861,42 @@ kbd {
   gap: 16px;
 }
 
+.sand {
+  display: block;
+  width: 100%;
+  aspect-ratio: 2 / 1;
+  border-radius: 12px;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.sand-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  margin-top: 10px;
+}
+
+.sand-bar p {
+  margin: 0;
+}
+
+.soft-button {
+  font: 700 14px var(--body);
+  color: var(--accent-text);
+  background: var(--chip);
+  border: 2px solid var(--line);
+  border-radius: 99px;
+  padding: 4px 14px;
+  cursor: pointer;
+}
+
+.soft-button:hover {
+  border-color: var(--accent);
+}
+
 .offline-note p:last-child {
   margin: 0;
 }

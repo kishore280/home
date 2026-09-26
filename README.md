@@ -87,7 +87,7 @@ Each push to `main` then builds and deploys. From the command line: `npx wrangle
 
 ## Offline only
 
-A secret page at `/offline` (⌘K → Offline only), from the idea at [chrisbolin.co/offline](https://chrisbolin.co/offline/). Online, it asks the visitor to turn on airplane mode and get a chai; offline, it shows a note. The text is `offlineNote` in `src/data.ts`.
+A secret page at `/offline` (⌘K → Offline only), from the idea at [chrisbolin.co/offline](https://chrisbolin.co/offline/). Online, it asks the visitor to turn on airplane mode and get a chai; offline, it shows a note and a patch of sand to draw on, where waves wash the drawing away (🌊 Big wave clears it). The text is `offlineNote` in `src/data.ts`; the sand is `src/lib/sand.ts` (plain canvas).
 
 - Two pages: `index.html` and `offline.html`. Both get the same icons, theme script and analytics from `src/head.html`, start through `mount()` in `src/lib/mount.tsx`, and are pre-rendered by `scripts/prerender.mjs`.
 - `useOnline()` in `src/lib/client.ts` follows the browser's `online` and `offline` events.
