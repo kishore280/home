@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 
-const LINES = ['hi!', 'hehe', 'more pats pls', 'that tickles', '♡', 'yay!']
+const LINES = ['hi!', 'hehe', 'more pats pls', 'that tickles', '♥', 'yay!']
 
 // Static SVG, hoisted so it is not re-created on each render.
 const face = (
@@ -17,26 +17,29 @@ const face = (
 )
 
 export function Mascot({ pats, onPat }: { pats: number | null; onPat: () => void }) {
-  const [line, setLine] = useState<string | null>(null)
+  // The text stays while the bubble fades out; only `talking` turns it off.
+  const [line, setLine] = useState('')
+  const [talking, setTalking] = useState(false)
   const [hop, setHop] = useState(0)
   const timer = useRef<number>(undefined)
 
   const pat = () => {
     setHop((h) => h + 1)
     setLine(LINES[Math.floor(Math.random() * LINES.length)])
+    setTalking(true)
     window.clearTimeout(timer.current)
-    timer.current = window.setTimeout(() => setLine(null), 1200)
+    timer.current = window.setTimeout(() => setTalking(false), 1400)
     onPat()
   }
 
   return (
     <div className="mascot">
       <button type="button" className="mascot-button" onClick={pat} aria-label="Pat the mascot">
-        <span className={`bubble${line ? ' show' : ''}`} aria-live="polite">
+        <span className={`bubble${talking ? ' show' : ''}`} aria-live="polite">
           {line}
         </span>
         {/* Animate the wrapper, not the SVG, so the browser can use the GPU. */}
-        <div key={hop} className={`mascot-art${hop ? ' hop' : ''}${line ? ' happy' : ''}`}>
+        <div key={hop} className={`mascot-art${hop ? ' hop' : ''}${talking ? ' happy' : ''}`}>
           {face}
         </div>
       </button>
