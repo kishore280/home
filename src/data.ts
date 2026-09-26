@@ -22,5 +22,11 @@ export const links: { label: string; href: string }[] = [
 // Newest first, e.g. { date: '2026-10-01', text: 'Added a photos page.' }. Empty hides the card.
 export const updates: { date: string; text: string }[] = []
 
+// My 88×31 buttons: public/<file>.svg on this page, public/<file>.png in the embed code.
+export const myButtons: { file: string; alt: string }[] = [
+  { file: 'button', alt: 'kish' },
+  { file: 'button-badminton', alt: 'kish plays badminton' },
+]
+
 // 88×31 buttons of friends and webrings: { name, href, img }.
 export const friends: { name: string; href: string; img: string }[] = []

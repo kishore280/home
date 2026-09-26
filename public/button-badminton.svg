@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="88" height="31" viewBox="0 0 88 31">
+  <title>kish plays badminton</title>
+  <defs>
+    <linearGradient id="wall" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#a98ce8"/>
+      <stop offset="1" stop-color="#d9cbfb"/>
+    </linearGradient>
+    <clipPath id="frame"><rect width="88" height="31" rx="2"/></clipPath>
+    <clipPath id="head"><ellipse cx="12" cy="11" rx="5.2" ry="7.2" transform="rotate(-35 12 11)"/></clipPath>
+  </defs>
+  <g clip-path="url(#frame)" stroke="#2e2540" stroke-linejoin="round" stroke-linecap="round">
+    <!-- wall and court floor -->
+    <rect width="88" height="21" fill="url(#wall)" stroke="none"/>
+    <path d="M-1 21h90v11H-1Z" fill="#4caf6e" stroke-width=".8"/>
+    <path d="M-1 25.5h90M30 21l-6 11M62 21l6 11" fill="none" stroke="#fff" stroke-width=".8"/>
+    <!-- net across the back of the court -->
+    <path d="M36 14.5v6.5M86 14.5v6.5" stroke-width=".9"/>
+    <path d="M36 15h50" stroke="#fff" stroke-width="1.2"/>
+    <path d="M36 15h50" stroke-width=".4"/>
+    <path d="M36 17.5h50M36 20h50M40 15v6M45 15v6M50 15v6M55 15v6M60 15v6M65 15v6M70 15v6M75 15v6M80 15v6" stroke-width=".3" opacity=".6"/>
+    <!-- racket: handle, grip, head with strings -->
+    <path d="M15.5 16.5 24 28" stroke-width="2.6"/>
+    <path d="M15.5 16.5 24 28" stroke="#c9cbd6" stroke-width="1.2"/>
+    <path d="M20.5 23.2 24 28" stroke="#f2a7c3" stroke-width="1.6"/>
+    <g clip-path="url(#head)">
+      <ellipse cx="12" cy="11" rx="5.2" ry="7.2" transform="rotate(-35 12 11)" fill="#fff" stroke="none"/>
+      <path d="M4 5h16M4 7h16M4 9h16M4 11h16M4 13h16M4 15h16M4 17h16M6 2v18M8 2v18M10 2v18M12 2v18M14 2v18M16 2v18M18 2v18" stroke="#b8a2f2" stroke-width=".35"/>
+    </g>
+    <ellipse cx="12" cy="11" rx="5.2" ry="7.2" transform="rotate(-35 12 11)" fill="none" stroke-width="1.6"/>
+    <ellipse cx="12" cy="11" rx="5.2" ry="7.2" transform="rotate(-35 12 11)" fill="none" stroke="#9b7fe0" stroke-width=".7"/>
+    <!-- shuttlecock flying right, with speed lines -->
+    <path d="M20 5.5h3M19 8h3.5M21 3h2" fill="none" stroke="#fff" stroke-width=".8"/>
+    <path d="M24.5 3 30.5 5.8 30.5 7.2 24.5 10Z" fill="#fff" stroke-width=".7"/>
+    <path d="M26.5 4v5M28.5 5v3" stroke-width=".35"/>
+    <circle cx="31.5" cy="6.5" r="1.6" fill="#ffd24a" stroke-width=".7"/>
+    <!-- word, in Pixelify Sans turned into shapes -->
+    <path transform="translate(37.2 11)" d="M1.28 0.09V-0.64H0.52V-5.49H1.62V-4.02H3.89V-3.28H4.66V-0.64H3.9V0.09ZM1.62 -1.07H3.56V-2.85H1.62Z M6.47 0.09V-0.64H5.71V-3.28H6.47V-4.02H9.08V-3.28H9.85V-1.07H10.61V0.09H9.51V-0.64H9.08V0.09ZM6.8 -1.07H8.75V-2.85H6.8Z M12.42 0.09V-0.64H11.66V-3.28H12.42V-4.02H14.71V-5.49H15.81V-0.64H15.03V0.09ZM12.75 -1.07H14.7V-2.85H12.75Z M16.85 0.09V-4.02H19.46V-3.28H19.88V-4.02H21.75V-3.28H22.5V0.09H21.41V-2.85H20.22V0.09H19.13V-2.85H17.94V0.09Z M23.55 0.09V-4.02H24.64V0.09ZM23.55 -4.31V-5.49H24.64V-4.31Z M25.69 0.09V-4.02H29.06V-3.28H29.82V0.09H28.72V-2.85H26.78V0.09Z M32.39 0.09V-0.64H31.63V-2.85H30.87V-4.02H31.63V-5.49H32.72V-4.02H35.01V-2.85H32.72V-1.07H34.68V-1.81H35.78V-0.64H35.01V0.09Z M37.58 0.09V-0.64H36.83V-3.28H37.58V-4.02H40.2V-3.28H40.96V-0.64H40.2V0.09ZM37.92 -1.07H39.86V-2.85H37.92Z M42.01 0.09V-4.02H45.38V-3.28H46.15V0.09H45.05V-2.85H43.1V0.09Z" fill="#fff" stroke-width="2" paint-order="stroke"/>
+  </g>
+  <rect x=".5" y=".5" width="87" height="30" rx="2" fill="none" stroke="#2e2540"/>
+</svg>
