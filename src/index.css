@@ -167,8 +167,22 @@ h2 {
 
 .wave {
   display: inline-block;
-  transform-origin: 70% 70%;
+  width: 0.95em;
+  height: 1.2em;
+  vertical-align: -0.2em;
+  transform-origin: 50% 100%;
   animation: wave 2.4s ease-in-out infinite;
+}
+
+.paw-fur {
+  fill: var(--accent);
+  stroke: var(--face);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+
+.paw-bean {
+  fill: var(--accent-2);
 }
 
 @keyframes wave {
@@ -497,7 +511,7 @@ h2 {
 
 .row {
   display: grid;
-  grid-template-columns: 110px 1fr;
+  grid-template-columns: auto 1fr;
   gap: 12px;
   align-items: center;
   padding: 9px 0;
@@ -520,6 +534,7 @@ h2 {
 .row dd {
   margin: 0;
   min-width: 0;
+  text-align: right;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -791,11 +806,6 @@ kbd {
   }
 }
 
-@media (max-width: 420px) {
-  .row {
-    grid-template-columns: 92px 1fr;
-  }
-}
 
 @media (prefers-reduced-motion: reduce) {
   *,

@@ -12,6 +12,19 @@ import type { MenuItem } from './components/CommandMenu'
 import { useCounters } from './hooks/useCounters'
 import { toggleTheme } from './theme'
 
+// A waving cat paw that matches the mascot (the 👋 emoji does not fit the style).
+const wavingPaw = (
+  <svg className="wave" viewBox="0 0 24 30" aria-hidden="true">
+    <path className="paw-fur" d="M8 30v-9h8v9" />
+    <ellipse className="paw-fur" cx="12" cy="15" rx="9.5" ry="8.5" />
+    <ellipse className="paw-bean" cx="12" cy="18" rx="4.3" ry="3.4" />
+    <circle className="paw-bean" cx="6" cy="12.2" r="2" />
+    <circle className="paw-bean" cx="9.8" cy="9.2" r="2" />
+    <circle className="paw-bean" cx="14.2" cy="9.2" r="2" />
+    <circle className="paw-bean" cx="18" cy="12.2" r="2" />
+  </svg>
+)
+
 const loadMenu = () => import('./components/CommandMenu')
 const CommandMenu = lazy(loadMenu)
 
@@ -80,9 +93,7 @@ export default function App() {
           <Card>
             <h1>
               hi, i'm {site.name}{' '}
-              <span className="wave" aria-hidden="true">
-                👋
-              </span>
+              {wavingPaw}
             </h1>
             {site.intro ? <p className="intro">{site.intro}</p> : null}
             {site.about.map((p) => (
