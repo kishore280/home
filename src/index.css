@@ -165,42 +165,6 @@ h2 {
   font-size: 18px;
 }
 
-.wave {
-  display: inline-block;
-  width: 0.95em;
-  height: 1.2em;
-  vertical-align: -0.2em;
-  transform-origin: 50% 100%;
-  animation: wave 2.4s ease-in-out infinite;
-}
-
-.paw-fur {
-  fill: var(--accent);
-  stroke: var(--face);
-  stroke-width: 1.6;
-  stroke-linejoin: round;
-}
-
-.paw-bean {
-  fill: var(--accent-2);
-}
-
-@keyframes wave {
-  0%,
-  60%,
-  100% {
-    transform: none;
-  }
-  10%,
-  30% {
-    transform: rotate(14deg);
-  }
-  20%,
-  40% {
-    transform: rotate(-8deg);
-  }
-}
-
 .links {
   display: flex;
   flex-wrap: wrap;
