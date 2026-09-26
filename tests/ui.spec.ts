@@ -273,6 +273,23 @@ test.describe('offline page', () => {
     await expectEvents(log, ['Offline note read'])
   })
 
+  test('it says when the page is saved for offline use', async ({ page }) => {
+    await page.goto('/offline')
+    await expect(page.getByText('✓ Saved on this device. You can go offline now.')).toBeVisible()
+  })
+
+  test('the switch still happens if the page was hidden while going offline', async ({ page, context }) => {
+    await page.goto('/offline')
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('offline only')
+    // Like leaving the browser to turn on airplane mode: the page is frozen, then shown again.
+    const cdp = await context.newCDPSession(page)
+    await cdp.send('Page.setWebLifecycleState', { state: 'frozen' })
+    await context.setOffline(true)
+    await cdp.send('Page.setWebLifecycleState', { state: 'active' })
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('wifi off, chai on')
+    await expect(page.locator('canvas.sand')).toBeVisible()
+  })
+
   test('service worker: seen pages from the cache, others get the /offline fallback', async ({ page, context }) => {
     await page.goto('/offline')
     await page.evaluate(() => navigator.serviceWorker.ready)
