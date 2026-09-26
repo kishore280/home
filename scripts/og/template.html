@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- Share card and icons. generate.mjs fills {{FONT_NUNITO}}, {{FONT_PIXELIFY}}, {{MASCOT}}, {{BUTTONS}}, {{DESCRIPTION}} and {{DOMAIN}}. -->
+    <style>
+      @font-face {
+        font-family: Nunito;
+        src: url('{{FONT_NUNITO}}');
+      }
+      @font-face {
+        font-family: Pixelify;
+        src: url('{{FONT_PIXELIFY}}');
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+      }
+      .og {
+        width: 1200px;
+        height: 630px;
+        display: flex;
+        align-items: center;
+        gap: 56px;
+        padding: 0 72px;
+        background: #f6f3fc radial-gradient(#e6def6 2.5px, transparent 2.5px) 0 0 / 30px 30px;
+        font-family: Nunito, sans-serif;
+        color: #3a3150;
+      }
+      .card {
+        width: 340px;
+        height: 380px;
+        flex: none;
+        display: grid;
+        place-items: center;
+        background: #fff;
+        border: 4px solid #e8e0f7;
+        border-radius: 32px;
+        box-shadow: 0 8px 0 #e8e0f7;
+      }
+      .card img {
+        width: 250px;
+      }
+      h1 {
+        margin: 0 0 18px;
+        font: 700 76px/1.05 Pixelify, sans-serif;
+      }
+      p {
+        max-width: 640px;
+        margin: 0 0 30px;
+        font-size: 28px;
+        line-height: 1.4;
+        color: #6f6590;
+      }
+      .buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        max-width: 640px;
+      }
+      .buttons img {
+        width: 132px;
+        height: 46px;
+        border-radius: 3px;
+      }
+      .domain {
+        margin-top: 26px;
+        font: 700 26px Pixelify, sans-serif;
+        color: #9b7fe0;
+      }
+      .icon {
+        display: grid;
+        place-items: center;
+        background: #c9b6f5;
+      }
+      #icon {
+        width: 180px;
+        height: 180px;
+      }
+      #icon img {
+        width: 150px;
+        margin-top: 6px;
+      }
+      #icon512 {
+        width: 512px;
+        height: 512px;
+      }
+      #icon512 img {
+        width: 420px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="og" id="og">
+      <div class="card"><img src="{{MASCOT}}" alt="" /></div>
+      <div>
+        <h1>hi, i’m kishore</h1>
+        <p>{{DESCRIPTION}}</p>
+        <div class="buttons">{{BUTTONS}}</div>
+        <div class="domain">{{DOMAIN}}</div>
+      </div>
+    </div>
+    <div class="icon" id="icon"><img src="{{MASCOT}}" alt="" /></div>
+    <div class="icon" id="icon512"><img src="{{MASCOT}}" alt="" /></div>
+  </body>
+</html>
