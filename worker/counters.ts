@@ -15,9 +15,8 @@ async function read(db: D1Database) {
 }
 
 export async function counters(request: Request, env: Env): Promise<Response> {
-  if (request.method === 'GET') return env.DB ? json(await read(env.DB)) : new Response(null, { status: 204 })
+  if (request.method === 'GET') return json(await read(env.DB))
   if (request.method !== 'POST') return fail('Use GET or POST.', 405)
-  if (!env.DB) return fail('Counters are not set up yet.', 503)
   const { key } = ((await request.json().catch(() => ({}))) ?? {}) as { key?: string }
   if (!key || !KEYS.has(key)) return fail('Unknown counter.')
 
