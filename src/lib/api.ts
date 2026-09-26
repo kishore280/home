@@ -13,13 +13,11 @@ export async function post<T>(url: string, body: unknown): Promise<T> {
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body),
   })
-  const data = await res.json().catch(() => ({}))
-  if (!res.ok) throw new Error((data as { error?: string }).error ?? 'Something went wrong. Try again.')
-  return data as T
+  if (!res.ok) throw new Error(`POST ${url} failed: ${res.status}`)
+  return res.json() as Promise<T>
 }
 
 export type Track = { title: string; artist: string; playing: boolean }
 export type Push = { repo: string; url: string; message: string | null; at: string }
 export type Status = { content: string; face: string; timeAgo: string }
-export type Note = { id: number; name: string; text: string; at: string }
-export type Counters = { views: number; pats: number; notes: number }
+export type Counters = { views: number; pats: number }

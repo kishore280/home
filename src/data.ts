@@ -20,11 +20,8 @@ export const links: { label: string; href: string }[] = [
   { label: 'GitHub', href: 'https://github.com/kishore280' },
 ]
 
-// Newest first.
-export const updates: { date: string; text: string }[] = [
-  { date: '2026-09-26', text: 'New soft lavender look, with a mascot and a guestbook.' },
-  { date: '2026-09-25', text: 'Site started. React, on Cloudflare Pages.' },
-]
+// Newest first, e.g. { date: '2026-10-01', text: 'Added a photos page.' }. Empty hides the card.
+export const updates: { date: string; text: string }[] = []
 
 // 88×31 buttons of friends and webrings: { name, href, img }.
 export const friends: { name: string; href: string; img: string }[] = []

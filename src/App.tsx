@@ -6,7 +6,6 @@ import { Mascot } from './components/Mascot'
 import { Status } from './components/Status'
 import { Stats } from './components/Stats'
 import { RightNow } from './components/RightNow'
-import { Guestbook } from './components/Guestbook'
 import { Buttons } from './components/Buttons'
 import type { MenuItem } from './components/CommandMenu'
 import { useCounters } from './hooks/useCounters'
@@ -29,7 +28,7 @@ async function copyEmail() {
 
 export default function App() {
   const [menuOpen, setMenuOpen] = useState(false)
-  const { counters, bump, refresh } = useCounters()
+  const { counters, bump } = useCounters()
 
   useEffect(() => {
     if (viewCounted) return
@@ -55,14 +54,6 @@ export default function App() {
   }, [])
 
   const items: MenuItem[] = [
-    {
-      group: 'Go to',
-      label: 'Guestbook',
-      run: () => {
-        document.getElementById('guestbook')?.scrollIntoView({ behavior: 'smooth' })
-        document.getElementById('gb-text')?.focus({ preventScroll: true })
-      },
-    },
     { group: 'Do', label: 'Pat the mascot', run: () => document.querySelector<HTMLButtonElement>('.mascot-button')?.click() },
     { group: 'Do', label: 'Switch light / dark', run: () => toast(toggleTheme() === 'dark' ? 'Dark mode' : 'Light mode') },
     ...(site.email ? [{ group: 'Do', label: 'Copy email', run: copyEmail }] : []),
@@ -110,18 +101,19 @@ export default function App() {
           </Card>
 
           <RightNow />
-          <Guestbook onSigned={refresh} />
 
-          <Card title="site updates">
-            <ul className="log">
-              {updates.map((u) => (
-                <li key={u.date + u.text}>
-                  <time dateTime={u.date}>{u.date}</time>
-                  <span>{u.text}</span>
-                </li>
-              ))}
-            </ul>
-          </Card>
+          {updates.length > 0 ? (
+            <Card title="updates">
+              <ul className="log">
+                {updates.map((u) => (
+                  <li key={u.date + u.text}>
+                    <time dateTime={u.date}>{u.date}</time>
+                    <span>{u.text}</span>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          ) : null}
 
           <Buttons />
 

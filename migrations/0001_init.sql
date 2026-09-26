@@ -1,15 +1,5 @@
--- Guestbook notes and site counters (views, pats).
--- Apply with: npx wrangler d1 migrations apply home --remote
-
-CREATE TABLE IF NOT EXISTS notes (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT NOT NULL,
-  text TEXT NOT NULL,
-  ip_hash TEXT NOT NULL,
-  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
-);
-
-CREATE INDEX IF NOT EXISTS notes_ip_time ON notes (ip_hash, created_at);
+-- Site counters (views, pats).
+-- Apply with: npx wrangler d1 execute home --remote --file migrations/0001_init.sql
 
 CREATE TABLE IF NOT EXISTS counters (
   key TEXT PRIMARY KEY,

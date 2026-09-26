@@ -5,12 +5,9 @@ import { fail, json, type DbEnv } from './_db'
 const KEYS = new Set(['views', 'pats'])
 
 async function read(db: D1Database) {
-  const [counters, notes] = await db.batch<{ key: string; value: number }>([
-    db.prepare('SELECT key, value FROM counters'),
-    db.prepare("SELECT 'notes' AS key, COUNT(*) AS value FROM notes"),
-  ])
-  const all = Object.fromEntries([...counters.results, ...notes.results].map((r) => [r.key, r.value]))
-  return { views: all.views ?? 0, pats: all.pats ?? 0, notes: all.notes ?? 0 }
+  const { results } = await db.prepare('SELECT key, value FROM counters').all<{ key: string; value: number }>()
+  const all = Object.fromEntries(results.map((r) => [r.key, r.value]))
+  return { views: all.views ?? 0, pats: all.pats ?? 0 }
 }
 
 export const onRequestGet: PagesFunction<DbEnv> = async ({ env }) =>

@@ -14,8 +14,6 @@ export function Stats({ counters }: { counters: Counters | null }) {
           <>
             <dt>views</dt>
             <dd>{counters.views.toLocaleString()}</dd>
-            <dt>notes</dt>
-            <dd>{counters.notes.toLocaleString()}</dd>
           </>
         ) : null}
       </dl>

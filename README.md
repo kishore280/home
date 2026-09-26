@@ -9,12 +9,11 @@ kishore's little corner of the internet. A soft lavender personal site: React + 
 | Intro, about, links, email | `src/data.ts` | Nothing |
 | Mascot (click to pat) and pat count | Cloudflare D1 | D1 binding (below) |
 | Status | [status.cafe](https://status.cafe) | `statusCafe` in `src/data.ts` |
-| Stats: updated, views, notes | Build date + D1 | D1 binding |
+| Stats: updated, views | Build date + D1 | D1 binding |
 | Right now: music | Last.fm | `LASTFM_API_KEY`, `LASTFM_USER` |
 | Right now: building | Latest public GitHub push | `github` in `src/data.ts` |
 | Right now: local time | Browser | `timeZone` in `src/data.ts` |
-| Guestbook | Cloudflare D1 | D1 binding |
-| Site updates, 88×31 buttons | `src/data.ts`, `public/button.svg` | Nothing |
+| Updates, 88×31 buttons | `src/data.ts`, `public/button.svg` | Nothing |
 | ⌘K menu | cmdk | Nothing |
 
 Only real data is shown. A part with no data is hidden.
@@ -30,14 +29,14 @@ npm run lint        # oxlint
 npm run cf-typegen  # regenerate worker-configuration.d.ts
 ```
 
-## Set up the guestbook, views and pats (Cloudflare D1)
+## Set up views and pats (Cloudflare D1)
 
 1. Create the database: `npx wrangler d1 create home`
 2. Create the tables: `npx wrangler d1 execute home --remote --file migrations/0001_init.sql`
 3. In the Cloudflare dashboard, open the Pages project → **Settings → Bindings → Add → D1 database**. Variable name: `DB`. Database: `home`.
 4. Deploy again.
 
-Without the binding, the guestbook and the counters are hidden. The rest of the site still works.
+Without the binding, the counters are hidden. The rest of the site still works.
 
 ## Live music (Last.fm)
 

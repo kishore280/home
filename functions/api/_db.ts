@@ -9,10 +9,3 @@ export const json = (data: unknown, status = 200) =>
   Response.json(data, { status, headers: { 'cache-control': 'no-store' } })
 
 export const fail = (error: string, status = 400) => json({ error }, status)
-
-// Hash the IP so we can rate-limit without storing it.
-export async function ipHash(request: Request): Promise<string> {
-  const ip = request.headers.get('cf-connecting-ip') ?? 'unknown'
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`home:${ip}`))
-  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('')
-}

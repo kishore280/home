@@ -17,5 +17,5 @@ export function useCounters() {
     [mutate],
   )
 
-  return { counters: data ?? null, bump, refresh: () => mutate() }
+  return { counters: data ?? null, bump }
 }
