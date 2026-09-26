@@ -19,13 +19,14 @@ function modeNow(): Mode {
 }
 
 const MODES: Record<Mode, { label: ReactNode; lines: string[] }> = {
-  chai: { label: <>chai time {chaiIcon}</>, lines: ['chai first!', 'meter chai, 2m', 'one strong chai', 'parippu vada pls', 'pazham pori + chai', 'chai kada gossip', 'no chai, no code', 'chai > coffee', 'dip the biscuit', 'less sugar… jk'] },
+  chai: { label: <>chai time {chaiIcon}</>, lines: ['chai first!', 'one strong chai', 'parippu vada pls', 'pazham pori + chai', 'chai kada gossip', 'no chai, no code', 'chai > coffee', 'dip the biscuit', 'less sugar… jk', 'anna, oru tea!', 'one by two podu', 'strong-a oru tea', 'sakkarai kammi', 'tea kudichiya?', 'vadai irukka?', 'semma tea da', 'bun butter jam pls', 'tea kadai meeting', 'tea soodaa irukku', 'tea + biscuit podu', 'tea time-u da'] },
   badminton: { label: 'badminton time 🏸', lines: ['smash!', 'shuttle in the fan', 'it was IN!!', 'net ball, sorry', 'court booked 6am', 'my court, my rules', 'one more game'] },
   coding: { label: 'coding time 💻', lines: ['git push!', 'it compiled?!', 'npm install…', 'prod is fine 🔥', 'who wrote this? me', 'semicolon hunt', 'one more bug…'] },
   beach: { label: 'beach time 🌅', lines: ['sea breeze~', 'sand in my code', 'sundal pls', 'wave > my inbox', 'ran 5k… maybe 2', 'salt air, 0 bugs', 'sunset soon'] },
-  parotta: { label: 'parotta time 🫓', lines: ['porotta + beef = ♥', 'my BF? beef fry', 'beef fry, extra', 'tear it, don’t cut', 'kothu tap tap tap', '2 parotta? no, 5', 'extra gravy pls', 'diet starts tmrw', 'free salna?', '5 layers of joy'] },
+  parotta: { label: 'parotta time 🫓', lines: ['porotta + beef = ♥', 'my BF? beef fry', 'beef fry, extra', 'tear it, don’t cut', 'kothu tap tap tap', '2 parotta? no, 5', 'extra gravy pls', 'diet starts tmrw', 'free salna?', '5 layers of joy', 'parotta soori mode', 'salna oothunga!', 'kothu podu anna', 'innum 2 parotta', 'saaptiya?', 'semma parotta da', 'vayiru full-u'] },
   sleep: { label: 'sleeping 💤', lines: ['zzz… oh, hi', 'brb, dreaming', '404: cat asleep', '5 more min…', 'zzz… parotta?', 'shh, compiling'] },
 }
+// Tea and parotta lines mix in Tanglish, the way people talk at the kadai.
 const ALWAYS = ['pat pat pat', 'that tickles', 'more pats, more ♥', '10/10 pat', 'hey, i’m working!', 'again? ok fine ♥', 'you found me!', 'psst… try ⌘K', '*purr*']
 
 // Static SVG parts, hoisted so they are not re-created on each render.
