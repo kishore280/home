@@ -8,3 +8,9 @@ export function trackOnce(event: string) {
   seen.add(event)
   track(event)
 }
+
+// A hover counts only when the mouse really moves over the element. 'pointerenter' also fires
+// when something under a still mouse changes (a menu closes), which is not a hover.
+export const trackHover = (event: string) => (e: { pointerType: string }) => {
+  if (e.pointerType === 'mouse') trackOnce(event)
+}

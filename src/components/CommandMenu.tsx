@@ -1,9 +1,12 @@
+import * as Dialog from '@radix-ui/react-dialog'
 import { Command } from 'cmdk'
 import { track } from '../lib/track'
 
 export type MenuItem = { group: string; label: string; run: () => void }
 
 // Loaded with React.lazy, so cmdk is only downloaded when someone opens the menu.
+// Built on Radix Dialog (what cmdk's Command.Dialog uses) so a tap outside closes the menu
+// on the click, not on pointer down: the overlay takes that click, and nothing under it does.
 export default function CommandMenu({
   open,
   onOpenChange,
@@ -18,33 +21,35 @@ export default function CommandMenu({
   for (const item of items) groups.set(item.group, [...(groups.get(item.group) ?? []), item])
 
   return (
-    <Command.Dialog
-      open={open}
-      onOpenChange={onOpenChange}
-      label="Menu"
-      overlayClassName="cmdk-overlay"
-      contentClassName="cmdk-content"
-    >
-      <Command.Input placeholder="Type to search…" />
-      <Command.List>
-        <Command.Empty>Nothing found.</Command.Empty>
-        {[...groups].map(([group, groupItems]) => (
-          <Command.Group key={group} heading={group}>
-            {groupItems.map((item) => (
-                <Command.Item
-                  key={item.label}
-                  onSelect={() => {
-                    onOpenChange(false)
-                    track(`Menu: ${item.label}`)
-                    item.run()
-                  }}
-                >
-                  {item.label}
-                </Command.Item>
+    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="cmdk-overlay" onClick={() => onOpenChange(false)} />
+        <Dialog.Content className="cmdk-content" aria-describedby={undefined} onPointerDownOutside={(e) => e.preventDefault()}>
+          <Dialog.Title className="sr-only">Menu</Dialog.Title>
+          <Command label="Menu">
+            <Command.Input placeholder="Type to search…" />
+            <Command.List>
+              <Command.Empty>Nothing found.</Command.Empty>
+              {[...groups].map(([group, groupItems]) => (
+                <Command.Group key={group} heading={group}>
+                  {groupItems.map((item) => (
+                    <Command.Item
+                      key={item.label}
+                      onSelect={() => {
+                        onOpenChange(false)
+                        track(`Menu: ${item.label}`)
+                        item.run()
+                      }}
+                    >
+                      {item.label}
+                    </Command.Item>
+                  ))}
+                </Command.Group>
               ))}
-          </Command.Group>
-        ))}
-      </Command.List>
-    </Command.Dialog>
+            </Command.List>
+          </Command>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   )
 }
