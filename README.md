@@ -2,7 +2,9 @@
 
 [![kichoow.com: hi, i’m kishore](public/og.png)](https://kichoow.com)
 
-kishore's little corner of the internet. A soft lavender personal site: React + TypeScript + Vite, on a Cloudflare Worker with static assets.
+kishore’s little corner of the internet. A soft lavender personal site: React + TypeScript + Vite, on a Cloudflare Worker with static assets.
+
+Live at **[kichoow.com](https://kichoow.com)**.
 
 ## What is on the page
 
