@@ -19,7 +19,7 @@ export function Status({ user }: { user: string }) {
         </span>
         <div>
           <p>{data.content}</p>
-          <a className="small" href={`https://status.cafe/users/${user}`} target="_blank" rel="noreferrer">
+          <a className="small" href={`https://status.cafe/users/${user}`} target="_blank" rel="noreferrer" data-umami-event="status.cafe link">
             {data.timeAgo} · status.cafe
           </a>
         </div>

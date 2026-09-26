@@ -34,6 +34,7 @@ export default function CommandMenu({
                   key={item.label}
                   onSelect={() => {
                     onOpenChange(false)
+                    window.umami?.track('Menu item', { item: item.label })
                     item.run()
                   }}
                 >

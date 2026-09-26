@@ -25,13 +25,15 @@ export function Buttons() {
             type="button"
             className="b88"
             data-caption={b.alt}
+            data-umami-event="Button copy"
+            data-umami-event-button={b.file}
             onClick={() => copyEmbed(b.file, b.alt)}
           >
             <img src={`/${b.file}.svg`} width={88} height={31} alt={b.alt} loading="lazy" decoding="async" />
           </button>
         ))}
         {friends.map((f) => (
-          <a key={f.href} className="b88" data-caption={f.name} href={f.href} target="_blank" rel="noreferrer">
+          <a key={f.href} className="b88" data-caption={f.name} href={f.href} target="_blank" rel="noreferrer" data-umami-event="Friend button" data-umami-event-name={f.name}>
             <img src={f.img} width={88} height={31} alt={f.name} loading="lazy" />
           </a>
         ))}

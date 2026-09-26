@@ -66,12 +66,12 @@ export default function App() {
             ))}
             <nav className="links" aria-label="Elsewhere">
               {links.map((l) => (
-                <a key={l.href} href={l.href} target="_blank" rel="noreferrer">
+                <a key={l.href} href={l.href} target="_blank" rel="noreferrer" data-umami-event={`${l.label} link`}>
                   {l.label} <span aria-hidden="true">↗</span>
                 </a>
               ))}
               {site.email ? (
-                <button type="button" onClick={copyEmail}>
+                <button type="button" onClick={copyEmail} data-umami-event="Email copy">
                   {site.email}
                 </button>
               ) : null}
@@ -110,6 +110,7 @@ export default function App() {
             <button
               type="button"
               className="link-button"
+              data-umami-event="Menu open"
               onClick={() => setMenuOpen(true)}
               onPointerEnter={() => void loadMenu()}
               onFocus={() => void loadMenu()}

@@ -162,7 +162,7 @@ export function Mascot({
 
   return (
     <div className="mascot">
-      <button type="button" className="mascot-button" onClick={pat} aria-label="Pat the mascot">
+      <button type="button" className="mascot-button" onClick={pat} aria-label="Pat the mascot" data-umami-event="Mascot pat">
         <span className={`bubble${talking ? ' show' : ''}`} aria-live="polite" translate="no">
           {line}
         </span>

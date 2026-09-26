@@ -60,7 +60,7 @@ export function RightNow() {
           <div className="row">
             <dt>building</dt>
             <dd>
-              <a href={push.url} target="_blank" rel="noreferrer">
+              <a href={push.url} target="_blank" rel="noreferrer" data-umami-event="GitHub repo link">
                 {push.repo}
               </a>
               <span className="muted"> · {timeAgo(push.at)}</span>
