@@ -11,6 +11,7 @@ import type { MenuItem } from './components/CommandMenu'
 import { useCounters } from './hooks/useCounters'
 import { shortDate } from './lib/time'
 import { toast, useToastRequested } from './lib/toast'
+import { track } from './lib/track'
 import { toggleTheme } from './theme'
 
 const loadMenu = () => import('./components/CommandMenu')
@@ -36,6 +37,7 @@ export default function App() {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault()
+        track('Menu shortcut ⌘K')
         setMenuOpen((open) => !open)
       }
     }

@@ -88,7 +88,7 @@ Each push to `main` then builds and deploys. From the command line: `npx wrangle
 ## Analytics
 
 - Cloudflare Web Analytics: visitors and page speed. Cloudflare adds its script; see **Analytics & Logs → Web Analytics**.
-- [Umami Cloud](https://umami.is) (free plan, no cookies): link and button clicks. The script is in `index.html` and counts only on kichoow.com. To track a new click, add `data-umami-event="Name"` (and optional `data-umami-event-<key>="value"`) to the element.
+- [Umami Cloud](https://umami.is) (free plan, no cookies): link and button clicks. The script is in `index.html` and counts only on kichoow.com. To track a new click, add `data-umami-event="Name"` to the element. For anything else, call `track()` or `trackOnce()` from `src/lib/track.ts`.
 
 ## Security
 
