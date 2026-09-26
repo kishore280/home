@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="88" height="31" viewBox="0 0 88 31">
+  <title>chai</title>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#a98ce8"/>
+      <stop offset="1" stop-color="#ffc59a"/>
+    </linearGradient>
+    <clipPath id="frame"><rect width="88" height="31" rx="2"/></clipPath>
+  </defs>
+  <g clip-path="url(#frame)" stroke="#2e2540" stroke-linejoin="round" stroke-linecap="round">
+    <rect width="88" height="31" fill="url(#bg)" stroke="none"/>
+    <!-- bunch of bananas hanging at the tea kadai: fingers curve up and out -->
+    <path d="M12 -1v11.5" stroke-width=".9"/>
+    <path d="M12 -1v11.5" stroke="#6b8f3a" stroke-width=".4"/>
+    <g fill="#ffd24a" stroke-width=".55">
+      <path d="M11.6 11q-5.2 .6-7.2-4.4 2.8 2.4 7 2.2Z"/>
+      <path d="M11.8 9.6q-3.4-1-3.6-6.4 1.6 3.6 4.2 4.6Z"/>
+      <path d="M12.2 9.6q3.4-1 3.6-6.4-1.6 3.6-4.2 4.6Z"/>
+      <path d="M12.4 11q5.2 .6 7.2-4.4-2.8 2.4-7 2.2Z"/>
+      <path d="M11.8 13.4q-4.8 .4-6.4-4 2.6 2 6.2 1.8Z"/>
+      <path d="M12.2 13.4q4.8 .4 6.4-4-2.6 2-6.2 1.8Z"/>
+    </g>
+    <path d="M11.2 10.2h1.6v3.6h-1.6Z" fill="#6b8f3a" stroke-width=".5"/>
+    <!-- wooden counter -->
+    <path d="M-1 24h90v8H-1Z" fill="#b0703f" stroke-width=".8"/>
+    <path d="M-1 27.5h90M20 24v3.5M52 27.5v4M70 24v3.5" stroke="#8a5530" stroke-width=".6"/>
+    <!-- glass biscuit jar -->
+    <path d="M66 12h12v12H66Z" fill="#e9f4ff" fill-opacity=".45" stroke-width=".8"/>
+    <path d="M65.2 10.2h13.6v2H65.2Z" fill="#e0513a" stroke-width=".7"/>
+    <g fill="#e8b25e" stroke-width=".5">
+      <circle cx="69" cy="21.5" r="2.2"/><circle cx="74.2" cy="21.2" r="2.2"/><circle cx="71.5" cy="17.2" r="2.2"/><circle cx="76" cy="16.8" r="1.6"/>
+    </g>
+    <!-- meter chai: steel tumbler held high, long stream into the glass -->
+    <g transform="translate(-.5 1.8) rotate(-125 45 3.5)">
+      <path d="M42.5 1h5l-.6 6h-3.8Z" fill="#c9cbd6" stroke-width=".7"/>
+      <path d="M42.5 1h5" stroke="#fff" stroke-width=".5"/>
+      <path d="M43.6 2.6v3.6" stroke="#fff" stroke-opacity=".8" stroke-width=".5"/>
+    </g>
+    <path d="M42.2 7.8q-2.4 1.8-6.2 3.2" fill="none" stroke="#c68b52" stroke-width="1"/>
+    <path d="M30 10.5h10l-1.2 13.5h-7.6Z" fill="#e9f4ff" fill-opacity=".55" stroke-width=".8"/>
+      <path d="M30.20 12.7h9.61l-1.00 11.3h-7.60Z" fill="#c68b52" stroke="none"/>
+      <path d="M30.20 12.70h9.61v1.6h-9.61Z" fill="#f1dcb8" stroke="none"/>
+      <path d="M32.00 11.5L32.72 23.2M34.00 11.5L34.24 23.2M36.00 11.5L35.76 23.2M38.00 11.5L37.28 23.2" stroke="#fff" stroke-opacity=".7" stroke-width=".45"/>
+      <path d="M30 10.5h10l-1.2 13.5h-7.6Z" fill="none" stroke-width=".8"/>
+    <!-- second glass, with steam -->
+    <g transform="translate(48 13) scale(.8)"><path d="M0 0h10l-1.2 13.5h-7.6Z" fill="#e9f4ff" fill-opacity=".55" stroke-width=".8"/>
+      <path d="M0.20 2.2h9.61l-1.00 11.3h-7.60Z" fill="#c68b52" stroke="none"/>
+      <path d="M0.20 2.20h9.61v1.6h-9.61Z" fill="#f1dcb8" stroke="none"/>
+      <path d="M2.00 1.0L2.72 12.7M4.00 1.0L4.24 12.7M6.00 1.0L5.76 12.7M8.00 1.0L7.28 12.7" stroke="#fff" stroke-opacity=".7" stroke-width=".45"/>
+      <path d="M0 0h10l-1.2 13.5h-7.6Z" fill="none" stroke-width=".8"/></g>
+    <path d="M50.5 11.5q-1.2-1.6 0-3.2t0-3.2M54 11.5q-1.2-1.6 0-3.2t0-3.2" fill="none" stroke="#fff" stroke-width=".8"/>
+  </g>
+  <rect x=".5" y=".5" width="87" height="30" rx="2" fill="none" stroke="#2e2540"/>
+</svg>

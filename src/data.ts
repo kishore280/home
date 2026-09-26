@@ -28,6 +28,7 @@ export const myButtons: { file: string; alt: string }[] = [
   { file: 'button-badminton', alt: 'kish plays badminton' },
   { file: 'button-parotta', alt: 'kish loves parotta' },
   { file: 'button-himalayan', alt: 'kish rides a Himalayan' },
+  { file: 'button-chai', alt: 'kish runs on chai' },
 ]
 
 // 88×31 buttons of friends and webrings: { name, href, img }.
