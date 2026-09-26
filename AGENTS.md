@@ -24,6 +24,7 @@ kishore's personal site, live at **https://kichoow.com**. React 19 + TypeScript 
 - **Do not hand-roll.** Use an existing library, service or the documented method. Before a fix, search the library's docs or issues for the recommended way, and say which one you used.
 - **Keep the code small.** No new dependency for something a few lines do; no copy-pasted code (check with `npx jscpd src worker scripts`).
 - **Pre-render safe.** Anything that depends on the visitor's clock or browser renders only after `useIsClient()` is true (`src/lib/client.ts`), or hydration will not match.
+- **Code loaded later** uses `lazyPreload()` from `src/lib/lazy.tsx`, not `React.lazy` (React 19 holds a lazy reveal for 300 ms). Preload it on hover, focus or idle.
 - **Style:** soft lavender; colours are tokens in `src/index.css` (light and dark). Text needs 4.5:1 contrast.
 - **Free tier only** (Cloudflare Workers, D1, Umami Cloud Hobby). Nothing that costs money.
 - **Secrets** (API keys, tokens) never go in the code or Git. They are Worker secrets in the Cloudflare dashboard.

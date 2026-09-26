@@ -21,6 +21,8 @@ export default function CommandMenu({
   // Radix returns focus only to a Dialog.Trigger. The menu opens from a button or ⌘K,
   // so remember what had focus and give it back on close.
   const opener = useRef<Element | null>(null)
+  // Set once an item opens a page, so a second tap does not count or navigate again.
+  const leaving = useRef(false)
 
   // A page item leaves the menu open (below); if Back brings this page back from the
   // back/forward cache, close it then (web.dev "bfcache": update state on pageshow).
@@ -60,6 +62,7 @@ export default function CommandMenu({
                     <Command.Item
                       key={item.label}
                       onSelect={() => {
+                        if (leaving.current) return
                         void track(`Menu: ${item.label}`)
                         if ('run' in item) {
                           onOpenChange(false)
@@ -69,6 +72,7 @@ export default function CommandMenu({
                         // paints (Chrome "paint holding"), so the home page never flashes.
                         // No wait: Umami sends with fetch({ keepalive: true }), which finishes
                         // after the page is gone (MDN, "keepalive"), like gtag's beacon transport.
+                        leaving.current = true
                         window.location.assign(item.href)
                       }}
                     >
