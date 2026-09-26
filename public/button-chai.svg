@@ -30,13 +30,12 @@
     <g fill="#e8b25e" stroke-width=".5">
       <circle cx="69" cy="21.5" r="2.2"/><circle cx="74.2" cy="21.2" r="2.2"/><circle cx="71.5" cy="17.2" r="2.2"/><circle cx="76" cy="16.8" r="1.6"/>
     </g>
-    <!-- meter chai: steel tumbler held high, long stream into the glass -->
-    <g transform="translate(-.5 1.8) rotate(-125 45 3.5)">
-      <path d="M42.5 1h5l-.6 6h-3.8Z" fill="#c9cbd6" stroke-width=".7"/>
-      <path d="M42.5 1h5" stroke="#fff" stroke-width=".5"/>
-      <path d="M43.6 2.6v3.6" stroke="#fff" stroke-opacity=".8" stroke-width=".5"/>
-    </g>
-    <path d="M42.2 7.8q-2.4 1.8-6.2 3.2" fill="none" stroke="#c68b52" stroke-width="1"/>
+    <!-- steel tumbler and davara resting on the counter, steam from the glass -->
+    <path d="M20.2 22.6h8.6l-.6 1.4h-7.4Z" fill="#aeb1c0" stroke-width=".6"/>
+    <path d="M21.6 15.8h5.8l-.5 6.8h-4.8Z" fill="#c9cbd6" stroke-width=".7"/>
+    <path d="M21.6 15.8h5.8" stroke="#fff" stroke-width=".5"/>
+    <path d="M23 17.2v4.4" stroke="#fff" stroke-opacity=".8" stroke-width=".5"/>
+    <path d="M33 9q-1-1.3 0-2.6t0-2.6M36.5 9q-1-1.3 0-2.6t0-2.6" fill="none" stroke="#fff" stroke-width=".7"/>
     <path d="M30 10.5h10l-1.2 13.5h-7.6Z" fill="#e9f4ff" fill-opacity=".55" stroke-width=".8"/>
       <path d="M30.20 12.7h9.61l-1.00 11.3h-7.60Z" fill="#c68b52" stroke="none"/>
       <path d="M30.20 12.70h9.61v1.6h-9.61Z" fill="#f1dcb8" stroke="none"/>
