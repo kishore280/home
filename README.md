@@ -29,8 +29,8 @@ Only real data is shown. A part with no data is hidden.
 
 ```sh
 npm install
-npm run dev         # Vite dev server (no API functions)
-npm run build       # type-check and build to dist/
+npm run dev         # Vite dev server (no Worker, no service worker)
+npm run build       # type-check, build, pre-render, service worker → dist/
 npm run preview     # build, then run the Worker and the site locally (wrangler dev)
 npm run lint        # oxlint
 npm run audit       # build, then the UI tests in a real browser (see Test below)
@@ -70,17 +70,40 @@ You can also edit `src/log.json` by hand. Times use ISO format with the IST offs
 
 ## Live music (your phone → the site)
 
-YouTube Music has no public API, so the phone sends each song itself. The Worker is a small
-ListenBrainz-compatible server (`worker/scrobble.ts`), and a scrobbler app on the phone sends to it.
-It keeps only the latest song.
+YouTube Music has no public API, and its unofficial ones need your full Google login cookies
+(OAuth for it stopped working in September 2025). So the phone sends each song itself:
 
-1. Make a token: `node -e "console.log(crypto.randomUUID())"`.
-2. In the Worker's settings (**Settings → Variables and Secrets**), add it as the **secret** `SCROBBLE_TOKEN`.
-3. On the phone, install [Pano Scrobbler](https://github.com/kawaiiDango/pano-scrobbler) and give it notification access.
-4. In Pano Scrobbler: **Settings → Accounts → Custom ListenBrainz**. API URL `https://kichoow.com/api/scrobble/`, token: the same token.
-5. In Pano Scrobbler, turn scrobbling on for YouTube Music only. Android Auto plays through the phone, so it is included.
+```
+YouTube Music (phone, or Android Auto, which plays through the phone)
+  → Pano Scrobbler reads the media notification
+  → POST https://kichoow.com/api/scrobble/1/submit-listens   (ListenBrainz API, token checked)
+  → D1 table `music` → GET /api/now-playing → the "right now" card
+```
 
-A new token is the way to cut off an old one: change it in both places.
+The Worker is a small [ListenBrainz](https://listenbrainz.readthedocs.io/en/latest/users/api/core.html)-compatible
+server (`worker/scrobble.ts`): it answers `1/validate-token` and `1/submit-listens`, the two calls a
+scrobbler needs. Storage follows the ListenBrainz server: at most two rows, no history.
+
+| Row | Set by | Shown as |
+|---|---|---|
+| `playing_now` | `playing_now` (server clock); expires after the song's length, or 10 min | "listening" |
+| `listen` | `single` / `import`: the newest finished song (phone's `listened_at`) | "last played · 12 min. ago" |
+
+### Set up (all of it works from a phone)
+
+1. **Table.** Cloudflare dashboard → **Storage & Databases → D1 → `home` → Console**, run
+   `migrations/0003_music.sql`. Or from a computer: `npx wrangler d1 migrations apply home --remote`.
+2. **Token.** Any long random text (30+ letters and numbers), e.g. from a password manager.
+   Never put it in Git or a chat.
+3. **Secret.** **Workers & Pages → `home` → Settings → Variables and Secrets → Add**:
+   type **Secret**, name `SCROBBLE_TOKEN`, value the token → **Deploy**.
+4. **Phone.** Install [Pano Scrobbler](https://github.com/kawaiiDango/pano-scrobbler), give it
+   notification access, then **Login → Services → ListenBrainz-like instance**:
+   API URL `https://kichoow.com/api/scrobble/` (with the last `/`), token: the same token.
+5. In Pano Scrobbler, allow **YouTube Music** only.
+6. Play a song: within about 30 s, kichoow.com shows "listening".
+
+To cut off an old token, set a new one in both places. A leaked token can only post songs to the card.
 
 ## Deploy (Cloudflare Workers)
 
@@ -110,32 +133,47 @@ Each push to `main` then builds and deploys. From the command line: `npx wrangle
 
 A secret page at `/offline` (⌘K → Offline only), from the idea at [chrisbolin.co/offline](https://chrisbolin.co/offline/). Online, it asks the visitor to turn on airplane mode and get a chai; offline, it shows a note and a patch of sand to draw on, where waves wash the drawing away (🌊 Big wave clears it). The text is `offlineNote` in `src/data.ts`; the sand is `src/lib/sand.ts` (plain canvas).
 
-- Two pages: `index.html` and `offline.html`. Both get the same icons, theme script and analytics from `src/head.html`, start through `mount()` in `src/lib/mount.tsx`, and are pre-rendered by `scripts/prerender.mjs`.
-- `useOnline()` in `src/lib/client.ts` follows the browser's `online` and `offline` events.
-- `scripts/sw.mjs` makes `dist/sw.js` with [Workbox](https://developer.chrome.com/docs/workbox) after the pre-render. Pages are network first (visitors always get the latest deploy); offline, a page seen before comes from the cache, and any other page gets `/offline` as the [fallback page](https://developer.chrome.com/docs/workbox/managing-fallback-responses). It runs in the visitor's browser, so it costs nothing.
+- Three pages: `index.html`, `offline.html` and `404.html`. All get the same icons, theme script and analytics from `src/head.html`, start through `mount()` in `src/lib/mount.tsx`, and are pre-rendered by `scripts/prerender.mjs`. `/offline` is pre-rendered twice: online (`offline.html`) and offline (`offline-now.html`), so the first paint is right in both cases.
+- `useConnection()` in `src/lib/client.ts` follows the browser's `online` / `offline` events and also fetches `/robots.txt` every 5 s, because a VPN or Wi-Fi without internet keeps the browser saying "online".
+- `scripts/sw.mjs` makes `dist/sw.js` with [Workbox](https://developer.chrome.com/docs/workbox) after the pre-render. Pages are network first (visitors always get the latest deploy); offline, a page seen before comes from the cache, and any other page gets `offline-now.html` as the [fallback page](https://developer.chrome.com/docs/workbox/managing-fallback-responses). It runs in the visitor's browser, so it costs nothing.
 - Unknown addresses get `404.html` ("404: lost at sea") with a real 404 status (`not_found_handling: "404-page"` in `wrangler.jsonc`).
 - Umami counts `Offline note read` when the visitor comes back online.
+
+## Speed
+
+Each item follows a documented method; the source is in the code comment.
+
+- **Prefetch on hover or touch:** the `Speculation-Rules` header (`public/_headers`) points to `public/speculationrules.json` (prefetch, `moderate`, not `/api/*`), the same rules as Cloudflare Speed Brain, which does not run on Worker routes.
+- **No layout shift:** space is kept for everything that arrives after the first paint: stats, clock, mascot line, and a placeholder line for each late "right now" row ([web.dev: Optimize CLS](https://web.dev/articles/optimize-cls)). A test keeps it below 0.001.
+- **The menu and toasts open at once:** `lazyPreload()` (`src/lib/lazy.tsx`) instead of `React.lazy`, which React 19 holds for 300 ms ([facebook/react#31819](https://github.com/facebook/react/issues/31819); the fix Outline uses). Their code loads when the browser is idle; a failed load shows nothing instead of a blank page.
+- **No flash between pages:** a menu item that opens a page leaves the menu open, and Chrome keeps it on screen until the next page paints ([Paint Holding](https://developer.chrome.com/blog/paint-holding)).
+- **Analytics never slows a click:** Umami sends with `fetch` `keepalive`, so nothing waits for it.
 
 ## Analytics
 
 - Cloudflare Web Analytics: visitors and page speed. Cloudflare adds its script; see **Analytics & Logs → Web Analytics**.
-- [Umami Cloud](https://umami.is) (free plan, no cookies): link and button clicks. The script is in `index.html` and counts only on kichoow.com. To track a new click, add `data-umami-event="Name"` to the element. For anything else, call `track()` or `trackOnce()` from `src/lib/track.ts`.
+- [Umami Cloud](https://umami.is) (free plan, no cookies): link and button clicks. The script is in `src/head.html` and counts only on kichoow.com. To track a new click, add `data-umami-event="Name"` to the element. For anything else, call `track()` or `trackOnce()` from `src/lib/track.ts`.
 
 ## Security
 
 - `public/_headers`: `nosniff`, `Referrer-Policy`, `Permissions-Policy` and `frame-ancestors 'none'` on static files.
 - `vite-plugin-csp-guard` adds a Content-Security-Policy `<meta>` tag at build time, with the hash of the inline theme script.
 - The Worker reads the GitHub user from `src/data.ts`, not from the request, so `/api/github` is not an open proxy.
-- Secrets (`SCROBBLE_TOKEN`) go in the Worker settings as secrets, never in Git.
+- Secrets (`SCROBBLE_TOKEN`) go in the Worker settings as secrets, never in Git. The token is compared in constant time ([Cloudflare's example](https://developers.cloudflare.com/workers/examples/protect-against-timing-attacks/)).
+- `/api/scrobble` accepts only valid ListenBrainz data (the same limits as the ListenBrainz server), cuts text to 300 characters and keeps only the latest song.
+- Set in the Cloudflare dashboard: a WAF rate-limiting rule on `/api/counters`, HSTS and the `www` → apex redirect.
 
 ## Libraries
 
-- [cmdk](https://github.com/pacocoursey/cmdk): the ⌘K menu, loaded only when it opens
+- [cmdk](https://github.com/pacocoursey/cmdk) on [Radix Dialog](https://www.radix-ui.com/primitives/docs/components/dialog): the ⌘K menu
 - [sonner](https://github.com/emilkowalski/sonner): toasts
 - [SWR](https://swr.vercel.app): data fetching and caching
+- [react-error-boundary](https://github.com/bvaughn/react-error-boundary): code that fails to load shows nothing, not a blank page
+- [Workbox](https://developer.chrome.com/docs/workbox): the service worker
+- [Beasties](https://github.com/danielroe/beasties): inlines the CSS at pre-render
 - [vite-plugin-csp-guard](https://github.com/tsotimus/vite-plugin-csp-guard): the Content-Security-Policy
 - [Nunito](https://fonts.google.com/specimen/Nunito) and [Pixelify Sans](https://fonts.google.com/specimen/Pixelify+Sans), through Fontsource
 
 ## Agent skills
 
-`.claude/skills/` has open-source skills: `react-best-practices` and `web-design-guidelines` from [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills), `seo-mastery` from [kpab/seo-mastery-agent-skills](https://github.com/kpab/seo-mastery-agent-skills), and `owasp-security` from [agamm/claude-code-owasp](https://github.com/agamm/claude-code-owasp). `workers-best-practices` is from [cloudflare/skills](https://github.com/cloudflare/skills) (Apache-2.0).
+`.claude/skills/` has open-source skills: `react-best-practices` and `web-design-guidelines` from [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills), `seo-mastery` from [kpab/seo-mastery-agent-skills](https://github.com/kpab/seo-mastery-agent-skills), and `owasp-security` from [agamm/claude-code-owasp](https://github.com/agamm/claude-code-owasp). `workers-best-practices` is from [cloudflare/skills](https://github.com/cloudflare/skills) (Apache-2.0). For tests: `webapp-testing` from [anthropics/skills](https://github.com/anthropics/skills) and `ui-test` from [Browserbase](https://github.com/browserbase) (MIT).
