@@ -5,7 +5,8 @@ import { execSync } from 'node:child_process'
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
 
 const api = 'http://127.0.0.1:8787/api/log'
-const auth = { authorization: 'Bearer test-log-token-0123456789' } // LOG_TOKEN in tests/test.env
+// The phone's one token, SCROBBLE_TOKEN (tests/test.env), as on the live site.
+const auth = { authorization: 'Bearer test-token-0123456789-abcdef' }
 const post = (request: APIRequestContext, data: unknown, path = '') =>
   request.post(`${api}${path}`, { data, headers: auth })
 const summary = async (request: APIRequestContext) => {
@@ -31,7 +32,7 @@ test('a POST needs the token; other methods are refused', async ({ request }) =>
   const body = { id: crypto.randomUUID(), kind: 'chai' }
   expect((await request.post(api, { data: body })).status()).toBe(401)
   expect((await request.post(api, { data: body, headers: { authorization: 'Bearer wrong' } })).status()).toBe(401)
-  expect((await request.post(api, { data: body, headers: { authorization: 'token test-log-token-0123456789' } })).status()).toBe(401)
+  expect((await request.post(api, { data: body, headers: { authorization: 'token test-token-0123456789-abcdef' } })).status()).toBe(401)
   const undo = await request.post(`${api}/undo`, { data: { id: body.id } })
   expect(undo.status()).toBe(401)
   expect(await undo.json()).toHaveProperty('error')
@@ -46,10 +47,11 @@ test('before any log every kind is empty', async ({ request }) => {
 
 test('a chai counts in today, month, year and total', async ({ request }) => {
   // The scheme is case-insensitive (RFC 9110, 11.1).
-  const res = await request.post(api, { data: { id: chai, kind: 'chai' }, headers: { authorization: 'bearer test-log-token-0123456789' } })
+  const res = await request.post(api, { data: { id: chai, kind: 'chai' }, headers: { authorization: 'bearer test-token-0123456789-abcdef' } })
   expect(res.headers()['cache-control']).toBe('no-store')
   const body = await res.json()
-  expect(body).toMatchObject({ ok: true, id: chai, kind: 'chai', count: 1 })
+  // The reply has the new totals of that day and month, for the page's "· 1 today".
+  expect(body).toMatchObject({ ok: true, id: chai, kind: 'chai', count: 1, today: 1, month: 1 })
   expect(Math.abs(Date.parse(body.at) - Date.now())).toBeLessThan(60_000)
   const { chai: totals, parotta: none } = await summary(request)
   expect(totals).toMatchObject(counts(1))
@@ -139,9 +141,18 @@ test('totals never go below zero', async ({ request }) => {
   expect(JSON.parse(sql('SELECT count(*) AS n FROM log_totals WHERE count < 0'))[0].results[0].n).toBe(0)
 })
 
+test('without its tables, a log says what to set up instead of failing', async ({ request }) => {
+  sql('DROP TABLE log_totals')
+  const res = await post(request, { id: crypto.randomUUID(), kind: 'chai' })
+  expect(res.status()).toBe(503)
+  expect((await res.json()).error).toBe('Logging is not set up yet: run migrations/0004_log.sql in the D1 Console.')
+  execSync('npx wrangler d1 execute home --local --file migrations/0004_log.sql', { stdio: 'ignore' })
+  expect((await post(request, { id: crypto.randomUUID(), kind: 'chai' })).status()).toBe(200)
+})
+
 // The /log page. It shares the local D1 with the tests above, so it starts from empty tables too.
 test.describe('the /log page', () => {
-  const TOKEN = 'test-log-token-0123456789' // LOG_TOKEN in tests/test.env
+  const TOKEN = 'test-token-0123456789-abcdef' // SCROBBLE_TOKEN in tests/test.env
   const chaiToday = async (request: APIRequestContext) => (await summary(request)).chai?.today ?? 0
   const button = (page: Page, name: RegExp) => page.getByRole('button', { name })
   // As if the token was saved on this phone before; navigator.vibrate records the buzz.
@@ -157,6 +168,8 @@ test.describe('the /log page', () => {
   test('without a token it asks for one; a wrong token is refused and asked again', async ({ page, request }) => {
     await page.goto('/log')
     await expect(button(page, /chai \+1/)).toHaveCount(0)
+    // The keyboard never learns the token.
+    await expect(page.getByLabel('token')).toHaveAttribute('spellcheck', 'false')
     await page.getByLabel('token').fill('wrong-token-but-long-enough')
     await page.getByRole('button', { name: 'save' }).click()
     await button(page, /chai \+1/).click()
@@ -169,7 +182,7 @@ test.describe('the /log page', () => {
     await signedIn(page)
     await page.goto('/log')
     await button(page, /chai \+1/).click()
-    const toast = page.locator('[data-sonner-toast]', { hasText: '☕ chai +1' })
+    const toast = page.locator('[data-sonner-toast]', { hasText: '☕ chai +1 · 1 today' })
     await expect(toast).toBeVisible()
     await expect.poll(() => chaiToday(request)).toBe(1)
     await expect(page.locator('#counts')).toContainText('1 today')
@@ -184,7 +197,7 @@ test.describe('the /log page', () => {
     await page.goto('/log')
     await page.getByLabel('beach place (optional)').fill('Marina')
     await button(page, /beach day/).click()
-    await expect(page.locator('[data-sonner-toast]', { hasText: '🌊 beach +1' })).toBeVisible()
+    await expect(page.locator('[data-sonner-toast]', { hasText: '🌊 beach +1 · 1 this month' })).toBeVisible()
     await expect(page.locator('#counts')).toContainText('Marina')
     await expect(page.getByLabel('beach place (optional)')).toHaveValue('')
     await button(page, /beach day/).click()

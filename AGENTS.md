@@ -78,4 +78,4 @@ For a wider check, follow `.claude/skills/ui-test` (three planning rounds: funct
 4. Cloudflare builds and deploys `main` by itself (about 1–2 minutes).
 5. Check the live site (`curl` the changed page or file on https://kichoow.com) before you say it is done.
 
-Things that are set in the Cloudflare dashboard, not in code: Worker secrets (`SCROBBLE_TOKEN`, `LOG_TOKEN`), the WAF rate-limiting rule on `/api/counters`, HSTS, the `www` → apex redirect and Web Analytics.
+Things that are set in the Cloudflare dashboard, not in code: Worker secrets (`SCROBBLE_TOKEN`, the phone's one token for `/api/scrobble` and `/api/log`), the WAF rate-limiting rule on `/api/counters`, HSTS, the `www` → apex redirect and Web Analytics.

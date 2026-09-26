@@ -53,12 +53,15 @@ async function sendLog(token: string, kind: LogKind, count: number, place?: stri
   try {
     const res = await post(token, '/api/log', { id, kind, count, at: Date.now(), place })
     if (res.status === 401) return 'unauthorized'
+    const reply = (await res.json().catch(() => ({}))) as { duplicate?: boolean; today?: number; month?: number; error?: string }
     if (!res.ok) {
-      toast(`Could not log ${kind}. Try again.`, { error: true })
+      // e.g. 503 "Logging is not set up yet: …" says what to do.
+      toast(reply.error ?? `Could not log ${kind}. Try again.`, { error: true })
       return 'failed'
     }
-    const { duplicate } = (await res.json()) as { duplicate?: boolean }
-    toast(duplicate ? `${EMOJI.beach} today is already a beach day` : label, duplicate ? {} : { action })
+    if (reply.duplicate) toast(`${EMOJI.beach} today is already a beach day`)
+    // With the new total, as adamvsyagiz.com's log page does: "☕ chai +1 · 3 today".
+    else toast(`${label} · ${kind === 'beach' ? `${reply.month} this month` : `${reply.today} today`}`, { action })
     return 'ok'
   } catch {
     if (!queued()) {
@@ -148,7 +151,8 @@ export function LogPage() {
             <input type="text" name="username" autoComplete="username" value="kishore" readOnly hidden />
             <label>
               token
-              <input name="token" type="password" autoComplete="current-password" required minLength={20} />
+              {/* spellcheck off: the keyboard never learns or suggests the token. */}
+              <input name="token" type="password" autoComplete="current-password" spellCheck={false} required minLength={20} />
             </label>
             <button type="submit">save</button>
           </form>
