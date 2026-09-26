@@ -221,6 +221,49 @@ test.describe('⌘K menu', () => {
     await expect(page.locator('main')).toBeVisible()
     await expect(menu(page)).toHaveCount(0)
   })
+
+  test('a double tap on a page item counts and opens it once', async ({ page, log, press }) => {
+    await page.goto('/')
+    await openMenu(page, press)
+    const item = page.locator('[cmdk-item]', { hasText: 'Offline only' })
+    await item.dblclick()
+    await expect(page).toHaveURL('/offline')
+    await settle(page)
+    await expectEvents(log, ['Menu open', 'Menu: Offline only'])
+  })
+
+  test('opens at once once its code has loaded (no 300 ms Suspense hold)', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'keyboard shortcut')
+    // The menu code loads when the page is idle.
+    const loaded = page.waitForResponse((r) => /CommandMenu-.*\.js$/.test(r.url()))
+    await page.goto('/')
+    await loaded
+    const ms = await page.evaluate(
+      () =>
+        new Promise<number>((resolve) => {
+          const start = performance.now()
+          new MutationObserver(() => document.querySelector('.cmdk-content') && resolve(performance.now() - start)).observe(document.body, {
+            childList: true,
+            subtree: true,
+          })
+          dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))
+        }),
+    )
+    expect(ms).toBeLessThan(150)
+  })
+})
+
+test.describe('after a new deploy', () => {
+  // The service worker would serve the old file from its cache; test the network path.
+  test.use({ serviceWorkers: 'block' })
+  test('a code file that is gone does not break the page', async ({ page, context, press }) => {
+    await context.route(/\/assets\/CommandMenu-.*\.js$/, (r) => r.fulfill({ status: 404 }))
+    await page.goto('/')
+    await press(page.locator('.link-button'))
+    await settle(page)
+    await expect(page.locator('h1')).toBeVisible()
+    await expect(menu(page)).toHaveCount(0)
+  })
 })
 
 test.describe('keyboard and touch', () => {

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { links, site, updates } from './data'
 import { Card } from './components/Card'
 import { Mascot, type MascotHandle } from './components/Mascot'
@@ -12,11 +12,11 @@ import { useCounters } from './hooks/useCounters'
 import { shortDate } from './lib/time'
 import { toast, useToastRequested } from './lib/toast'
 import { track } from './lib/track'
+import { lazyPreload, whenIdle } from './lib/lazy'
 import { toggleTheme } from './theme'
 
-const loadMenu = () => import('./components/CommandMenu')
-const CommandMenu = lazy(loadMenu)
-const Toasts = lazy(() => import('./components/Toasts'))
+const CommandMenu = lazyPreload(() => import('./components/CommandMenu'))
+const Toasts = lazyPreload(() => import('./components/Toasts'))
 
 async function copyEmail() {
   try {
@@ -32,6 +32,10 @@ export default function App() {
   const { counters, bump } = useCounters()
   const mascot = useRef<MascotHandle>(null)
   const toastRequested = useToastRequested()
+
+  // Load the menu and toasts once the page is idle, so they open at once. The service worker
+  // downloads these files anyway (scripts/sw.mjs), so this adds no data.
+  useEffect(() => whenIdle(() => void (CommandMenu.preload(), Toasts.preload())), [])
 
   // ⌘K / Ctrl+K opens and closes the menu; only opening counts as a shortcut use.
   useEffect(() => {
@@ -116,8 +120,8 @@ export default function App() {
               className="link-button"
               data-umami-event="Menu open"
               onClick={() => setMenuOpen(true)}
-              onPointerEnter={() => void loadMenu()}
-              onFocus={() => void loadMenu()}
+              onPointerEnter={() => void CommandMenu.preload()}
+              onFocus={() => void CommandMenu.preload()}
             >
               <kbd>⌘</kbd>
               <kbd>K</kbd> menu
@@ -126,16 +130,8 @@ export default function App() {
         </main>
       </div>
 
-      {menuOpen ? (
-        <Suspense fallback={null}>
-          <CommandMenu open={menuOpen} onOpenChange={setMenuOpen} items={items} />
-        </Suspense>
-      ) : null}
-      {toastRequested ? (
-        <Suspense fallback={null}>
-          <Toasts />
-        </Suspense>
-      ) : null}
+      {menuOpen ? <CommandMenu open={menuOpen} onOpenChange={setMenuOpen} items={items} /> : null}
+      {toastRequested ? <Toasts /> : null}
     </>
   )
 }
