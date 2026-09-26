@@ -578,6 +578,22 @@ h2 {
   font-variant-numeric: tabular-nums;
 }
 
+/* A loading row: two soft bars where the label and the value will be. */
+.row.pending dt::before,
+.row.pending dd::before {
+  content: '';
+  display: inline-block;
+  width: 5em;
+  height: 0.7em;
+  border-radius: 4px;
+  background: var(--line);
+  vertical-align: middle;
+}
+
+.row.pending dd::before {
+  width: 9em;
+}
+
 .eq {
   display: inline-flex;
   gap: 2px;

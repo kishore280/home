@@ -3,6 +3,7 @@ import { counters } from './counters'
 import { fail, type Env } from './db'
 import { github } from './github'
 import { nowPlaying } from './now-playing'
+import { scrobble } from './scrobble'
 
 export default {
   async fetch(request, env) {
@@ -15,6 +16,7 @@ export default {
       case '/api/counters':
         return counters(request, env)
     }
+    if (pathname.startsWith('/api/scrobble/1/')) return scrobble(request, env, pathname.slice('/api/scrobble/1/'.length))
     if (pathname.startsWith('/api/')) return fail('Not found.', 404)
     return env.ASSETS.fetch(request)
   },

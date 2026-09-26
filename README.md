@@ -16,7 +16,7 @@ Coding agents: read [AGENTS.md](AGENTS.md) for the rules, commands, tests and ho
 | Mascot (click to pat) and pat count | Cloudflare D1 | D1 binding (below) |
 | Status | [status.cafe](https://status.cafe) | `statusCafe` in `src/data.ts` |
 | Stats: updated, views | Build date + D1 | D1 binding |
-| Right now: music | Last.fm | `LASTFM_API_KEY`, `LASTFM_USER` |
+| Right now: music | Your phone's scrobbler → D1 | `SCROBBLE_TOKEN` (below) |
 | Right now: building | Latest public GitHub push | `github` in `src/data.ts` |
 | Right now: local time | Browser | `timeZone` in `src/data.ts` |
 | Counts: parotta, chai, beach days | `src/log.json` | Nothing |
@@ -66,14 +66,21 @@ You can also edit `src/log.json` by hand. Times use ISO format with the IST offs
 
 1. Create it: `npx wrangler d1 create home`. It prints a `database_id`.
 2. Put that ID in `d1_databases` in `wrangler.jsonc`, then run `npm run cf-typegen`.
-3. Create the table: `npx wrangler d1 execute home --remote --file migrations/0001_init.sql`
+3. Create the tables: `npx wrangler d1 migrations apply home --remote` (runs every file in `migrations/` not yet applied).
 
-## Live music (Last.fm)
+## Live music (your phone → the site)
 
-In the Worker's settings (**Settings → Variables and Secrets**), add these. Make the API key a **secret**:
+YouTube Music has no public API, so the phone sends each song itself. The Worker is a small
+ListenBrainz-compatible server (`worker/scrobble.ts`), and a scrobbler app on the phone sends to it.
+It keeps only the latest song.
 
-- `LASTFM_API_KEY`: get one at https://www.last.fm/api/account/create
-- `LASTFM_USER`: your Last.fm user name
+1. Make a token: `node -e "console.log(crypto.randomUUID())"`.
+2. In the Worker's settings (**Settings → Variables and Secrets**), add it as the **secret** `SCROBBLE_TOKEN`.
+3. On the phone, install [Pano Scrobbler](https://github.com/kawaiiDango/pano-scrobbler) and give it notification access.
+4. In Pano Scrobbler: **Settings → Accounts → Custom ListenBrainz**. API URL `https://kichoow.com/api/scrobble/`, token: the same token.
+5. In Pano Scrobbler, turn scrobbling on for YouTube Music only. Android Auto plays through the phone, so it is included.
+
+A new token is the way to cut off an old one: change it in both places.
 
 ## Deploy (Cloudflare Workers)
 
@@ -119,7 +126,7 @@ A secret page at `/offline` (⌘K → Offline only), from the idea at [chrisboli
 - `public/_headers`: `nosniff`, `Referrer-Policy`, `Permissions-Policy` and `frame-ancestors 'none'` on static files.
 - `vite-plugin-csp-guard` adds a Content-Security-Policy `<meta>` tag at build time, with the hash of the inline theme script.
 - The Worker reads the GitHub user from `src/data.ts`, not from the request, so `/api/github` is not an open proxy.
-- Secrets (the Last.fm key) go in the Worker settings as secrets, never in Git.
+- Secrets (`SCROBBLE_TOKEN`) go in the Worker settings as secrets, never in Git.
 
 ## Libraries
 

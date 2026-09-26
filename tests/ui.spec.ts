@@ -1,6 +1,7 @@
 // UI tests: every tap target, the ⌘K menu, the offline page, the 404 page, layout width,
 // accessibility and analytics events. Runs on "desktop" and "mobile" (playwright.config.ts).
 // Method: .claude/skills/ui-test (adversarial checks) and .claude/skills/webapp-testing.
+import { execSync } from 'node:child_process'
 import AxeBuilder from '@axe-core/playwright'
 import { test as base, expect, type Locator, type Page } from '@playwright/test'
 
@@ -406,9 +407,17 @@ test.describe('speed', () => {
           if (!e.hadRecentInput) (window as unknown as { __cls: number }).__cls += e.value
       }).observe({ type: 'layout-shift', buffered: true })
     })
+    // The two late rows of "right now", as the live site gets them (the test server has no GitHub
+    // access and may have no song). Their lines are kept in the HTML while they load.
+    const at = new Date().toISOString()
+    await page.route('**/api/now-playing', (r) => r.fulfill({ json: { title: 'A long song title that fills the line', artist: 'Artist', at, until: at } }))
+    await page.route('**/api/github', (r) => r.fulfill({ json: { repo: 'kishore280/home', url: 'https://github.com/kishore280/home', message: null, at } }))
     await page.goto('/')
-    // Wait for everything that arrives after the page: the clock, the mascot's line and the views.
+    // Wait for everything that arrives after the page: the clock, the rows, the mascot's line and the views.
     await expect(page.locator('.clock')).toBeVisible()
+    await expect(page.locator('.row', { hasText: 'last played' })).toBeVisible()
+    await expect(page.locator('.row', { hasText: 'building' })).toBeVisible()
+    await expect(page.locator('.row.pending')).toHaveCount(0)
     await expect(page.locator('.stats dd')).toHaveCount(2)
     await settle(page)
     expect(await page.evaluate(() => (window as unknown as { __cls: number }).__cls)).toBeLessThan(0.001)
@@ -441,6 +450,88 @@ test.describe('speed', () => {
       'navigational-prefetch',
     )
     await context.close()
+  })
+})
+
+// The phone's scrobbler (Pano Scrobbler, "Custom ListenBrainz") talks to /api/scrobble/. The
+// requests below are the ones it sends (its ListenBrainz.kt). They go straight to the local
+// server, not through the browser's kichoow.com mapping.
+test.describe('now playing (ListenBrainz API)', () => {
+  // One shared row in the local D1: run in order (and with --workers=1 when using --repeat-each).
+  test.describe.configure({ mode: 'serial' })
+  const api = 'http://127.0.0.1:8787/api/scrobble/1/'
+  const auth = { authorization: 'token test-token' } // SCROBBLE_TOKEN in playwright.config.ts
+  const listen = (title: string, extra: object = {}) => ({
+    ...extra,
+    track_metadata: { artist_name: 'Test Artist', track_name: title, additional_info: { duration_ms: 180_000 } },
+  })
+  const nowPlaying = async (request: import('@playwright/test').APIRequestContext) =>
+    (await request.get('http://127.0.0.1:8787/api/now-playing')).json()
+
+  test.beforeEach(({ isMobile }) => test.skip(isMobile, 'API only; one run is enough'))
+  // Start from no song (the local D1 keeps the row between runs).
+  test.beforeAll(() => {
+    execSync('npx wrangler d1 execute home --local --command "DELETE FROM now_playing"', { stdio: 'ignore' })
+  })
+
+  test('the token is checked like ListenBrainz does', async ({ request }) => {
+    expect(await (await request.get(`${api}validate-token`, { headers: auth })).json()).toMatchObject({ valid: true, user_name: 'kishore' })
+    expect(await (await request.get(`${api}validate-token`, { headers: { authorization: 'token wrong' } })).json()).toMatchObject({ valid: false })
+    const body = { listen_type: 'playing_now', payload: [listen('Nope')] }
+    expect((await request.post(`${api}submit-listens`, { data: body })).status()).toBe(401)
+    expect((await request.post(`${api}submit-listens`, { data: body, headers: { authorization: 'token test-tokeN' } })).status()).toBe(401)
+    expect((await request.post(`${api}submit-listens`, { data: { listen_type: 'x' }, headers: auth })).status()).toBe(400)
+  })
+
+  test('playing_now shows as listening; the finished listen for it changes nothing', async ({ request, page }) => {
+    const song = `Song ${Date.now()}`
+    const res = await request.post(`${api}submit-listens?return_msid=true`, { data: { listen_type: 'playing_now', payload: [listen(song)] }, headers: auth })
+    expect(await res.json()).toEqual({ status: 'ok' })
+    // Pano sends the finished listen ("single") half-way through, with the song's start time.
+    await request.post(`${api}submit-listens`, {
+      data: { listen_type: 'single', payload: [listen(song, { listened_at: Math.floor(Date.now() / 1000) - 5 })] },
+      headers: auth,
+    })
+    const track = await nowPlaying(request)
+    expect(track).toMatchObject({ title: song, artist: 'Test Artist' })
+    // 3 min song + 1 min: "until" is about 4 min after the start.
+    expect(Date.parse(track.until) - Date.parse(track.at)).toBe(240_000)
+    await page.goto('/')
+    await expect(page.locator('.row', { hasText: 'listening' })).toContainText(song)
+  })
+
+  test('once the song is over it shows as last played, with its time', async ({ request, page }) => {
+    const { title, until } = await nowPlaying(request)
+    await page.clock.setFixedTime(Date.parse(until) + 2 * 3600_000) // the visitor comes two hours later
+    await page.goto('/')
+    const row = page.locator('.row', { hasText: 'last played' })
+    await expect(row).toContainText(title)
+    await expect(row).toContainText('2 hr. ago')
+  })
+
+  test('with no song and no GitHub data, the loading lines go away and nothing else shows', async ({ page }) => {
+    await page.route('**/api/now-playing', (r) => r.fulfill({ status: 204 }))
+    await page.route('**/api/github', (r) => r.fulfill({ status: 500 }))
+    await page.goto('/')
+    await expect(page.locator('.clock')).toBeVisible()
+    await expect(page.locator('.row.pending')).toHaveCount(0)
+    await expect(page.locator('.rows .row')).toHaveCount(1) // local time only
+  })
+
+  test('an offline batch: older listens are ignored, the newest newer one is kept', async ({ request }) => {
+    const before = await nowPlaying(request)
+    const now = Math.floor(Date.now() / 1000)
+    await request.post(`${api}submit-listens`, {
+      data: { listen_type: 'import', payload: [listen('Old A', { listened_at: now - 7200 }), listen('Old B', { listened_at: now - 3600 })] },
+      headers: auth,
+    })
+    expect((await nowPlaying(request)).title).toBe(before.title)
+    // Phone clocks can be a little ahead; up to a minute is accepted.
+    await request.post(`${api}submit-listens`, {
+      data: { listen_type: 'import', payload: [listen('New A', { listened_at: now + 20 }), listen('New B', { listened_at: now + 30 })] },
+      headers: auth,
+    })
+    expect((await nowPlaying(request)).title).toBe('New B')
   })
 })
 
