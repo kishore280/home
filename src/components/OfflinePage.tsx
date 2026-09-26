@@ -18,7 +18,8 @@ export function OfflinePage() {
 
   return (
     <main className="offline-page" id="main">
-      <Card title={online ? 'offline only' : 'wifi off, chai on'}>
+      <Card>
+        <h1>{online ? 'offline only' : 'wifi off, chai on'}</h1>
         <div className={online ? 'offline-note' : 'offline-note open'} aria-live="polite">
           {(online ? offlineNote.online : offlineNote.offline).map((line) => (
             <p key={line}>{line}</p>
@@ -26,7 +27,7 @@ export function OfflinePage() {
         </div>
       </Card>
       <a className="small" href="/">
-        ← back to kish’s corner
+        <span aria-hidden="true">←</span> back to kish’s corner
       </a>
     </main>
   )
