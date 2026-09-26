@@ -1,122 +1,143 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useCallback, useEffect, useState } from 'react'
+import { Toaster, toast } from 'sonner'
+import { building, links, photos, reading, site } from './data'
+import { Clock } from './components/Clock'
+import { NowPlaying } from './components/NowPlaying'
+import { useNowPlaying } from './hooks/useNowPlaying'
+import { Photos } from './components/Photos'
+import { Guestbook } from './components/Guestbook'
+import { CommandMenu, type MenuItem } from './components/CommandMenu'
+import { toggleTheme, useTheme } from './theme'
 
-function App() {
-  const [count, setCount] = useState(0)
+export default function App() {
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [photo, setPhoto] = useState<number | null>(null)
+  const music = useNowPlaying()
+  const theme = useTheme()
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setMenuOpen((o) => !o)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  const copyEmail = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(site.email)
+      toast('Email copied')
+    } catch {
+      toast(site.email)
+    }
+  }, [])
+
+  const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
+
+  const items: MenuItem[] = [
+    { group: 'Navigate', label: 'Photos', run: () => scrollTo('photos') },
+    {
+      group: 'Navigate',
+      label: 'Guestbook',
+      run: () => {
+        scrollTo('guestbook')
+        setTimeout(() => document.getElementById('guestbook-input')?.focus(), 400)
+      },
+    },
+    { group: 'Actions', label: 'Copy email', run: copyEmail },
+    {
+      group: 'Actions',
+      label: theme === 'dark' ? 'Light theme' : 'Dark theme',
+      run: () => toast(toggleTheme() === 'dark' ? 'Dark theme' : 'Light theme'),
+    },
+    ...(music.live
+      ? []
+      : [{ group: 'Actions', label: 'Skip to next song', run: () => toast(`Now playing: ${music.next().title}`) }]),
+    {
+      group: 'Actions',
+      label: 'Open a random photo',
+      run: () => setPhoto(Math.floor(Math.random() * photos.length)),
+    },
+    ...links.map((l) => ({ group: 'Links', label: l.label, shortcut: '↗', run: () => window.open(l.href, '_blank') })),
+  ]
 
   return (
     <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+      <main>
+        <header>
+          <div>
+            <h1>{site.name}</h1>
+            <p className="muted">{site.bio}</p>
+          </div>
+          <Clock />
+        </header>
 
-      <div className="ticks"></div>
+        <section aria-labelledby="now">
+          <h2 id="now">right now</h2>
+          <div className="status">
+            <NowPlaying state={music} />
+            <div className="row">
+              <div className="row-key">
+                <span className="dot" aria-hidden="true" />
+                building
+              </div>
+              <div className="row-value">
+                {building.project} <span className="muted">— “{building.message}”</span>
+              </div>
+              <div className="row-meta">{building.ago}</div>
+            </div>
+            <div className="row">
+              <div className="row-key">reading</div>
+              <div className="row-value">
+                {reading.title} <span className="muted">— {reading.detail}</span>
+              </div>
+              <div className="row-meta">{reading.progress}</div>
+            </div>
+          </div>
+        </section>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+        <section aria-labelledby="about">
+          <h2 id="about">about</h2>
+          <p className="prose">{site.about}</p>
+        </section>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
+        <section id="photos" aria-labelledby="photos-heading">
+          <h2 id="photos-heading">photos</h2>
+          <Photos open={photo} onOpen={setPhoto} />
+        </section>
+
+        <section id="guestbook" aria-labelledby="guestbook-heading">
+          <h2 id="guestbook-heading">guestbook</h2>
+          <Guestbook />
+        </section>
+
+        <section aria-labelledby="elsewhere">
+          <h2 id="elsewhere">elsewhere</h2>
+          <div className="links">
+            {links.map((l) => (
+              <a key={l.label} href={l.href} target="_blank" rel="noopener noreferrer">
+                {l.label} ↗
+              </a>
+            ))}
+            <button type="button" onClick={copyEmail}>
+              {site.email}
+            </button>
+          </div>
+        </section>
+
+        <footer>
+          <span>built with cmdk · sonner · motion · geist</span>
+          <button type="button" className="menu-button" onClick={() => setMenuOpen(true)}>
+            <kbd>⌘</kbd> <kbd>K</kbd> menu
+          </button>
+        </footer>
+      </main>
+
+      <CommandMenu open={menuOpen} onOpenChange={setMenuOpen} items={items} />
+      <Toaster position="bottom-center" theme={theme} toastOptions={{ className: 'toast' }} />
     </>
   )
 }
-
-export default App

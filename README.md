@@ -16,6 +16,26 @@ npm run cf-typegen  # regenerate worker-configuration.d.ts
 
 Cloudflare settings are in `wrangler.jsonc`.
 
+## Edit the content
+
+All text, links, songs, photos, and guestbook examples are in `src/data.ts`. The values there now are example data.
+
+## Libraries
+
+- [cmdk](https://github.com/pacocoursey/cmdk) (Paco Coursey): the ⌘K menu
+- [sonner](https://github.com/emilkowalski/sonner) (Emil Kowalski): toasts
+- [motion](https://motion.dev): animations and the photo viewer
+- [Geist](https://vercel.com/font) (Vercel): fonts, through Fontsource
+
+## Now playing (Last.fm)
+
+`functions/api/now-playing.ts` is a Pages Function. To show live music, add these variables in the Pages project settings:
+
+- `LASTFM_API_KEY`: get one at https://www.last.fm/api/account/create
+- `LASTFM_USER`: your Last.fm user name
+
+Without them, the site shows the example tracks from `src/data.ts`.
+
 ## Deploy from the command line
 
 ```sh
