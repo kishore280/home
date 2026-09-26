@@ -1,11 +1,12 @@
 // /api/log: things kish logs from the phone (chai, parotta, beach days, any kind in log_kinds).
 //   GET  /api/log        public summary: each kind with today, month, year, total and the last entry
 //   POST /api/log        { id, kind, count?, place?, at?, tz? } adds one entry
-//   POST /api/log/undo   { id } takes it back (the entry is marked, not deleted)
+//   POST /api/log/undo   { id } takes it back (deletes the entry)
 // A POST needs "Authorization: Bearer <token>", like the check-in API of anonrig/adamvsyagiz.com.
 // The token is the Worker secret SCROBBLE_TOKEN: the owner uses one phone token for music and log.
 // `id` is a UUID made on the phone, so a request the offline queue sends again is counted once, and
-// an undo sent again changes nothing. Tables and the design: migrations/0004_log.sql.
+// an undo sent again changes nothing. Tables, and the triggers that keep the totals right:
+// migrations/0004_log.sql. This file only inserts, deletes and reads.
 import { site } from '../src/data'
 import { fail, json, tokenMatches, type Env } from './db'
 
@@ -17,9 +18,8 @@ const MAX_PLACE = 60
 const MAX_AGE_MS = 24 * 3600_000 // Workbox background sync keeps a request for up to 24 h (maxRetentionTime)
 const MAX_AHEAD_MS = 5 * 60_000 // a phone clock a little ahead
 
-// The site counts days in its time zone (IST). en-CA formats a date as YYYY-MM-DD.
+// The site counts days in its time zone (IST), as log_entries.day does. en-CA gives YYYY-MM-DD.
 const dayOf = new Intl.DateTimeFormat('en-CA', { timeZone: site.timeZone })
-// The rollups an entry counts in: its day, month and year (and all time).
 const periods = (day: string) => ({ day, month: day.slice(0, 7), year: day.slice(0, 4) })
 
 // A real IANA time zone name, e.g. 'Asia/Kolkata' (Intl throws a RangeError for an unknown one).
@@ -86,67 +86,54 @@ async function add(env: Env, { id, kind, count = 1, place, at = Date.now(), tz =
     return fail('at must be within the last 24 hours.')
 
   const ms = Math.round(at)
-  const { day, month, year } = periods(dayOf.format(ms))
+  const { day, month } = periods(dayOf.format(ms))
   // The kind, and whether this entry is already here: the same id, or a once-a-day kind's day.
-  // Each is one lookup by key (log_kinds PK, client_id UNIQUE, log_entries_once_a_day).
-  const [kinds, seen] = await env.DB.batch<{ once_a_day?: number; seen?: number }>([
+  // Each is one lookup by key (log_kinds PK, client_id UNIQUE, log_entries_day).
+  const [kinds, seen] = await env.DB.batch<{ once_a_day?: number }>([
     env.DB.prepare('SELECT once_a_day FROM log_kinds WHERE kind = ?').bind(kind),
     env.DB.prepare(
-      `SELECT 1 AS seen FROM log_entries WHERE client_id = ?1
-       UNION ALL SELECT 1 FROM log_entries WHERE kind = ?2 AND once_day = ?3 LIMIT 1`,
+      `SELECT 1 FROM log_entries WHERE client_id = ?1
+       UNION ALL SELECT 1 FROM log_entries JOIN log_kinds USING (kind)
+       WHERE kind = ?2 AND day = ?3 AND once_a_day = 1 LIMIT 1`,
     ).bind(id, kind, day),
   ])
   const found = kinds.results[0]
   if (!found) return fail(`Unknown kind "${kind}".`)
   if (seen.results.length) return json({ ok: true, duplicate: true })
 
-  const once = found.once_a_day === 1
-  const n = once ? 1 : count // a beach day is one day
+  const n = found.once_a_day === 1 ? 1 : count // a beach day is one day
   let totals: { grain: string; count: number }[]
   try {
-    // One transaction (D1 docs, "batch()"): the entry, its four rollups, then the new day and
-    // month totals for the reply ("☕ chai +1 · 3 today").
+    // One transaction (D1 docs, "batch()"): the entry (the triggers add it to its totals), then the
+    // new day and month totals for the reply ("☕ chai +1 · 3 today").
     const results = await env.DB.batch<{ grain: string; count: number }>([
-      env.DB.prepare(
-        `INSERT INTO log_entries (client_id, kind, count, place, at, tz, day, once_day)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      ).bind(id, kind, n, typeof place === 'string' ? place.trim() || null : null, ms, tz, day, once ? day : null),
-      env.DB.prepare(
-        `INSERT INTO log_totals (kind, grain, period, count)
-         VALUES (?1, 'day', ?2, ?5), (?1, 'month', ?3, ?5), (?1, 'year', ?4, ?5), (?1, 'all', 'all', ?5)
-         ON CONFLICT (kind, grain, period) DO UPDATE SET count = count + excluded.count`,
-      ).bind(kind, day, month, year, n),
+      env.DB.prepare('INSERT INTO log_entries (client_id, kind, count, place, at, tz) VALUES (?, ?, ?, ?, ?, ?)').bind(
+        id,
+        kind,
+        n,
+        typeof place === 'string' ? place.trim() || null : null,
+        ms,
+        tz,
+      ),
       env.DB.prepare(
         `SELECT grain, count FROM log_totals
          WHERE kind = ?1 AND ((grain = 'day' AND period = ?2) OR (grain = 'month' AND period = ?3))`,
       ).bind(kind, day, month),
     ])
-    totals = results[2].results
+    totals = results[1].results
   } catch (error) {
-    // The same entry sent twice at once: a unique index refuses the second and its batch rolls back.
-    if (String(error).includes('UNIQUE constraint failed')) return json({ ok: true, duplicate: true })
+    // The same entry sent twice at once: the unique id or the once-a-day trigger refuses the second,
+    // and its batch rolls back.
+    if (/UNIQUE constraint failed|once a day/.test(String(error))) return json({ ok: true, duplicate: true })
     throw error
   }
   const total = (grain: string) => totals.find((t) => t.grain === grain)?.count ?? 0
   return json({ ok: true, id, kind, count: n, at: new Date(ms).toISOString(), today: total('day'), month: total('month') })
 }
 
+// The trigger takes the entry out of its totals. An unknown id deletes nothing.
 async function remove(env: Env, body: Body): Promise<Response> {
-  // One transaction: take the entry out of its four rollups, then mark it undone (it stays in the
-  // history). An unknown or already undone id matches no row in either statement.
-  const [, { meta }] = await env.DB.batch([
-    env.DB.prepare(
-      `UPDATE log_totals SET count = max(log_totals.count - e.count, 0)
-       FROM (SELECT kind, count, day FROM log_entries WHERE client_id = ?1 AND undone_at IS NULL) AS e
-       WHERE log_totals.kind = e.kind AND (
-         (grain = 'day' AND period = e.day) OR (grain = 'month' AND period = substr(e.day, 1, 7)) OR
-         (grain = 'year' AND period = substr(e.day, 1, 4)) OR grain = 'all')`,
-    ).bind(body.id),
-    env.DB.prepare('UPDATE log_entries SET undone_at = ?2, once_day = NULL WHERE client_id = ?1 AND undone_at IS NULL').bind(
-      body.id,
-      Date.now(),
-    ),
-  ])
+  const { meta } = await env.DB.prepare('DELETE FROM log_entries WHERE client_id = ?').bind(body.id).run()
   return json(meta.changes ? { ok: true, id: body.id } : { ok: true, missing: true })
 }
 
@@ -163,7 +150,7 @@ type Row = {
   place: string | null
 }
 
-// One query: each kind with its four rollups (primary-key lookups) and its newest entry (the
+// One query: each kind with its four rollups (primary-key lookups) and its newest entry by time (the
 // log_entries_newest index). Rows read grow with the number of kinds, not with the history.
 async function summary(env: Env): Promise<Response> {
   const { day, month, year } = periods(dayOf.format(Date.now()))
@@ -176,7 +163,7 @@ async function summary(env: Env): Promise<Response> {
        e.at AS last, e.place
      FROM log_kinds AS k
      LEFT JOIN log_entries AS e
-       ON e.id = (SELECT id FROM log_entries WHERE kind = k.kind AND undone_at IS NULL ORDER BY id DESC LIMIT 1)
+       ON e.id = (SELECT id FROM log_entries WHERE kind = k.kind ORDER BY at DESC LIMIT 1)
      ORDER BY k.sort, k.kind`,
   )
     .bind(day, month, year)

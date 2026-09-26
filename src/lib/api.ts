@@ -22,7 +22,7 @@ export type Push = { repo: string; url: string; at: string }
 export type Status = { content: string; face: string; timeAgo: string }
 export type Counters = { views: number; pats: number }
 // GET /api/log (worker/log.ts): every kind in log_kinds with its totals in IST. `last` is null for
-// a kind never logged (or with every entry undone).
+// a kind with no entries (never logged, or every entry undone).
 export type LogKind = {
   kind: string
   emoji: string
