@@ -57,6 +57,13 @@ export const offlineNote = {
 }
 
 // The 404 page, for addresses that do not exist.
+// The private /log page, where kish logs chai, parotta and beach days (kept out of search).
+export const logPage = {
+  title: 'log · kish',
+  description: 'Where kish logs chai, parotta and beach days.',
+  heading: 'log',
+}
+
 export const notFound = {
   title: 'not found · kish',
   description: 'This page is not here.',

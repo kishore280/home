@@ -6,8 +6,9 @@ const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
 
 const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto', style: 'short' })
 
-export function timeAgo(iso: string): string {
-  const seconds = (new Date(iso).getTime() - Date.now()) / 1000
+// `now` comes from useNow() (src/lib/client.ts), so render stays pure.
+export function timeAgo(iso: string, now: number): string {
+  const seconds = (new Date(iso).getTime() - now) / 1000
   for (const [unit, size] of UNITS) {
     if (Math.abs(seconds) >= size) return rtf.format(Math.round(seconds / size), unit)
   }

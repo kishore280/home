@@ -1,0 +1,21 @@
+{
+  "id": "/log",
+  "name": "kish log",
+  "short_name": "kish log",
+  "description": "Where kish logs chai, parotta and beach days.",
+  "start_url": "/log",
+  "scope": "/log",
+  "display": "standalone",
+  "background_color": "#f6f3fc",
+  "theme_color": "#9b7fe0",
+  "icons": [
+    { "src": "/favicon.svg", "type": "image/svg+xml", "sizes": "any" },
+    { "src": "/apple-touch-icon.png", "type": "image/png", "sizes": "180x180" },
+    { "src": "/icon-512.png", "type": "image/png", "sizes": "512x512" }
+  ],
+  "shortcuts": [
+    { "name": "Chai +1", "short_name": "chai +1", "url": "/log?add=chai", "icons": [{ "src": "/icon-512.png", "sizes": "512x512" }] },
+    { "name": "Parotta +1", "short_name": "parotta +1", "url": "/log?add=parotta", "icons": [{ "src": "/icon-512.png", "sizes": "512x512" }] },
+    { "name": "Beach day", "short_name": "beach day", "url": "/log?add=beach", "icons": [{ "src": "/icon-512.png", "sizes": "512x512" }] }
+  ]
+}

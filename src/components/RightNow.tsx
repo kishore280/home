@@ -1,9 +1,8 @@
-import { useEffect, useState } from 'react'
 import useSWR from 'swr'
 import { fetcher, type Push, type Track } from '../lib/api'
 import { timeAgo } from '../lib/time'
 import { site } from '../data'
-import { useIsClient } from '../lib/client'
+import { useIsClient, useNow } from '../lib/client'
 import { Card } from './Card'
 
 // Built once, not every 10 s (Vercel rule js-cache-function-results).
@@ -16,11 +15,7 @@ function Clock() {
 }
 
 function ClockTime() {
-  const [now, setNow] = useState(() => new Date())
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 10_000)
-    return () => clearInterval(id)
-  }, [])
+  const now = new Date(useNow(10_000))
   return (
     <time className="clock" dateTime={now.toISOString()}>
       {timeFormat.format(now)}
@@ -38,6 +33,7 @@ const pendingRow = (
 )
 
 export function RightNow() {
+  const now = useNow(30_000)
   const music = useSWR('/api/now-playing', fetcher<Track>, { refreshInterval: 30_000 })
   const github = useSWR(site.github ? '/api/github' : null, fetcher<Push>, { refreshInterval: 300_000 })
   // Still loading: no data yet and no error. A 204 or an error gives null or an error: row hidden.
@@ -47,8 +43,8 @@ export function RightNow() {
   const push = github.data
 
   if (!track && !push && !site.timeZone && !musicPending && !githubPending) return null
-  // Data from the API only arrives in the browser, so reading the clock here is pre-render safe.
-  const playing = track ? Date.now() < Date.parse(track.until) : false
+  // The data only arrives in the browser, so `now` here is the visitor's clock (pre-render safe).
+  const playing = track ? now < Date.parse(track.until) : false
 
   return (
     <Card title="right now">
@@ -66,7 +62,7 @@ export function RightNow() {
             </dt>
             <dd key={track.title} className="swap-in">
               {track.title} <span className="muted">— {track.artist}</span>
-              {playing ? null : <span className="muted"> · {timeAgo(track.at)}</span>}
+              {playing ? null : <span className="muted"> · {timeAgo(track.at, now)}</span>}
             </dd>
           </div>
         ) : null}
@@ -78,7 +74,7 @@ export function RightNow() {
               <a href={push.url} target="_blank" rel="noreferrer" data-umami-event="GitHub repo link">
                 {push.repo}
               </a>
-              <span className="muted"> · {timeAgo(push.at)}</span>
+              <span className="muted"> · {timeAgo(push.at, now)}</span>
             </dd>
           </div>
         ) : null}

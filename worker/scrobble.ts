@@ -6,7 +6,7 @@
 // Storage follows the ListenBrainz server (webserver/views/api_tools.py): "playing now" is kept
 // apart from listens and expires after the song's length; a listen is ordered by listened_at.
 // The token is the Worker secret SCROBBLE_TOKEN; without it every call is refused.
-import { fail, json, type Env } from './db'
+import { fail, json, tokenMatches, type Env } from './db'
 
 const MAX_TEXT = 300 // the card shows one line
 const MIN_LISTENED_AT = 1033410600 // 2002-10-01, as ListenBrainz (LISTEN_MINIMUM_TS)
@@ -19,21 +19,12 @@ type Listen = null | {
   track_metadata?: { artist_name?: unknown; track_name?: unknown; additional_info?: { duration_ms?: unknown } }
 }
 
-// Constant-time compare, as in Cloudflare's "Protect against timing attacks" example.
-async function authorized(request: Request, secret: string | undefined): Promise<boolean> {
-  const given = /^token\s+(\S+)$/i.exec(request.headers.get('authorization') ?? '')?.[1]
-  if (!secret || !given) return false
-  const encoder = new TextEncoder()
-  const a = encoder.encode(given)
-  const b = encoder.encode(secret)
-  return a.byteLength === b.byteLength ? crypto.subtle.timingSafeEqual(a, b) : !crypto.subtle.timingSafeEqual(a, a)
-}
-
 const text = (value: unknown) => (typeof value === 'string' && value.trim() ? value.trim().slice(0, MAX_TEXT) : null)
 const invalid = (error: string) => json({ code: 400, error }, 400)
 
 export async function scrobble(request: Request, env: Env, path: string): Promise<Response> {
-  const ok = await authorized(request, env.SCROBBLE_TOKEN)
+  // ListenBrainz's header: "Authorization: Token <token>".
+  const ok = await tokenMatches(/^token\s+(\S+)$/i.exec(request.headers.get('authorization') ?? '')?.[1], env.SCROBBLE_TOKEN)
 
   if (path === 'validate-token' && request.method === 'GET') {
     // The shape ListenBrainz returns; Pano needs user_name.

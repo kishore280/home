@@ -7,10 +7,10 @@ import { generateSW } from 'workbox-build'
 
 const { count, size, warnings } = await generateSW({
   globDirectory: 'dist',
-  // The offline version of /offline, JS (with the lazy menu and toasts), the Latin fonts, buttons
-  // and icons. CSS is inlined in each page. offline.html (the online version) is not precached,
-  // so a cached copy can never stand in for the real check.
-  globPatterns: ['offline-now.html', 'assets/*.js', 'assets/*-latin-wght-normal-*.woff2', '*.svg', 'manifest.webmanifest'],
+  // The offline version of /offline, the /log page, JS (with the lazy menu and toasts), the Latin
+  // fonts, buttons and icons. CSS is inlined in each page. offline.html (the online version) is not
+  // precached, so a cached copy can never stand in for the real check.
+  globPatterns: ['offline-now.html', 'log.html', 'assets/*.js', 'assets/*-latin-wght-normal-*.woff2', '*.svg', '*.webmanifest'],
   swDest: 'dist/sw.js',
   mode: 'production',
   inlineWorkboxRuntime: true,
@@ -24,6 +24,20 @@ const { count, size, warnings } = await generateSW({
       urlPattern: ({ request, url }) => request.mode === 'navigate' && url.pathname === '/offline',
       handler: 'NetworkOnly',
       options: { precacheFallback: { fallbackURL: 'offline-now.html' } },
+    },
+    // /log (logging at the beach): the network, else the precached page, so it opens with no signal.
+    {
+      urlPattern: ({ request, url }) => request.mode === 'navigate' && url.pathname === '/log',
+      handler: 'NetworkFirst',
+      options: { cacheName: 'pages', networkTimeoutSeconds: 3, precacheFallback: { fallbackURL: 'log.html' } },
+    },
+    // A log or undo sent with no signal waits in a queue and is sent when the network is back
+    // (workbox-background-sync). 24 h, the oldest `at` the Worker accepts.
+    {
+      urlPattern: ({ url }) => url.pathname === '/api/log' || url.pathname === '/api/log/undo',
+      method: 'POST',
+      handler: 'NetworkOnly',
+      options: { backgroundSync: { name: 'log', options: { maxRetentionTime: 24 * 60 } } },
     },
     // Other pages: the network, else the last copy seen, else the offline version of /offline.
     {

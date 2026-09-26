@@ -1,7 +1,7 @@
 // Vite plugin: SEO tags in <head>, plus robots.txt, sitemap.xml and llms.txt, all built
 // from src/data.ts so they never drift from the page. Follows .claude/skills/seo-mastery.
 import type { Plugin } from 'vite'
-import { links, notFound, offlineNote, site } from './src/data.ts'
+import { links, logPage, notFound, offlineNote, site } from './src/data.ts'
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')
 
@@ -44,18 +44,28 @@ export function seo(buildDate: string): Plugin {
     `<meta name="twitter:image" content="${image}" />`,
   ]
 
+  // The site's app manifest; /log has its own (an installable "kish log" app with shortcuts).
+  const manifest = `<link rel="manifest" href="/manifest.webmanifest" />`
   const heads: Record<string, string[]> = {
     'index.html': [
+      manifest,
       ...meta({ title: site.title, description: site.description, url, type: 'profile' }),
       `<link rel="canonical" href="${url}" />`,
       `<script type="application/ld+json">${JSON.stringify(jsonLd).replace(/</g, '\\u003c')}</script>`,
     ],
     // A secret page with a short note: shareable, but kept out of search and the sitemap.
     'offline.html': [
+      manifest,
       ...meta({ ...offlineNote, url: `${site.url}/offline`, type: 'website' }),
       `<meta name="robots" content="noindex" />`,
     ],
-    '404.html': [...meta({ ...notFound, url: `${site.url}/404`, type: 'website' }), `<meta name="robots" content="noindex" />`],
+    '404.html': [manifest, ...meta({ ...notFound, url: `${site.url}/404`, type: 'website' }), `<meta name="robots" content="noindex" />`],
+    // Private: not in search or the sitemap.
+    'log.html': [
+      `<link rel="manifest" href="/log.webmanifest" />`,
+      ...meta({ title: logPage.title, description: logPage.description, url: `${site.url}/log`, type: 'website' }),
+      `<meta name="robots" content="noindex, nofollow" />`,
+    ],
   }
 
   const robots = `User-agent: *\nAllow: /\n\nSitemap: ${site.url}/sitemap.xml\n`

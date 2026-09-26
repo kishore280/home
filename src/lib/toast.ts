@@ -2,15 +2,17 @@ import { useSyncExternalStore } from 'react'
 
 // Toasts only appear after a click, so sonner is not in the first download; it is mounted on the first toast
 // (Vercel rule bundle-defer-third-party). Messages wait in a queue until it mounts.
-type Message = { text: string; error: boolean }
+// An optional action button (e.g. "Undo") uses sonner's own `action` option.
+type Action = { label: string; onClick: () => void }
+type Message = { text: string; error?: boolean; action?: Action }
 
 const queue: Message[] = []
 const listeners = new Set<() => void>()
 let emit: ((m: Message) => void) | null = null
 let requested = false
 
-export function toast(text: string, error = false) {
-  const message = { text, error }
+export function toast(text: string, options: { error?: boolean; action?: Action } = {}) {
+  const message = { text, ...options }
   if (emit) return emit(message)
   queue.push(message)
   if (!requested) {

@@ -3,6 +3,7 @@
 import { StrictMode, type ReactNode } from 'react'
 import { renderToString } from 'react-dom/server'
 import App from './App'
+import { LogPage } from './components/LogPage'
 import { NotFoundPage } from './components/NotFoundPage'
 import { OfflinePage } from './components/OfflinePage'
 
@@ -16,4 +17,5 @@ export const pages: Record<string, { render: () => string; from?: string }> = {
   'offline.html': { render: html(<OfflinePage initial="online" />) },
   'offline-now.html': { render: html(<OfflinePage initial="offline" />), from: 'offline.html' },
   '404.html': { render: html(<NotFoundPage />) },
+  'log.html': { render: html(<LogPage />) },
 }
