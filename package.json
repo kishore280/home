@@ -10,7 +10,8 @@
     "preview": "npm run build && wrangler dev",
     "deploy": "npm run build && wrangler deploy",
     "cf-typegen": "wrangler types",
-    "log": "node scripts/log.mjs"
+    "log": "node scripts/log.mjs",
+    "og": "node scripts/og/generate.mjs"
   },
   "dependencies": {
     "@fontsource-variable/nunito": "^5.3.0",

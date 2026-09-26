@@ -1,5 +1,7 @@
 # home
 
+[![kichoow.com: hi, i’m kishore](public/og.png)](https://kichoow.com)
+
 kishore's little corner of the internet. A soft lavender personal site: React + TypeScript + Vite, on a Cloudflare Worker with static assets.
 
 ## What is on the page
@@ -76,6 +78,12 @@ Each push to `main` then builds and deploys. From the command line: `npx wrangle
 - `npm run build` pre-renders the page into `dist/index.html` (`src/entry-server.tsx`, `scripts/prerender.mjs`), so search engines and AI crawlers see the content without running JavaScript. Parts that depend on the visitor's clock (mascot mode, local time, counts) render in the browser only (`src/lib/client.ts`).
 - `seo.ts` (a Vite plugin) builds the title, description, canonical, Open Graph / Twitter tags, JSON-LD (`ProfilePage` + `Person`), `robots.txt`, `sitemap.xml` and `llms.txt` from `src/data.ts`. Set `site.url` there to the public address.
 - `public/og.png` (1200×630) is the share card; `public/apple-touch-icon.png`, `public/icon-512.png` and `public/manifest.webmanifest` are the app icons.
+- The card and icons are made from `scripts/og/template.html` and `scripts/og/mascot.svg`. The buttons, description and domain come from `src/data.ts`. After you add a button, make them again:
+
+  ```sh
+  npm i -D playwright && npx playwright install chromium   # once
+  npm run og                                               # or: CHROMIUM_PATH=/path/to/chrome npm run og
+  ```
 
 ## Libraries
 
