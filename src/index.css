@@ -401,8 +401,8 @@ h2 {
 }
 
 .clock {
-  font: 700 18px/1 var(--display);
-  letter-spacing: 0.02em;
+  font: 800 18px/1 var(--body);
+  font-variant-numeric: tabular-nums;
 }
 
 .swap-in {
