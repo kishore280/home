@@ -10,7 +10,7 @@ import SandCanvas from './SandCanvas'
 // The /offline page (idea: chrisbolin.co/offline): the note opens only while the browser is
 // offline. The service worker from scripts/sw.mjs keeps the page working without a network.
 export function OfflinePage() {
-  const online = useOnline()
+  const online = useOnline(true)
   const ready = useOfflineReady()
   const wasOffline = useRef(false)
 
