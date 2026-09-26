@@ -21,10 +21,13 @@ const beasties = new Beasties({
   logLevel: 'warn',
 })
 
-for (const [page, render] of Object.entries(pages)) {
+// Read every built page first: a page can start from another one (offline-now.html from offline.html).
+const built = Object.fromEntries(Object.entries(pages).map(([page, { from = page }]) => [page, readFileSync(new URL(`../dist/${from}`, import.meta.url), 'utf8')]))
+
+for (const [page, { render }] of Object.entries(pages)) {
   const file = new URL(`../dist/${page}`, import.meta.url)
-  const html = readFileSync(file, 'utf8')
-  if (!html.includes(marker)) throw new Error(`prerender: ${marker} not found in dist/${page}`)
+  const html = built[page]
+  if (!html.includes(marker)) throw new Error(`prerender: ${marker} not found in the page for dist/${page}`)
   const rendered = html
     .replace(/<meta charset[^>]*>/, (m) => m + fonts)
     .replace(marker, `<div id="root">${render()}</div>`)

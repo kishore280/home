@@ -256,6 +256,7 @@ test.describe('offline page', () => {
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('wifi off, chai on')
     const sand = page.locator('canvas.sand')
     await expect(sand).toBeVisible()
+    await sand.scrollIntoViewIfNeeded() // the sand is taller than some screens
     const box = (await sand.boundingBox())!
     const before = await band(page)
     await page.mouse.move(box.x + box.width * 0.2, box.y + box.height * 0.9 + 1)
@@ -273,9 +274,23 @@ test.describe('offline page', () => {
     await expectEvents(log, ['Offline note read'])
   })
 
-  test('it says when the page is saved for offline use', async ({ page }) => {
+  test('it appears once, in the right state, with no swap', async ({ page, context }) => {
+    // Open the page while offline: the first visible frame must already be the offline note.
     await page.goto('/offline')
-    await expect(page.getByText('✓ Saved on this device. You can go offline now.')).toBeVisible()
+    await page.evaluate(() => navigator.serviceWorker.ready)
+    await context.setOffline(true)
+    await page.addInitScript(() => {
+      const seen: string[] = []
+      ;(window as unknown as { __h1: string[] }).__h1 = seen
+      new MutationObserver(() => {
+        const h1 = document.querySelector('h1')
+        if (h1) seen.push(h1.textContent ?? '')
+      }).observe(document, { subtree: true, childList: true, attributes: true, characterData: true })
+    })
+    await page.reload()
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('wifi off, chai on')
+    const shown = await page.evaluate(() => [...new Set((window as unknown as { __h1: string[] }).__h1)])
+    expect(shown).toEqual(['wifi off, chai on'])
   })
 
   test('with a VPN or Wi-Fi without internet (the browser still says online), it still switches', async ({ page }) => {
