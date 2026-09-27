@@ -1,6 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { cloneElement, useEffect, useRef, useState } from 'react'
 import { ActivityCalendar, type Activity } from 'react-activity-calendar'
-import 'react-activity-calendar/tooltips.css'
 import useSWR from 'swr'
 import { fetcher, type LogDays, type LogSummary } from '../lib/api'
 import { useIsClient } from '../lib/client'
@@ -11,6 +10,8 @@ import { KindIcon } from './KindIcon'
 // day totals of the last 365 days in IST (/api/log/days, one primary-key range read).
 // It draws only in the browser: its loading state reads the visitor's motion setting, so the
 // pre-render and the first render would not match. .heat-box keeps its place meanwhile (no shift).
+// Each day's text is an SVG <title> (the browser's own tooltip), added with renderBlock as the
+// library's docs show: its floating-ui tooltips are a component per square, 365 of them.
 // Two colours: the library mixes the levels between them (CSS colours, so the site's tokens work
 // in light and dark).
 const THEME = ['var(--chip)', 'var(--accent-deep)']
@@ -71,11 +72,9 @@ export function YearHeatmap() {
               totalCount: `{{count}} ${label} in the last year`,
               legend: { less: 'less', more: 'more' },
             }}
-            tooltips={{
-              activity: {
-                text: (a) => `${shortDay.format(Date.parse(a.date))}: ${a.count} ${label}`,
-              },
-            }}
+            renderBlock={(block, a) =>
+              cloneElement(block, {}, <title>{`${shortDay.format(Date.parse(a.date))}: ${a.count} ${label}`}</title>)
+            }
           />
         ) : null}
       </div>

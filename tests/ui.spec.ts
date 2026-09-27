@@ -419,6 +419,9 @@ test.describe('offline page', () => {
     await page.goto('/offline')
     await page.evaluate(() => navigator.serviceWorker.ready)
     await page.goto('/') // now controlled, so the page cache keeps it
+    // Workbox writes the cache after the response has gone to the page; wait for the copy, or a
+    // slow run goes offline before it is there.
+    await expect.poll(() => page.evaluate(async () => Boolean(await (await caches.open('pages')).match('/')))).toBe(true)
     await context.setOffline(true)
     await page.reload()
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(/^hi, i’m/)
