@@ -81,15 +81,26 @@ logs check-ins); the Worker stores it in D1 and the counts card updates within s
 - **On the home page:** the counts card has the **chai clock** (chai per hour of the day in IST, for
   all time: `log_hours`, `migrations/0005_log_hours.sql`, kept by three more triggers). Its wedges are
   d3-shape `arc()`, sized with d3-scale `scaleRadial` so the area follows the count
-  ([D3 docs](https://d3js.org/d3-scale/radial)). The **year heatmap** ("a year of chai", any kind) is
-  [react-activity-calendar](https://github.com/grubersjoe/react-activity-calendar) with the day totals
-  of the last 365 days (`GET /api/log/days?kind=chai`, one primary-key range read, cached 60 s). It
-  draws in the browser only (its loading state reads the visitor's motion setting), in a box that
-  keeps its place, so nothing moves. Each square's text is an SVG `<title>`.
+  ([D3 docs](https://d3js.org/d3-scale/radial)). The **my days** card follows the
+  way 2026 coding tools show activity (Claude Code `/stats`, `opencode stats`): the numbers first
+  (streak now, best streak, days with something, days with 3+ things), then a grid of the last
+  12 weeks, the year on request. The default **all** view puts every kind in one grid, like GitHub's
+  contribution graph: a day is darker for more different things done. A tap on a day (or the ‹ ›
+  buttons) says what it had; the chips show one kind alone. The grid is
+  [react-activity-calendar](https://github.com/grubersjoe/react-activity-calendar); it draws in the
+  browser only (its loading state reads the visitor's motion setting), in boxes that keep their
+  place, so nothing moves.
+  - **Data:** `GET /api/log/days?range=84` (or `365`, only when "year" is tapped): the day totals of
+    every kind, one primary-key range read per kind, no sort (at most 4 × 84 rows). The answer is kept
+    60 s in Cloudflare's edge cache ([Workers Cache API](https://developers.cloudflare.com/workers/runtime-apis/cache/)),
+    so most visits read no D1 rows at all.
+  - **Speed:** 84 squares instead of 365, an SVG `<title>` per square instead of a tooltip component,
+    and one click listener for the whole grid: about 30% less main-thread blocking than the year
+    grid (Playwright, 4× slowed CPU).
 - **Fix or add a tap by hand** in the D1 Console; the totals follow by themselves:
   `INSERT INTO log_entries (kind, at) VALUES ('chai', unixepoch('2026-09-25 20:15', '-330 minutes') * 1000);`
   (a chai at 20:15 IST on 25 Sep), or `DELETE FROM log_entries WHERE id = 42;`.
-- **A new kind** (gym, sleep, …): the buttons, the counts row, the heatmap chip and the toasts
+- **A new kind** (gym, sleep, …): the buttons, the counts row, the "my days" chip and the toasts
   come from `log_kinds`, so the data is one row. A migration keeps it in the repo, and three small
   code changes follow it (the placeholder rows, the app shortcut, the tests). The full steps are in
   `.claude/skills/add-log-kind/SKILL.md`; badminton days (`migrations/0006_badminton.sql`) is the example.

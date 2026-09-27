@@ -7,7 +7,7 @@ import { nowPlaying } from './now-playing'
 import { scrobble } from './scrobble'
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const { pathname } = new URL(request.url)
     switch (pathname) {
       case '/api/now-playing':
@@ -21,7 +21,7 @@ export default {
       case '/api/log/undo':
         return undo(request, env)
       case '/api/log/days':
-        return days(request, env)
+        return days(request, env, ctx)
     }
     if (pathname.startsWith('/api/scrobble/1/')) return scrobble(request, env, pathname.slice('/api/scrobble/1/'.length))
     if (pathname.startsWith('/api/')) return fail('Not found.', 404)

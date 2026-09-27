@@ -78,12 +78,17 @@ const logReply = (totals: Partial<Record<'chai' | 'parotta' | 'beach' | 'badmint
   })),
 })
 
-// A GET /api/log/days reply: the last 365 days ending today, with counts on some days.
-const daysReply = (kind: string, counts: Record<string, number>) => {
-  const to = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(Date.now())
-  const from = new Date(Date.parse(to) - 364 * 86_400_000).toISOString().slice(0, 10)
-  return { kind, from, to, days: Object.entries(counts).sort() }
-}
+// A GET /api/log/days reply: the last 84 (or 365) days ending today (IST), with counts on some days
+// as { day: { kind: count } }, sent as [day, kind, count] rows in no order, like the Worker.
+const istToday = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(Date.now())
+const daysAgo = (n: number) => new Date(Date.parse(istToday()) - n * 86_400_000).toISOString().slice(0, 10)
+const daysReply = (range: number, counts: Record<string, Record<string, number>>) => ({
+  from: daysAgo(range - 1),
+  to: istToday(),
+  days: Object.entries(counts)
+    .flatMap(([day, kinds]) => Object.entries(kinds).map(([kind, n]) => [day, kind, n]))
+    .reverse(),
+})
 // 5 pm is the peak, then 11 am.
 const chaiHours = Array.from({ length: 24 }, (_, h) => ({ 11: 6, 17: 9, 8: 2 })[h] ?? 0)
 
@@ -451,7 +456,7 @@ test.describe('speed', () => {
       .route('**/api/log', (r) =>
         r.fulfill({ json: logReply({ chai: { ...totals, hours: chaiHours }, parotta: totals, beach: { ...totals, place: 'Marina' }, badminton: totals }) }),
       )
-    await page.context().route('**/api/log/days?**', (r) => r.fulfill({ json: daysReply('chai', { [at.slice(0, 10)]: 2 }) }))
+    await page.context().route('**/api/log/days?**', (r) => r.fulfill({ json: daysReply(84, { [istToday()]: { chai: 2, badminton: 1 } }) }))
     await page.goto('/')
     // Wait for everything that arrives after the page: the clock, the rows, the mascot's line and the views.
     await expect(page.locator('.clock')).toBeVisible()
@@ -461,7 +466,9 @@ test.describe('speed', () => {
     await expect(page.locator('.count')).toHaveCount(4)
     await expect(page.locator('.count.pending')).toHaveCount(0)
     await expect(page.locator('.chai-clock figcaption')).toBeVisible()
-    await expect(page.locator('#year rect[data-level="4"]')).toHaveCount(1)
+    await expect(page.locator(`#year rect[data-date="${istToday()}"]`)).toHaveAttribute('data-level', '2')
+    await expect(page.locator('#year .heat-tiles dd')).toHaveCount(4)
+    await expect(page.locator('#year .heat-day p')).toContainText('(today)')
     await expect(page.locator('.stats dd')).toHaveCount(2)
     await settle(page)
     expect(await page.evaluate(() => (window as unknown as { __cls: number }).__cls)).toBeLessThan(0.001)
@@ -587,7 +594,7 @@ test.describe('counts card', () => {
     const html = await (await request.get('http://127.0.0.1:8787/')).text()
     expect(html.match(/class="count pending"/g)).toHaveLength(4)
     expect(html).toContain('class="chai-clock pending"')
-    expect(html).toContain('class="heat-box"') // the year's place; the calendar draws in the browser
+    expect(html).toContain('class="heat-box range-84"') // the grid's place; the calendar draws in the browser
   })
 
   test('the chai clock shows the hours of the day, with the chai glass', async ({ page, context }) => {
@@ -607,31 +614,72 @@ test.describe('counts card', () => {
     await expect(clock.locator('path.lvl-4')).toHaveCount(1)
   })
 
-  test('the year heatmap shows a square per day, and switches kind', async ({ page, context }) => {
-    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(Date.now())
-    const parotta = { today: 0, month: 4, year: 4, total: 4, last: at }
+  test('my days: all kinds in one grid, the numbers first, a tap on a day says what it had', async ({ page, context }) => {
+    const parotta = { today: 1, month: 4, year: 4, total: 4, last: at }
     await context.route('**/api/log', (r) =>
-      r.fulfill({ json: logReply({ chai: { today: 3, month: 3, year: 3, total: 3, last: at, hours: chaiHours }, parotta }) }),
+      r.fulfill({ json: logReply({ chai: { today: 3, month: 4, year: 4, total: 4, last: at, hours: chaiHours }, parotta }) }),
     )
+    const ranges: string[] = []
     await context.route('**/api/log/days?**', (r) => {
-      const kind = new URL(r.request().url()).searchParams.get('kind')!
-      const earlier = new Date(Date.parse(today) - 20 * 86_400_000).toISOString().slice(0, 10)
-      return r.fulfill({ json: daysReply(kind, kind === 'chai' ? { [today]: 3 } : { [today]: 1, [earlier]: 3 }) })
+      const range = Number(new URL(r.request().url()).searchParams.get('range'))
+      ranges.push(String(range))
+      return r.fulfill({
+        json: daysReply(range, { [istToday()]: { chai: 3, parotta: 1 }, [daysAgo(1)]: { chai: 1 }, [daysAgo(20)]: { parotta: 3 } }),
+      })
     })
     await page.goto('/')
     const card = page.locator('#year')
-    await expect(card.getByRole('heading')).toHaveText('a year of chai')
-    await expect(card.locator('.heat rect[data-date]')).toHaveCount(365)
-    await expect(card.locator(`rect[data-date="${today}"]`)).toHaveAttribute('data-level', '4')
-    await expect(card.locator('rect[data-level="4"]')).toHaveCount(1)
-    await expect(card).toContainText('3 chai in the last year')
-    // The year scrolls inside its card; the page itself never scrolls sideways (phones).
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+    const note = card.locator('.heat-day p')
+    await expect(card.getByRole('heading')).toHaveText('my days')
+    await expect(card.getByRole('button', { name: 'all' })).toHaveAttribute('aria-pressed', 'true')
+    // 12 weeks by default: 84 squares. Today had 2 of the 2 kinds: the darkest.
+    await expect(card.locator('.heat rect[data-date]')).toHaveCount(84)
+    await expect(card.locator(`rect[data-date="${istToday()}"]`)).toHaveAttribute('data-level', '2')
+    await expect(card.locator(`rect[data-date="${daysAgo(1)}"]`)).toHaveAttribute('data-level', '1')
+    const tile = (label: string) => card.locator('.heat-tiles div', { has: page.getByText(label, { exact: true }) }).locator('dd')
+    await expect(tile('day streak')).toHaveText('2')
+    await expect(tile('best streak')).toHaveText('2')
+    await expect(tile('days with something')).toHaveText('3')
+    await expect(tile('days with 3+ things')).toHaveText('0')
+    // Today first, with every kind it had (the chai glass for chai).
+    await expect(note).toContainText('(today): 3 chai · 🫓 1 parotta')
+    await expect(note.locator('.chai-icon')).toBeVisible()
+    // A tap on a square says what that day had; the buttons move a day, also from the keyboard.
+    await card.locator(`rect[data-date="${daysAgo(20)}"]`).click()
+    await expect(note).toContainText('🫓 3 parotta')
+    await expect(card.locator(`rect[data-date="${daysAgo(20)}"]`)).toHaveClass('picked')
+    await card.getByRole('button', { name: 'Day before' }).focus()
+    await page.keyboard.press('Enter')
+    await expect(note).toContainText('nothing logged')
+    await expect(card.getByRole('button', { name: 'Day after' })).not.toBeDisabled()
+    // One kind alone.
     await expect(card.getByRole('button', { name: 'chai' }).locator('.chai-icon')).toBeVisible()
     await card.getByRole('button', { name: 'parotta' }).click()
-    await expect(card.getByRole('heading')).toHaveText('a year of parotta')
-    await expect(card.getByRole('button', { name: 'parotta' })).toHaveAttribute('aria-pressed', 'true')
-    await expect(card).toContainText('4 parotta in the last year')
+    await expect(card.getByRole('heading')).toHaveText('parotta')
+    await expect(tile('parotta days')).toHaveText('2')
+    await expect(tile('in all')).toHaveText('4')
+    await expect(tile('day streak')).toHaveText('1')
+    // The year: asked for only when chosen; it scrolls inside its card, never the page (phones).
+    expect(ranges).toEqual(['84'])
+    await card.getByRole('button', { name: 'year' }).click()
+    await expect(card.locator('.heat rect[data-date]')).toHaveCount(365)
+    await expect(card).toContainText('last 12 months')
+    expect(ranges).toEqual(['84', '365'])
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  })
+
+  test('a day row of a kind the counts do not show (the two answers from different moments) breaks nothing', async ({ page, context }) => {
+    await context.route('**/api/log', (r) => r.fulfill({ json: logReply({ chai: { today: 1, month: 1, year: 1, total: 1, last: at } }) }))
+    await context.route('**/api/log/days?**', (r) =>
+      r.fulfill({ json: daysReply(84, { [istToday()]: { chai: 1, parotta: 2, beach: 1, gym: 1 } }) }),
+    )
+    const errors: string[] = []
+    page.on('pageerror', (e) => errors.push(e.message))
+    await page.goto('/')
+    await expect(page.locator(`#year rect[data-date="${istToday()}"]`)).toHaveAttribute('data-level', '1')
+    await expect(page.locator('#year .heat-day p')).toContainText('(today): 1 chai')
+    await expect(page.locator('#counts .count')).toHaveCount(1)
+    expect(errors).toEqual([])
   })
 
   test('only the kinds that were logged are shown, with their numbers', async ({ page, context }) => {
