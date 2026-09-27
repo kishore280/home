@@ -22,14 +22,27 @@ const summary = async (request: APIRequestContext) => {
   return byKind(await res.json())
 }
 const counts = (n: number) => ({ today: n, month: n, year: n, total: n })
-const sql = (command: string) => execSync(`npx wrangler d1 execute home --local --json --command "${command}"`, { encoding: 'utf8' })
+// A wrangler command on the local D1. The test server has the same database file open, so SQLite
+// can answer SQLITE_BUSY ("the database file is locked"); its docs say to try again, so we do.
+function wrangler(args: string) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return execSync(`npx wrangler d1 execute home --local ${args}`, { encoding: 'utf8', stdio: 'pipe' })
+    } catch (error) {
+      const out = `${(error as { stdout?: string }).stdout}${(error as { stderr?: string }).stderr}`
+      if (attempt === 5 || !out.includes('SQLITE_BUSY')) throw error
+      execSync('sleep 0.5')
+    }
+  }
+}
+const sql = (command: string) => wrangler(`--json --command "${command}"`)
 
 // One shared pair of tables in the local D1: run in order (and with --workers=1 when using --repeat-each).
 test.describe.configure({ mode: 'serial' })
 test.beforeEach(({ isMobile }) => test.skip(isMobile, 'API only; one run is enough'))
 // Start with no entries (the local D1 keeps its rows between runs).
 test.beforeAll(() => {
-  execSync('npx wrangler d1 execute home --local --command "DELETE FROM log_entries; DELETE FROM log_totals"', { stdio: 'ignore' })
+  sql('DELETE FROM log_entries; DELETE FROM log_totals')
 })
 
 const chai = crypto.randomUUID()
@@ -158,6 +171,37 @@ test('the rollups are kept per grain, so a range of days reads only day rows', a
   expect(sql(`EXPLAIN QUERY PLAN ${range}`)).toContain('USING PRIMARY KEY')
 })
 
+test('the chai clock counts each hour of the day in IST, also for fixes in the Console', async ({ request }) => {
+  const hours = async () => ((await (await request.get(api)).json()).kinds as { kind: string; hours: number[] }[]).find((k) => k.kind === 'chai')!.hours
+  const before = await hours()
+  expect(before).toHaveLength(24)
+  // 12:00 UTC is 17:30 IST (or a minute ago, if that is still to come today).
+  const at = Math.min(Date.parse(`${new Date().toISOString().slice(0, 10)}T12:00:00Z`), Date.now() - 60_000)
+  sql(`INSERT INTO log_entries (client_id, kind, count, at) VALUES ('clock-1', 'chai', 3, ${at})`)
+  const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kolkata', hour: '2-digit', hourCycle: 'h23' }).format(at))
+  expect((await hours())[hour]).toBe(before[hour] + 3)
+  // Moved an hour later by hand: the clock follows.
+  sql(`UPDATE log_entries SET at = at + 3600000 WHERE client_id = 'clock-1'`)
+  const moved = await hours()
+  expect(moved[hour]).toBe(before[hour])
+  expect(moved[(hour + 1) % 24]).toBe(before[(hour + 1) % 24] + 3)
+  sql(`DELETE FROM log_entries WHERE client_id = 'clock-1'`)
+  expect(await hours()).toEqual(before)
+})
+
+test('the heatmap reads the day totals of the last 365 days', async ({ request }) => {
+  const res = await request.get(`${api}/days?kind=chai`)
+  expect(res.headers()['cache-control']).toBe('public, max-age=60')
+  const body = await res.json()
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(Date.now())
+  expect(body).toMatchObject({ kind: 'chai', to: today })
+  expect((Date.parse(body.to) - Date.parse(body.from)) / 86_400_000).toBe(364)
+  const todays = body.days.find(([day]: [string, number]) => day === today)
+  expect(todays?.[1]).toBe((await summary(request)).chai?.today)
+  expect((await request.get(`${api}/days`)).status()).toBe(400)
+  expect(await (await request.get(`${api}/days?kind=nothing`)).json()).toMatchObject({ days: [] })
+})
+
 test('a new kind is one row in log_kinds, no code change', async ({ request }) => {
   sql(`INSERT INTO log_kinds (kind, emoji, label, once_a_day, sort) VALUES ('gym', '🏋️', 'gym', 0, 9)`)
   try {
@@ -231,7 +275,7 @@ test('without its tables, a log says what to set up instead of failing', async (
   const res = await post(request, { id: crypto.randomUUID(), kind: 'chai' })
   expect(res.status()).toBe(503)
   expect((await res.json()).error).toBe('Logging is not set up yet: run migrations/0004_log.sql in the D1 Console.')
-  execSync('npx wrangler d1 execute home --local --file migrations/0004_log.sql', { stdio: 'ignore' })
+  wrangler('--file migrations/0004_log.sql')
   expect((await post(request, { id: crypto.randomUUID(), kind: 'chai' })).status()).toBe(200)
 })
 
@@ -267,8 +311,9 @@ test.describe('the /log page', () => {
     await signedIn(page)
     await page.goto('/log')
     await button(page, /chai \+1/).click()
-    const toast = page.locator('[data-sonner-toast]', { hasText: '☕ chai +1 · 1 today' })
+    const toast = page.locator('[data-sonner-toast]', { hasText: 'chai +1 · 1 today' })
     await expect(toast).toBeVisible()
+    await expect(toast.locator('.chai-icon')).toBeVisible() // the chai glass, not the ☕ cup
     await expect.poll(() => chaiToday(request)).toBe(1)
     await expect(page.locator('#counts')).toContainText('1 today')
     expect(await page.evaluate(() => (window as unknown as { buzz: unknown[] }).buzz)).toEqual([30])
@@ -282,7 +327,7 @@ test.describe('the /log page', () => {
     await page.goto('/log')
     await page.getByLabel('beach place (optional)').fill('Marina')
     await button(page, /beach day/).click()
-    await expect(page.locator('[data-sonner-toast]', { hasText: '🌊 beach +1 · 1 this month' })).toBeVisible()
+    await expect(page.locator('[data-sonner-toast]', { hasText: 'beach +1 · 1 this month' })).toBeVisible()
     await expect(page.locator('#counts')).toContainText('Marina')
     await expect(page.getByLabel('beach place (optional)')).toHaveValue('')
     await button(page, /beach day/).click()
@@ -330,7 +375,7 @@ test.describe('the /log page', () => {
         query.includes('display-mode: standalone') ? ({ ...real(query), matches: true, media: query } as MediaQueryList) : real(query)
     })
     await page.goto('/log?add=chai')
-    await expect(page.locator('[data-sonner-toast]', { hasText: '☕ chai +1' })).toBeVisible()
+    await expect(page.locator('[data-sonner-toast]', { hasText: 'chai +1' })).toBeVisible()
     await expect(page).toHaveURL('/log')
     await expect.poll(() => chaiToday(request)).toBe(before + 1)
   })

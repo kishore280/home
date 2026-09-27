@@ -1,5 +1,7 @@
 // /api/log: things kish logs from the phone (chai, parotta, beach days, any kind in log_kinds).
-//   GET  /api/log        public summary: each kind with today, month, year, total and the last entry
+//   GET  /api/log        public summary: each kind with today, month, year, total, the last entry
+//                        and its count per hour of the day (the chai clock)
+//   GET  /api/log/days   ?kind=chai: the day totals of the last 365 days (the heatmap)
 //   POST /api/log        { id, kind, count?, place?, at?, tz? } adds one entry
 //   POST /api/log/undo   { id } takes it back (deletes the entry)
 // A POST needs "Authorization: Bearer <token>", like the check-in API of anonrig/adamvsyagiz.com.
@@ -150,10 +152,14 @@ type Row = {
   place: string | null
 }
 
-// One query: each kind with its four rollups (primary-key lookups) and its newest entry by time (the
-// log_entries_newest index). Rows read grow with the number of kinds, not with the history.
+// Each kind with its four rollups (primary-key lookups) and its newest entry by time (the
+// log_entries_newest index), plus log_hours (at most 24 rows a kind). Rows read grow with the
+// number of kinds, not with the history.
 async function summary(env: Env): Promise<Response> {
   const { day, month, year } = periods(dayOf.format(Date.now()))
+  const hoursQuery = env.DB.prepare('SELECT kind, hour, count FROM log_hours')
+    .all<{ kind: string; hour: number; count: number }>()
+    .catch(() => null) // before migrations/0005_log_hours.sql: no clock yet
   const rows = await env.DB.prepare(
     `SELECT k.kind, k.emoji, k.label, k.once_a_day,
        coalesce((SELECT count FROM log_totals WHERE kind = k.kind AND grain = 'day' AND period = ?1), 0) AS today,
@@ -172,10 +178,37 @@ async function summary(env: Env): Promise<Response> {
   // Before the tables exist (migration not applied yet), treat it as no data.
   if (!rows) return new Response(null, { status: 204 })
 
+  const hours = (await hoursQuery)?.results ?? []
   const kinds = rows.results.map(({ once_a_day, last, ...row }) => ({
     ...row,
     onceADay: once_a_day === 1,
     last: last === null ? null : new Date(last).toISOString(),
+    hours: Array.from({ length: 24 }, (_, h) => hours.find((r) => r.kind === row.kind && r.hour === h)?.count ?? 0),
   }))
   return Response.json({ kinds }, { headers: { 'cache-control': 'public, max-age=15' } })
+}
+
+const DAYS = 365
+
+// GET /api/log/days?kind=chai: the last 365 days (IST) with an entry, oldest first, for the heatmap.
+// One primary-key range read of the day rollups, at most 365 rows.
+export async function days(request: Request, env: Env): Promise<Response> {
+  if (request.method !== 'GET') return fail('Use GET.', 405)
+  const kind = new URL(request.url).searchParams.get('kind')
+  if (!kind || kind.length > 32) return fail('kind is required.')
+  const now = Date.now()
+  const to = dayOf.format(now)
+  const from = dayOf.format(now - (DAYS - 1) * 86_400_000)
+  const rows = await env.DB.prepare(
+    `SELECT period AS day, count FROM log_totals
+     WHERE kind = ?1 AND grain = 'day' AND period BETWEEN ?2 AND ?3 ORDER BY period`,
+  )
+    .bind(kind, from, to)
+    .all<{ day: string; count: number }>()
+    .catch(() => null)
+  if (!rows) return new Response(null, { status: 204 })
+  return Response.json(
+    { kind, from, to, days: rows.results.map((r) => [r.day, r.count]) },
+    { headers: { 'cache-control': 'public, max-age=60' } },
+  )
 }

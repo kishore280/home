@@ -59,7 +59,7 @@ const settle = (page: Page) => page.waitForTimeout(600)
 
 // A GET /api/log reply (worker/log.ts): the three kinds, with the totals given for some of them.
 // Mocked with context.route, which also sees the service worker's requests (it caches /api/log).
-type Totals = { today: number; month: number; year: number; total: number; last: string; place?: string }
+type Totals = { today: number; month: number; year: number; total: number; last: string; place?: string; hours?: number[] }
 const logReply = (totals: Partial<Record<'chai' | 'parotta' | 'beach', Totals>>) => ({
   kinds: (
     [
@@ -72,10 +72,19 @@ const logReply = (totals: Partial<Record<'chai' | 'parotta' | 'beach', Totals>>)
     emoji,
     label,
     onceADay,
-    ...{ today: 0, month: 0, year: 0, total: 0, last: null, place: null },
+    ...{ today: 0, month: 0, year: 0, total: 0, last: null, place: null, hours: Array(24).fill(0) },
     ...totals[kind],
   })),
 })
+
+// A GET /api/log/days reply: the last 365 days ending today, with counts on some days.
+const daysReply = (kind: string, counts: Record<string, number>) => {
+  const to = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(Date.now())
+  const from = new Date(Date.parse(to) - 364 * 86_400_000).toISOString().slice(0, 10)
+  return { kind, from, to, days: Object.entries(counts).sort() }
+}
+// 5 pm is the peak, then 11 am.
+const chaiHours = Array.from({ length: 24 }, (_, h) => ({ 11: 6, 17: 9, 8: 2 })[h] ?? 0)
 
 const menu = (page: Page) => page.locator('.cmdk-content')
 async function openMenu(page: Page, press: (t: Locator) => Promise<void>) {
@@ -410,6 +419,9 @@ test.describe('offline page', () => {
     await page.goto('/offline')
     await page.evaluate(() => navigator.serviceWorker.ready)
     await page.goto('/') // now controlled, so the page cache keeps it
+    // Workbox writes the cache after the response has gone to the page; wait for the copy, or a
+    // slow run goes offline before it is there.
+    await expect.poll(() => page.evaluate(async () => Boolean(await (await caches.open('pages')).match('/')))).toBe(true)
     await context.setOffline(true)
     await page.reload()
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(/^hi, i’m/)
@@ -435,7 +447,10 @@ test.describe('speed', () => {
     const totals = { today: 2, month: 14, year: 90, total: 90, last: at }
     await page
       .context()
-      .route('**/api/log', (r) => r.fulfill({ json: logReply({ chai: totals, parotta: totals, beach: { ...totals, place: 'Marina' } }) }))
+      .route('**/api/log', (r) =>
+        r.fulfill({ json: logReply({ chai: { ...totals, hours: chaiHours }, parotta: totals, beach: { ...totals, place: 'Marina' } }) }),
+      )
+    await page.context().route('**/api/log/days?**', (r) => r.fulfill({ json: daysReply('chai', { [at.slice(0, 10)]: 2 }) }))
     await page.goto('/')
     // Wait for everything that arrives after the page: the clock, the rows, the mascot's line and the views.
     await expect(page.locator('.clock')).toBeVisible()
@@ -444,6 +459,8 @@ test.describe('speed', () => {
     await expect(page.locator('.row.pending')).toHaveCount(0)
     await expect(page.locator('.count')).toHaveCount(3)
     await expect(page.locator('.count.pending')).toHaveCount(0)
+    await expect(page.locator('.chai-clock figcaption')).toBeVisible()
+    await expect(page.locator('#year rect[data-level="4"]')).toHaveCount(1)
     await expect(page.locator('.stats dd')).toHaveCount(2)
     await settle(page)
     expect(await page.evaluate(() => (window as unknown as { __cls: number }).__cls)).toBeLessThan(0.001)
@@ -565,9 +582,51 @@ test.describe('now playing (ListenBrainz API)', () => {
 test.describe('counts card', () => {
   const at = new Date().toISOString()
 
-  test('the pre-rendered page keeps a loading line for each kind', async ({ request }) => {
+  test('the pre-rendered page keeps the place of the clock, the counts and the year', async ({ request }) => {
     const html = await (await request.get('http://127.0.0.1:8787/')).text()
     expect(html.match(/class="count pending"/g)).toHaveLength(3)
+    expect(html).toContain('class="chai-clock pending"')
+    expect(html).toContain('class="heat-box"') // the year's place; the calendar draws in the browser
+  })
+
+  test('the chai clock shows the hours of the day, with the chai glass', async ({ page, context }) => {
+    await context.route('**/api/log', (r) =>
+      r.fulfill({ json: logReply({ chai: { today: 2, month: 17, year: 17, total: 17, last: at, hours: chaiHours } }) }),
+    )
+    await page.goto('/')
+    const clock = page.locator('#counts .chai-clock')
+    await expect(clock.locator('svg[role="img"] path')).toHaveCount(24) // the glass in the middle has its own paths
+    await expect(clock.locator('figcaption')).toHaveText('most chai at 5 pm, then 11 am')
+    await expect(clock.locator('.chai-icon')).toBeVisible()
+    await expect(clock.locator('svg[role="img"]')).toHaveAttribute('aria-label', 'Chai by hour of the day: most at 5 pm')
+    await expect(clock.locator('path.lvl-4')).toHaveCount(1)
+  })
+
+  test('the year heatmap shows a square per day, and switches kind', async ({ page, context }) => {
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(Date.now())
+    const parotta = { today: 0, month: 4, year: 4, total: 4, last: at }
+    await context.route('**/api/log', (r) =>
+      r.fulfill({ json: logReply({ chai: { today: 3, month: 3, year: 3, total: 3, last: at, hours: chaiHours }, parotta }) }),
+    )
+    await context.route('**/api/log/days?**', (r) => {
+      const kind = new URL(r.request().url()).searchParams.get('kind')!
+      const earlier = new Date(Date.parse(today) - 20 * 86_400_000).toISOString().slice(0, 10)
+      return r.fulfill({ json: daysReply(kind, kind === 'chai' ? { [today]: 3 } : { [today]: 1, [earlier]: 3 }) })
+    })
+    await page.goto('/')
+    const card = page.locator('#year')
+    await expect(card.getByRole('heading')).toHaveText('a year of chai')
+    await expect(card.locator('.heat rect[data-date]')).toHaveCount(365)
+    await expect(card.locator(`rect[data-date="${today}"]`)).toHaveAttribute('data-level', '4')
+    await expect(card.locator('rect[data-level="4"]')).toHaveCount(1)
+    await expect(card).toContainText('3 chai in the last year')
+    // The year scrolls inside its card; the page itself never scrolls sideways (phones).
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+    await expect(card.getByRole('button', { name: 'chai' }).locator('.chai-icon')).toBeVisible()
+    await card.getByRole('button', { name: 'parotta' }).click()
+    await expect(card.getByRole('heading')).toHaveText('a year of parotta')
+    await expect(card.getByRole('button', { name: 'parotta' })).toHaveAttribute('aria-pressed', 'true')
+    await expect(card).toContainText('4 parotta in the last year')
   })
 
   test('only the kinds that were logged are shown, with their numbers', async ({ page, context }) => {
@@ -596,6 +655,7 @@ test.describe('counts card', () => {
     await page.goto('/')
     await expect(page.locator('.stats dd')).toHaveCount(2) // the page has loaded its data
     await expect(page.locator('#counts')).toHaveCount(0)
+    await expect(page.locator('#year')).toHaveCount(0)
   })
 })
 

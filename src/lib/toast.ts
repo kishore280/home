@@ -1,17 +1,18 @@
-import { useSyncExternalStore } from 'react'
+import { useSyncExternalStore, type ReactNode } from 'react'
 
 // Toasts only appear after a click, so sonner is not in the first download; it is mounted on the first toast
 // (Vercel rule bundle-defer-third-party). Messages wait in a queue until it mounts.
 // An optional action button (e.g. "Undo") uses sonner's own `action` option.
 type Action = { label: string; onClick: () => void }
-type Message = { text: string; error?: boolean; action?: Action }
+// An optional icon (e.g. the chai glass) uses sonner's `icon` option.
+type Message = { text: string; error?: boolean; action?: Action; icon?: ReactNode }
 
 const queue: Message[] = []
 const listeners = new Set<() => void>()
 let emit: ((m: Message) => void) | null = null
 let requested = false
 
-export function toast(text: string, options: { error?: boolean; action?: Action } = {}) {
+export function toast(text: string, options: { error?: boolean; action?: Action; icon?: ReactNode } = {}) {
   const message = { text, ...options }
   if (emit) return emit(message)
   queue.push(message)

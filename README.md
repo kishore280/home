@@ -78,6 +78,14 @@ logs check-ins); the Worker stores it in D1 and the counts card updates within s
     keys to `log_kinds` (D1 enforces them). A once-a-day kind (beach days) is enforced by a trigger.
   - Remote D1 splits SQL itself, so the trigger bodies use uppercase `BEGIN`/`END` and hold no
     comments ([workers-sdk #10998](https://github.com/cloudflare/workers-sdk/issues/10998)).
+- **On the home page:** the counts card has the **chai clock** (chai per hour of the day in IST, for
+  all time: `log_hours`, `migrations/0005_log_hours.sql`, kept by three more triggers). Its wedges are
+  d3-shape `arc()`, sized with d3-scale `scaleRadial` so the area follows the count
+  ([D3 docs](https://d3js.org/d3-scale/radial)). The **year heatmap** ("a year of chai", any kind) is
+  [react-activity-calendar](https://github.com/grubersjoe/react-activity-calendar) with the day totals
+  of the last 365 days (`GET /api/log/days?kind=chai`, one primary-key range read, cached 60 s). It
+  draws in the browser only (its loading state reads the visitor's motion setting), in a box that
+  keeps its place, so nothing moves. Each square's text is an SVG `<title>`.
 - **Fix or add a tap by hand** in the D1 Console; the totals follow by themselves:
   `INSERT INTO log_entries (kind, at) VALUES ('chai', unixepoch('2026-09-25 20:15', '-330 minutes') * 1000);`
   (a chai at 20:15 IST on 25 Sep), or `DELETE FROM log_entries WHERE id = 42;`.
@@ -89,7 +97,7 @@ logs check-ins); the Worker stores it in D1 and the counts card updates within s
 ### Set up (from a phone)
 
 1. **Table.** Cloudflare dashboard → **Storage & Databases → D1 → `home` → Console**, run
-   `migrations/0004_log.sql`. Or: `npx wrangler d1 migrations apply home --remote`.
+   `migrations/0004_log.sql`, then `migrations/0005_log_hours.sql` (the chai clock). Or: `npx wrangler d1 migrations apply home --remote`.
 2. **Token.** Nothing to add: the log uses the music token, `SCROBBLE_TOKEN` (one token for the phone).
 3. Open `kichoow.com/log`, enter the token once (the password manager can keep it), then install the app.
 

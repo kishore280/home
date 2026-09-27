@@ -176,6 +176,9 @@ a {
   border-radius: var(--radius);
   box-shadow: 0 3px 0 var(--line);
   padding: 18px;
+  /* A grid item does not shrink below its content by default (min-width: auto), so a wide child
+     (the year heatmap) would widen the page; with 0 it scrolls inside its own box instead. */
+  min-width: 0;
 }
 
 h1 {
@@ -637,6 +640,107 @@ h2 {
   width: 1.1em;
   height: 1.25em;
   vertical-align: -0.25em;
+}
+
+/* The chai clock (ChaiClock.tsx): a 24-hour ring at the top of the counts card. Wedge colours mix
+   the accent into the chip colour, so both themes follow their tokens. */
+.chai-clock {
+  margin: 0 0 12px;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+}
+
+.chai-clock.pending {
+  height: 180px; /* the dial and its line, kept while the counts load */
+}
+
+.chai-clock-dial {
+  position: relative;
+  width: 150px;
+  height: 150px;
+}
+
+.chai-clock-dial svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.chai-clock-glass {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.chai-clock .tick {
+  font: 700 7.5px var(--body);
+  fill: var(--muted);
+}
+
+.chai-clock figcaption {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.chai-clock figcaption strong {
+  color: var(--text);
+}
+
+/* Levels of the clock wedges (the heatmap mixes its own from the same tokens). */
+.lvl-0 {
+  fill: var(--line);
+}
+.lvl-1 {
+  fill: color-mix(in srgb, var(--accent) 35%, var(--chip));
+}
+.lvl-2 {
+  fill: color-mix(in srgb, var(--accent) 60%, var(--chip));
+}
+.lvl-3 {
+  fill: var(--accent);
+}
+.lvl-4 {
+  fill: var(--accent-deep);
+}
+
+/* A year of chai (YearHeatmap.tsx, react-activity-calendar): it scrolls sideways inside its own
+   box when the card is narrower (phones), starting at today. */
+.heat-kinds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 30px; /* kept while the kinds load */
+  margin-bottom: 10px;
+}
+
+.heat-kinds button {
+  font: 700 13px var(--body);
+  color: var(--text);
+  background: var(--chip);
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  padding: 2px 10px;
+  cursor: pointer;
+}
+
+.heat-kinds button[aria-pressed='true'] {
+  color: var(--on-accent);
+  background: var(--accent-text);
+  border-color: var(--accent-text);
+}
+
+.heat {
+  color: var(--muted);
+}
+
+/* The calendar's height (months, 7 rows of 9 + 2 px, footer), kept before it draws. */
+.heat-box {
+  min-height: 124px;
 }
 
 /* counts: compact for the narrow left column. label left, number right, details below */
