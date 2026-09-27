@@ -137,16 +137,14 @@ Add a photo to the shared album on the phone, and it shows on the site within th
 - **Images** load from Google's image server in the size needed: a 400 px WebP square in the grid
   (about 40 kB), 2048 px when opened, with no referrer. Checked with exifr: Google serves them with
   no GPS location, the original included. Also turn off "Show location" in the album's options.
-- **Viewer:** a tap opens [PhotoSwipe](https://photoswipe.com/) on the **original** file (`=s0`, full
-  size). The photo grows out of its thumbnail, and the thumbnail already on screen stands in while the
-  original loads, so there is no blank wait. It has swipe, arrow keys, pinch and double-tap zoom (up
-  to the photo's real pixels), a counter, and a download button. Download saves the original file:
-  Google's `=d` link answers with `Content-Disposition: attachment`. Motion is 300 ms in and 250 ms
-  out with a strong ease-out, from [Emil Kowalski's design engineering rules](https://github.com/emilkowalski/skills),
-  and it is off with reduced motion. The code (about 19 kB compressed) loads only when a finger or
-  pointer comes near the photos. It is styled from the site's tokens with PhotoSwipe's documented CSS
-  variables (`src/lib/photoViewer.css`), so it follows light and dark. Umami events: `Photo open`,
-  `Photo download`, `Photos album link`.
+- **Viewer:** a tap opens [Yet Another React Lightbox](https://yet-another-react-lightbox.com/)
+  (swipe, arrow keys, pinch and double-tap zoom, a counter and download). It loads only when a finger
+  or pointer comes near the photos (about 15 kB compressed). It opens the original file at once
+  (`=s0`, full size), zoom goes up to its real pixels, and only the photos before and after are loaded
+  ahead. It is styled with the library's documented CSS variables from the site's tokens (`.viewer`),
+  so it follows light and dark. Download saves the original file: Google's `=d` link answers with
+  `Content-Disposition: attachment`. Umami events: `Photo open`, `Photo download`. The page never links to the album
+  or sends its address; the photos are seen here.
 - **Change the album:** put its share link (`https://photos.app.goo.gl/…`) in `photosAlbum` in
   `src/data.ts`. Empty hides the card.
 

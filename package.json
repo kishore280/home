@@ -21,13 +21,13 @@
     "d3-scale": "^4.0.2",
     "d3-shape": "^3.2.0",
     "google-photos-album-image-url-fetch": "^3.2.0",
-    "photoswipe": "^5.4.4",
     "react": "^19.2.8",
     "react-activity-calendar": "^3.2.1",
     "react-dom": "^19.2.8",
     "react-error-boundary": "^6.1.6",
     "sonner": "^2.0.8",
-    "swr": "^2.5.1"
+    "swr": "^2.5.1",
+    "yet-another-react-lightbox": "^3.32.2"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

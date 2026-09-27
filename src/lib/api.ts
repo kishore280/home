@@ -39,5 +39,5 @@ export type LogKind = {
 export type LogSummary = { kinds: LogKind[] }
 // GET /api/log/days?kind=chai: [day, count] for the days with an entry, in the last 365 days (IST).
 export type Photo = { id: string; url: string; width: number; height: number; added: string }
-export type PhotoAlbum = { album: string; photos: Photo[] }
+export type PhotoAlbum = { photos: Photo[] }
 export type LogDays = { from: string; to: string; days: [day: string, kind: string, count: number][] }
