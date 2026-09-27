@@ -353,12 +353,15 @@ test.describe('the /log page', () => {
     const asked: (string | undefined)[] = []
     await context.route('**/api/photos', (r) => {
       asked.push(r.request().headers().authorization)
-      return r.fulfill({ json: { photos: [{ id: 'a', url: 'https://lh3.googleusercontent.com/pw/a', width: 1, height: 1, added: new Date().toISOString() }] } })
+      return r.fulfill({
+        json: { photos: [{ id: 'a', url: 'https://lh3.googleusercontent.com/pw/a', width: 1, height: 1, added: new Date().toISOString() }] },
+        headers: { 'x-photos-refreshed': 'everywhere' },
+      })
     })
     await signedIn(page)
     await page.goto('/log')
     await page.getByRole('button', { name: 'refresh photos' }).click()
-    await expect(page.locator('[data-sonner-toast]', { hasText: 'Photos refreshed: 1 on the site' })).toBeVisible()
+    await expect(page.locator('[data-sonner-toast]', { hasText: 'Photos refreshed everywhere: 1 on the site' })).toBeVisible()
     expect(asked).toEqual(['Bearer test-token-0123456789-abcdef'])
     // The two small links keep apart, with room for their touch areas (4 px each side).
     const refresh = (await page.getByRole('button', { name: 'refresh photos' }).boundingBox())!

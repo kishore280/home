@@ -641,6 +641,9 @@ test.describe('photos (shared Google Photos album)', () => {
     const fresh = await request.get('http://127.0.0.1:8787/api/photos', token('test-token-0123456789-abcdef'))
     expect(fresh.status()).toBe(200)
     expect(Object.keys(await fresh.json())).toEqual(['photos'])
+    // No PURGE_TOKEN or ZONE_ID in the tests: renewed only in this data centre.
+    expect(fresh.headers()['x-photos-refreshed']).toBe('here')
+    expect(fresh.headers()['cache-tag']).toBe('photos')
   })
 })
 

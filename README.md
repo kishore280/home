@@ -146,9 +146,17 @@ Add a photo to the shared album on the phone, and it shows on the site within th
   `Content-Disposition: attachment`. Umami events: `Photo open`, `Photo download`. The page never links to the album
   or sends its address; the photos are seen here.
 - **Now, not in an hour:** on `/log`, tap **refresh photos**. With the phone's token, `/api/photos`
-  asks Google again and saves the new list, for the Cloudflare location near you (a Worker's
-  `cache.put` is local). Elsewhere it follows within the hour; to clear everywhere, use Cloudflare's
-  **Purge Everything**. Without the token, or with a wrong one (401), nothing changes.
+  clears the saved list in every Cloudflare location with a **purge by Cache-Tag** (`photos`), free on
+  every plan since April 2025 and done in under 150 ms
+  ([Cloudflare](https://developers.cloudflare.com/changelog/post/2025-04-01-purge-for-all/)), then asks
+  Google again. The message says "everywhere". Browsers that loaded the page keep their own copy for
+  its cache time (set Browser Cache TTL to *Respect Existing Headers*, see Speed).
+  - **Set up once (from a phone):** Cloudflare dashboard → **My Profile → API Tokens → Create Token →
+    Custom token**: permission **Zone → Cache Purge → Purge**, zone resources **kichoow.com** only.
+    Then **Workers & Pages → home → Settings → Variables and Secrets**: add the secrets `PURGE_TOKEN`
+    (the token) and `ZONE_ID` (on the kichoow.com overview page, right side, "Zone ID").
+  - Without them, the button renews only the location near you ("near you"). A wrong phone token
+    gets 401.
 - **Change the album:** put its share link (`https://photos.app.goo.gl/…`) in `photosAlbum` in
   `src/data.ts`. Empty hides the card.
 
