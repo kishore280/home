@@ -145,6 +145,10 @@ Add a photo to the shared album on the phone, and it shows on the site within th
   so it follows light and dark. Download saves the original file: Google's `=d` link answers with
   `Content-Disposition: attachment`. Umami events: `Photo open`, `Photo download`. The page never links to the album
   or sends its address; the photos are seen here.
+- **Now, not in an hour:** on `/log`, tap **refresh photos**. With the phone's token, `/api/photos`
+  asks Google again and saves the new list, for the Cloudflare location near you (a Worker's
+  `cache.put` is local). Elsewhere it follows within the hour; to clear everywhere, use Cloudflare's
+  **Purge Everything**. Without the token, or with a wrong one (401), nothing changes.
 - **Change the album:** put its share link (`https://photos.app.goo.gl/…`) in `photosAlbum` in
   `src/data.ts`. Empty hides the card.
 

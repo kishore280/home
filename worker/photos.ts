@@ -8,16 +8,22 @@
 // without GPS data: checked with exifr on every size, the original included.
 import { fetchImageUrls } from 'google-photos-album-image-url-fetch'
 import { site } from '../src/data'
+import { bearer, fail, tokenMatches, type Env } from './db'
 
 const SHOWN = 6
 const IMAGE_HOST = 'https://lh3.googleusercontent.com/'
 
-export async function photos(request: Request, ctx: ExecutionContext): Promise<Response> {
+export async function photos(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   if (request.method !== 'GET') return Response.json({ error: 'Use GET.' }, { status: 405 })
   if (!site.photosAlbum) return new Response(null, { status: 204 })
   // The version in the key starts a new cache when the answer's shape changes (v2: no album address).
   const key = new Request(new URL('/api/photos?v=2', request.url))
-  const cached = await caches.default.match(key)
+  // With the phone's token (the /log page's "refresh photos"), Google is asked now and the new
+  // answer replaces the saved one. Only in the data centre that runs it (cache.put is local).
+  const token = bearer(request)
+  const fresh = await tokenMatches(token, env.SCROBBLE_TOKEN)
+  if (token && !fresh) return fail('Invalid token.', 401)
+  const cached = fresh ? undefined : await caches.default.match(key)
   if (cached) return cached
 
   // The library types its signal with the old abort-controller polyfill; a standard AbortSignal is the

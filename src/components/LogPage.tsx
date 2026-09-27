@@ -1,7 +1,7 @@
 import { useEffect, useEffectEvent, useState, type FormEvent } from 'react'
 import useSWR, { mutate } from 'swr'
 import { logPage } from '../data'
-import { fetcher, type LogKind, type LogSummary } from '../lib/api'
+import { fetcher, type LogKind, type LogSummary, type PhotoAlbum } from '../lib/api'
 import { useIsClient } from '../lib/client'
 import { load, remove, save } from '../lib/storage'
 import { toast, useToastRequested } from '../lib/toast'
@@ -25,6 +25,14 @@ const post = (token: string, path: string, body: object) =>
     headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
     body: JSON.stringify(body),
   })
+
+// Ask Google for the album again now (worker/photos.ts), instead of waiting for the hour. The
+// browser keeps the new answer too (cache: 'reload'), so the home page shows it at once here.
+async function refreshPhotos(token: string) {
+  const res = await fetch('/api/photos', { headers: { authorization: `Bearer ${token}` }, cache: 'reload' }).catch(() => null)
+  const count = res?.ok ? ((await res.json()) as PhotoAlbum).photos.length : null
+  toast(count === null ? 'Could not refresh the photos. Try again.' : `Photos refreshed: ${count} on the site`, { error: count === null })
+}
 
 // Fresh counts after a change: /api/log may be in the browser's cache for 15 s.
 const refresh = () => mutate('/api/log', fetcher<LogSummary>('/api/log', { cache: 'no-store' }), { revalidate: false })
@@ -153,6 +161,9 @@ export function LogPage() {
                 <input value={place} onChange={(e) => setPlace(e.target.value)} maxLength={60} autoComplete="off" />
               </label>
             ) : null}
+            <button type="button" className="link-button" onClick={() => void refreshPhotos(token)}>
+              refresh photos
+            </button>
             <button type="button" className="link-button" onClick={() => forget()}>
               forget token on this device
             </button>

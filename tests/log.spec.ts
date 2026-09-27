@@ -349,6 +349,19 @@ test.describe('the /log page', () => {
     await expect(page.getByText('today is already a beach day')).toBeVisible()
   })
 
+  test('"refresh photos" asks for the album again with the token, and says how many photos show', async ({ page, context }) => {
+    const asked: (string | undefined)[] = []
+    await context.route('**/api/photos', (r) => {
+      asked.push(r.request().headers().authorization)
+      return r.fulfill({ json: { photos: [{ id: 'a', url: 'https://lh3.googleusercontent.com/pw/a', width: 1, height: 1, added: new Date().toISOString() }] } })
+    })
+    await signedIn(page)
+    await page.goto('/log')
+    await page.getByRole('button', { name: 'refresh photos' }).click()
+    await expect(page.locator('[data-sonner-toast]', { hasText: 'Photos refreshed: 1 on the site' })).toBeVisible()
+    expect(asked).toEqual(['Bearer test-token-0123456789-abcdef'])
+  })
+
   test('a badminton day has its own button, with the court as the place', async ({ page }) => {
     await signedIn(page)
     await page.goto('/log')

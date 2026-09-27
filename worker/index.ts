@@ -24,7 +24,7 @@ export default {
       case '/api/log/days':
         return days(request, env, ctx)
       case '/api/photos':
-        return photos(request, ctx)
+        return photos(request, env, ctx)
     }
     if (pathname.startsWith('/api/scrobble/1/')) return scrobble(request, env, pathname.slice('/api/scrobble/1/'.length))
     if (pathname.startsWith('/api/')) return fail('Not found.', 404)

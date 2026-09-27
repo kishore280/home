@@ -635,6 +635,12 @@ test.describe('photos (shared Google Photos album)', () => {
     expect(added).toEqual([...added].sort().reverse()) // newest first
     expect(await (await request.get('http://127.0.0.1:8787/api/photos?x=1')).text()).toBe(JSON.stringify(body))
     expect((await request.post('http://127.0.0.1:8787/api/photos')).status()).toBe(405)
+    // With the phone's token, Google is asked again now (the /log page's "refresh photos").
+    const token = (t: string) => ({ headers: { authorization: `Bearer ${t}` } })
+    expect((await request.get('http://127.0.0.1:8787/api/photos', token('wrong'))).status()).toBe(401)
+    const fresh = await request.get('http://127.0.0.1:8787/api/photos', token('test-token-0123456789-abcdef'))
+    expect(fresh.status()).toBe(200)
+    expect(Object.keys(await fresh.json())).toEqual(['photos'])
   })
 })
 

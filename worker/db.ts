@@ -12,6 +12,9 @@ export const fail = (error: string, status = 400) => json({ error }, status)
 
 // Constant-time compare, as in Cloudflare's "Protect against timing attacks" example.
 // https://developers.cloudflare.com/workers/examples/protect-against-timing-attacks/
+// The token of an "Authorization: Bearer …" header (the phone's SCROBBLE_TOKEN).
+export const bearer = (request: Request) => /^bearer\s+(\S+)$/i.exec(request.headers.get('authorization') ?? '')?.[1]
+
 export async function tokenMatches(given: string | undefined, secret: string | undefined): Promise<boolean> {
   if (!secret || !given) return false
   const encoder = new TextEncoder()
