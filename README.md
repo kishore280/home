@@ -153,8 +153,9 @@ Add a photo to the shared album on the phone, and it shows on the site within th
   its cache time (set Browser Cache TTL to *Respect Existing Headers*, see Speed).
   - **Set up once (from a phone):** Cloudflare dashboard → **My Profile → API Tokens → Create Token →
     Custom token**: permission **Zone → Cache Purge → Purge**, zone resources **kichoow.com** only.
-    Then **Workers & Pages → home → Settings → Variables and Secrets**: add the secrets `PURGE_TOKEN`
-    (the token) and `ZONE_ID` (on the kichoow.com overview page, right side, "Zone ID").
+    Then **Workers & Pages → home → Settings → Variables and Secrets**: add the secret `PURGE_TOKEN`
+    (the token). The zone's ID is not a secret: it is `ZONE_ID` in `wrangler.jsonc` (a secret with
+    the same name would clash with it, so it is not set in the dashboard).
   - Without them, the button renews only the location near you ("near you"). A wrong phone token
     gets 401.
 - **Change the album:** put its share link (`https://photos.app.goo.gl/…`) in `photosAlbum` in
