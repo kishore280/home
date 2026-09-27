@@ -639,9 +639,10 @@ test.describe('photos (shared Google Photos album)', () => {
     await expect(page.locator('[cmdk-item]', { hasText: 'Photos' })).toHaveCount(0)
   })
 
-  test('a video in the album: a play mark, it plays in the viewer (1080p, then 720p, 360p), the download is the original', async ({ page, context, log }) => {
+  test('a video in the album: a play mark, it plays in the viewer (adaptive HLS, else 1080p, 720p, 360p) with no Referer, the download is the original', async ({ page, context, log }) => {
+    const referers: (string | undefined)[] = []
     await context.route('https://lh3.googleusercontent.com/**', (r) =>
-      /=(dv|m\d\d)$/.test(r.request().url())
+      /=(dv|m\d\d|mm,hls)$/.test(r.request().url()) && referers.push(r.request().headers().referer)
         ? r.fulfill({ contentType: 'video/mp4', body: Buffer.alloc(0), headers: { 'content-disposition': 'attachment;filename="ride.mp4"' } })
         : r.fulfill({ contentType: 'image/png', body: pixel }),
     )
@@ -660,7 +661,11 @@ test.describe('photos (shared Google Photos album)', () => {
     const video = viewer.locator('video')
     await expect(video).toHaveAttribute('poster', 'https://lh3.googleusercontent.com/pw/test-1=s1920')
     await expect(video).toHaveAttribute('controls')
-    expect(await video.locator('source').evaluateAll((s) => s.map((e) => (e as HTMLSourceElement).src.split('=')[1]))).toEqual(['m37', 'm22', 'm18'])
+    expect(await video.locator('source').evaluateAll((s) => s.map((e) => (e as HTMLSourceElement).src.split('=')[1]))).toEqual(['mm,hls', 'm37', 'm22', 'm18'])
+    // Google's video servers answer 403 to another site's Referer, so the page sends none.
+    await expect(page.locator('head meta[name="referrer"]')).toHaveAttribute('content', 'no-referrer')
+    await expect.poll(() => referers.length).toBeGreaterThan(0)
+    expect(referers.every((r) => r === undefined)).toBe(true)
     const download = page.waitForEvent('download')
     await viewer.getByRole('button', { name: 'Download' }).click()
     expect((await download).url()).toBe('https://lh3.googleusercontent.com/pw/test-1=dv')

@@ -19,9 +19,11 @@ import { track } from '../lib/track'
 // opening it downloads it. Our own download function (the plugin's documented `download.download`)
 // opens it at once; the plugin's default first probes the URL with a synchronous XHR, which the
 // site's CSP blocks for Google (connect-src), and logs an error.
-// A video (the plugin's documented `sources`): Google's stream, 1080p first, then 720p and 360p, as
-// the browser takes the first source it can play. It plays at once, as it opens on a tap. Its
-// download (=dv) is the original file.
+// A video (the plugin's documented `sources`; the browser plays the first one it can): Google's
+// adaptive HLS stream (=mm,hls, 144p to 1080p by the network, like YouTube), which Safari, Chrome
+// (Android, and desktop since 142) and Edge play natively with no player code; else one MP4 stream,
+// 1080p, 720p or 360p (Firefox). It plays at once, as it opens on a tap. Its download (=dv) is the
+// original file.
 const slide = (p: Photo): Slide =>
   p.video
     ? {
@@ -30,7 +32,10 @@ const slide = (p: Photo): Slide =>
         height: p.height,
         poster: `${p.url}=s1920`,
         autoPlay: true,
-        sources: ['m37', 'm22', 'm18'].map((q) => ({ src: `${p.url}=${q}`, type: 'video/mp4' })),
+        sources: [
+          { src: `${p.url}=mm,hls`, type: 'application/vnd.apple.mpegurl' },
+          ...['m37', 'm22', 'm18'].map((q) => ({ src: `${p.url}=${q}`, type: 'video/mp4' })),
+        ],
         download: `${p.url}=dv`,
       }
     : { src: `${p.url}=s0`, width: p.width, height: p.height, download: `${p.url}=d` }
@@ -42,22 +47,29 @@ function open(url: string) {
 
 export default function PhotoViewer({ photos, index, onClose }: { photos: Photo[]; index: number; onClose: () => void }) {
   return (
-    <Lightbox
-      open
-      close={onClose}
-      index={index}
-      slides={photos.map(slide)}
-      plugins={[Zoom, Counter, Download, Video]}
-      className="viewer"
-      zoom={{ maxZoomPixelRatio: 1 }}
-      download={{
-        download: ({ slide: current }) => {
-          track('Photo download')
-          open(typeof current.download === 'string' ? current.download : '')
-        },
-      }}
-      controller={{ closeOnBackdropClick: true }}
-      carousel={{ finite: photos.length < 3, preload: 1 }}
-    />
+    <>
+      {/* Google's video servers answer 403 to a request with another site's Referer (checked: the MP4
+          and the HLS parts), and <video> has no referrerpolicy attribute, so the page sends none from
+          here on: the HTML <meta name="referrer">, which React 19 puts in <head>. It stays for the
+          visit (the HTML standard does not undo it); the photos send none already. */}
+      <meta name="referrer" content="no-referrer" />
+      <Lightbox
+        open
+        close={onClose}
+        index={index}
+        slides={photos.map(slide)}
+        plugins={[Zoom, Counter, Download, Video]}
+        className="viewer"
+        zoom={{ maxZoomPixelRatio: 1 }}
+        download={{
+          download: ({ slide: current }) => {
+            track('Photo download')
+            open(typeof current.download === 'string' ? current.download : '')
+          },
+        }}
+        controller={{ closeOnBackdropClick: true }}
+        carousel={{ finite: photos.length < 3, preload: 1 }}
+      />
+    </>
   )
 }
