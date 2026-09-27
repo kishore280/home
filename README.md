@@ -23,7 +23,7 @@ Coding agents: read [AGENTS.md](AGENTS.md) for the rules, commands, tests and ho
 | Updates, 88×31 buttons | `src/data.ts`, `public/*.svg` | Nothing |
 | ⌘K menu | cmdk | Nothing |
 
-Only real data is shown. A part with no data is hidden.
+Only real data is shown. A part with no data is hidden (zero is real data: a kind not logged yet still has its counts row).
 
 ## Local development
 

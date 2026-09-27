@@ -21,7 +21,7 @@ kishore's personal site, live at **https://kichoow.com**. React 19 + TypeScript 
 
 ## Rules
 
-- **Real data only.** A part with no data is hidden, never filled with demo text.
+- **Real data only.** A part with no data is hidden, never filled with demo text. (Zero is real data: every kind keeps its counts row, with "not logged yet".)
 - **Do not hand-roll.** Use an existing library, service or the documented method. Before a fix, search the library's docs or issues for the recommended way, and say which one you used.
 - **Keep the code small.** No new dependency for something a few lines do; no copy-pasted code (check with `npx jscpd src worker scripts`).
 - **Pre-render safe.** Anything that depends on the visitor's clock or browser renders only after `useIsClient()` is true (`src/lib/client.ts`), or hydration will not match.
@@ -67,6 +67,11 @@ Before you push, all of these must pass:
 1. `npm run build`
 2. `npm run lint`
 3. `npm run audit`: Playwright on desktop and mobile. It checks every tap target, the ⌘K menu, `/offline` and the service worker, the 404 page, layout width, keyboard use, axe-core accessibility and the Umami events (captured, never sent).
+
+**Speed (what a performance engineer checks):**
+- **No layout shift.** Anything that loads late keeps its exact place while it loads, and never collapses (web.dev "Optimize CLS"). The layout shift test runs with two data shapes (every kind logged, and only chai as live); add a shape when you add a data-driven part. Check a change with Lighthouse on a local `wrangler dev` whose D1 holds live-like data: `CHROME_PATH=/opt/pw-browsers/chromium npx lighthouse@12 http://127.0.0.1:<port>/ --only-categories=performance` (mobile profile by default). Use real-user data where it exists: Cloudflare Web Analytics shows Core Web Vitals from visitors.
+- **JavaScript budget.** The home page loads at most 400 KB of JavaScript (before compression); a test enforces it. Raise it only with a reason in the PR.
+- **D1 rows.** Say how many rows a new request reads and writes, and cache what many visitors ask for (Workers Cache API).
 
 When you add or change something a visitor can see or tap, **add a test** in `tests/ui.spec.ts`. Use web-first assertions (`toBeVisible`, `toBeFocused`, `toHaveCount`, `expect.poll`), not fixed waits; the only fixed wait is `settle()`, for "nothing happened" checks. A failed test leaves a trace and a report in `.context/` (ignored by Git).
 
