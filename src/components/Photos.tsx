@@ -11,7 +11,8 @@ import { Card } from './Card'
 // downloading when a finger or pointer comes near the grid. Without JavaScript, or with a middle
 // click, the link still opens the original photo. No referrer goes to Google.
 // Last in the main column: when it arrives, only the footer below it moves. A reload shows the last
-// answer at once (useSaved).
+// answer at once (useSaved). A photo that does not load (Google down or blocked) is hidden, and with
+// none left the card is too (real data only).
 const PhotoViewer = lazyPreload(() => import('./PhotoViewer'))
 const day = new Intl.DateTimeFormat('en-GB', { timeZone: site.timeZone, day: 'numeric', month: 'short' })
 const preload = () => void PhotoViewer.preload()
@@ -19,7 +20,9 @@ const preload = () => void PhotoViewer.preload()
 export function Photos() {
   const { data } = useSaved<PhotoAlbum>(site.photosAlbum ? '/api/photos' : null)
   const [open, setOpen] = useState<number | null>(null)
-  if (!data?.photos.length) return null
+  const [broken, setBroken] = useState<string[]>([])
+  const photos = data?.photos.filter((p) => !broken.includes(p.id)) ?? []
+  if (!photos.length) return null
 
   const show = (e: MouseEvent, i: number) => {
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return // a new tab, as the link says
@@ -30,9 +33,9 @@ export function Photos() {
   return (
     <Card title="photos" id="photos">
       <ul className="photos" onPointerEnter={preload} onPointerDown={preload} onFocus={preload}>
-        {data.photos.map((p, i) => {
+        {photos.map((p, i) => {
           // A different name for each photo (two can share a day), so each link says which one it opens.
-          const alt = `Photo ${i + 1} of ${data.photos.length} from kish’s album, added ${day.format(new Date(p.added))}`
+          const alt = `Photo ${i + 1} of ${photos.length} from kish’s album, added ${day.format(new Date(p.added))}`
           return (
             <li key={p.id}>
               <a
@@ -43,13 +46,13 @@ export function Photos() {
                 data-umami-event="Photo open"
                 onClick={(e) => show(e, i)}
               >
-                <img src={`${p.url}=w400-h400-c-rw`} alt={alt} width={400} height={400} loading="lazy" decoding="async" referrerPolicy="no-referrer" />
+                <img src={`${p.url}=w400-h400-c-rw`} alt={alt} width={400} height={400} loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setBroken((b) => [...b, p.id])} />
               </a>
             </li>
           )
         })}
       </ul>
-      {open !== null ? <PhotoViewer photos={data.photos} index={open} onClose={() => setOpen(null)} /> : null}
+      {open !== null ? <PhotoViewer photos={photos} index={open} onClose={() => setOpen(null)} /> : null}
     </Card>
   )
 }
