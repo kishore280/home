@@ -661,7 +661,8 @@ h2 {
   height: 150px;
 }
 
-.chai-clock-dial svg {
+/* Only the dial: the chai glass in the middle is an svg too, sized by its text. */
+.chai-clock-dial > svg {
   width: 100%;
   height: 100%;
   display: block;
