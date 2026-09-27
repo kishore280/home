@@ -970,6 +970,7 @@ html[data-log-clock='0'] .chai-clock.pending {
 
 .photos a {
   display: block;
+  text-decoration: none;
   border-radius: 12px;
   overflow: hidden;
   background: var(--chip);
@@ -981,6 +982,18 @@ html[data-log-clock='0'] .chai-clock.pending {
   height: auto;
   aspect-ratio: 1;
   object-fit: cover;
+  /* A photo that does not load (Google blocked or down) stays a plain lavender tile: the alt text
+     is transparent, but screen readers still read it ("Styling broken images", Ire Aderinokun). */
+  color: transparent;
+  position: relative;
+}
+
+/* Only a broken image draws ::before, so this covers the browser's broken-image icon too. */
+.photos img::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--chip);
 }
 
 /* The photo viewer (PhotoViewer.tsx) in the site's look, with the library's documented CSS
