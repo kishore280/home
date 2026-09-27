@@ -598,6 +598,10 @@ test.describe('counts card', () => {
     await expect(clock.locator('svg[role="img"] path')).toHaveCount(24) // the glass in the middle has its own paths
     await expect(clock.locator('figcaption')).toHaveText('most chai at 5 pm, then 11 am')
     await expect(clock.locator('.chai-icon')).toBeVisible()
+    // The glass sits inside the ring of wedges (radius 30 of 80), never over the dial.
+    const glass = (await clock.locator('.chai-icon').boundingBox())!
+    const dial = (await clock.locator('svg[role="img"]').boundingBox())!
+    expect(glass.width).toBeLessThan(dial.width * 0.3)
     await expect(clock.locator('svg[role="img"]')).toHaveAttribute('aria-label', 'Chai by hour of the day: most at 5 pm')
     await expect(clock.locator('path.lvl-4')).toHaveCount(1)
   })
