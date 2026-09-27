@@ -58,7 +58,7 @@ function streaks(values: number[]) {
   return { now, best }
 }
 
-// "27 Sep: 🍵 2 chai · 🏸 badminton day"
+// "27 Sep: 🍵 2 chai · 🏸 badminton"
 function DayNote({ day, today, counts, kinds }: { day: string; today: string; counts: Counts; kinds: LogKind[] }) {
   const had = kinds.filter((k) => counts.get(day)?.get(k.kind))
   return (
@@ -73,7 +73,7 @@ function DayNote({ day, today, counts, kinds }: { day: string; today: string; co
         : had.map((k, i) => (
             <span key={k.kind}>
               {i ? ' · ' : ''}
-              <KindIcon kind={k.kind} emoji={k.emoji} /> {k.onceADay ? `${k.kind} day` : `${counts.get(day)!.get(k.kind)} ${k.kind}`}
+              <KindIcon kind={k.kind} emoji={k.emoji} /> {k.onceADay ? k.kind : `${counts.get(day)!.get(k.kind)} ${k.kind}`}
             </span>
           ))}
     </>
@@ -117,6 +117,8 @@ export function YearHeatmap() {
   }))
   const { now, best } = streaks(values)
   const active = values.filter(Boolean).length
+  // The labels are fixed text, so they are in the pre-rendered HTML and only the numbers arrive
+  // later: the tiles keep their size (web.dev "Optimize CLS").
   const tiles: [number, string][] = kind
     ? [
         [now, 'day streak'],
@@ -155,14 +157,12 @@ export function YearHeatmap() {
         ))}
       </div>
       <dl className="heat-tiles">
-        {data
-          ? tiles.map(([n, label]) => (
-              <div key={label}>
-                <dt>{label}</dt>
-                <dd>{n}</dd>
-              </div>
-            ))
-          : null}
+        {tiles.map(([n, label]) => (
+          <div key={label}>
+            <dt>{label}</dt>
+            <dd>{data ? n : '\u00a0'}</dd>
+          </div>
+        ))}
       </dl>
       {/* The squares are for pointers; the ‹ › buttons below do the same from a keyboard. */}
       {/* oxlint-disable-next-line jsx-a11y/click-events-have-key-events jsx-a11y/no-static-element-interactions */}
@@ -191,22 +191,24 @@ export function YearHeatmap() {
           />
         ) : null}
       </div>
-      <div className="heat-day">
-        <button type="button" aria-label="Day before" disabled={!data || day === days[0]} onClick={() => step(-1)}>
+      <p className="heat-day" aria-live="polite">
+        {data ? <DayNote day={day} today={today} counts={counts} kinds={kinds} /> : null}
+      </p>
+      <div className="heat-foot">
+        <button type="button" className="heat-step" aria-label="Day before" disabled={!data || day === days[0]} onClick={() => step(-1)}>
           ‹
         </button>
-        <p aria-live="polite">{data ? <DayNote day={day} today={today} counts={counts} kinds={kinds} /> : null}</p>
-        <button type="button" aria-label="Day after" disabled={!data || day === today} onClick={() => step(1)}>
+        <button type="button" className="heat-step" aria-label="Day after" disabled={!data || day === today} onClick={() => step(1)}>
           ›
         </button>
-      </div>
-      <div className="heat-range" role="group" aria-label="Time range">
         <span>{span}</span>
-        {RANGES.map(([n, label]) => (
-          <button key={n} type="button" aria-pressed={range === n} onClick={() => setRange(n)}>
-            {label}
-          </button>
-        ))}
+        <div className="heat-range" role="group" aria-label="Time range">
+          {RANGES.map(([n, label]) => (
+            <button key={n} type="button" aria-pressed={range === n} onClick={() => setRange(n)}>
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
     </Card>
   )

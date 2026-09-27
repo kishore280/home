@@ -308,7 +308,9 @@ test.describe('keyboard and touch', () => {
     await page.goto('/')
     await expect(page.locator('.b88')).toHaveCount(8)
     const stops: { text: string; ring: boolean }[] = []
-    for (let i = 0; i < 20; i++) {
+    // Up to 60 stops: with logged data, the "my days" card adds its chips, day and range buttons
+    // before the ⌘K button. The loop ends when focus comes back to a stop it has seen.
+    for (let i = 0; i < 60; i++) {
       await page.keyboard.press('Tab')
       const stop = await page.evaluate(() => {
         const e = document.activeElement as HTMLElement
@@ -437,7 +439,13 @@ test.describe('offline page', () => {
 })
 
 test.describe('speed', () => {
-  test('nothing moves while the home page loads (layout shift)', async ({ page }) => {
+  // Two data shapes: every kind logged, and the live one (only chai logged). The loading places must
+  // match both, or the main column jumps on phones (Lighthouse found 0.3 with only chai).
+  const shapes = {
+    'every kind logged': (totals: Totals) => ({ chai: { ...totals, hours: chaiHours }, parotta: totals, beach: { ...totals, place: 'Marina' }, badminton: totals }),
+    'only chai logged': (totals: Totals) => ({ chai: { ...totals, hours: chaiHours } }),
+  }
+  for (const [shape, reply] of Object.entries(shapes)) test(`nothing moves while the home page loads (layout shift), ${shape}`, async ({ page }) => {
     await page.addInitScript(() => {
       ;(window as unknown as { __cls: number }).__cls = 0
       new PerformanceObserver((list) => {
@@ -454,9 +462,10 @@ test.describe('speed', () => {
     await page
       .context()
       .route('**/api/log', (r) =>
-        r.fulfill({ json: logReply({ chai: { ...totals, hours: chaiHours }, parotta: totals, beach: { ...totals, place: 'Marina' }, badminton: totals }) }),
+        r.fulfill({ json: logReply(reply(totals)) }),
       )
-    await page.context().route('**/api/log/days?**', (r) => r.fulfill({ json: daysReply(84, { [istToday()]: { chai: 2, badminton: 1 } }) }))
+    const today: Record<string, number> = shape === 'only chai logged' ? { chai: 2 } : { chai: 2, badminton: 1 }
+    await page.context().route('**/api/log/days?**', (r) => r.fulfill({ json: daysReply(84, { [istToday()]: today }) }))
     await page.goto('/')
     // Wait for everything that arrives after the page: the clock, the rows, the mascot's line and the views.
     await expect(page.locator('.clock')).toBeVisible()
@@ -466,12 +475,30 @@ test.describe('speed', () => {
     await expect(page.locator('.count')).toHaveCount(4)
     await expect(page.locator('.count.pending')).toHaveCount(0)
     await expect(page.locator('.chai-clock figcaption')).toBeVisible()
-    await expect(page.locator(`#year rect[data-date="${istToday()}"]`)).toHaveAttribute('data-level', '2')
+    await expect(page.locator(`#year rect[data-date="${istToday()}"]`)).toHaveAttribute('data-level', String(Object.keys(today).length))
     await expect(page.locator('#year .heat-tiles dd')).toHaveCount(4)
-    await expect(page.locator('#year .heat-day p')).toContainText('(today)')
+    await expect(page.locator('#year .heat-day')).toContainText('(today)')
     await expect(page.locator('.stats dd')).toHaveCount(2)
     await settle(page)
     expect(await page.evaluate(() => (window as unknown as { __cls: number }).__cls)).toBeLessThan(0.001)
+  })
+
+  // A performance budget, kept in the tests so a change that adds weight fails here and has to
+  // say why (web.dev "Performance budgets 101"). 400 KB is just above today's 387 KB of JavaScript
+  // (before compression) that the home page loads, the lazy chunks included. The heatmap library's
+  // tooltip chunk (Floating UI) must never load: the squares use an SVG <title>.
+  test('the home page stays within its JavaScript budget', async ({ page }) => {
+    await page.goto('/')
+    await page.waitForLoadState('networkidle')
+    await settle(page)
+    const scripts = await page.evaluate(() =>
+      (performance.getEntriesByType('resource') as PerformanceResourceTiming[])
+        .filter((e) => e.initiatorType === 'script' || e.name.endsWith('.js'))
+        .map((e) => ({ name: e.name, bytes: e.decodedBodySize })),
+    )
+    const total = scripts.reduce((sum, e) => sum + e.bytes, 0)
+    expect(total, scripts.map((e) => `${e.name.split('/').pop()} ${e.bytes}`).join(', ')).toBeLessThan(400_000)
+    expect(scripts.filter((e) => e.name.includes('/assets/Tooltip'))).toEqual([])
   })
 
   test('a same-site link is prefetched on hover and opens from the prefetch', async ({ browser, baseURL, isMobile }) => {
@@ -629,7 +656,7 @@ test.describe('counts card', () => {
     })
     await page.goto('/')
     const card = page.locator('#year')
-    const note = card.locator('.heat-day p')
+    const note = card.locator('.heat-day')
     await expect(card.getByRole('heading')).toHaveText('my days')
     await expect(card.getByRole('button', { name: 'all' })).toHaveAttribute('aria-pressed', 'true')
     // 12 weeks by default: 84 squares. Today had 2 of the 2 kinds: the darkest.
@@ -677,18 +704,22 @@ test.describe('counts card', () => {
     page.on('pageerror', (e) => errors.push(e.message))
     await page.goto('/')
     await expect(page.locator(`#year rect[data-date="${istToday()}"]`)).toHaveAttribute('data-level', '1')
-    await expect(page.locator('#year .heat-day p')).toContainText('(today): 1 chai')
-    await expect(page.locator('#counts .count')).toHaveCount(1)
+    await expect(page.locator('#year .heat-day')).toContainText('(today): 1 chai')
+    await expect(page.locator('#counts .count')).toHaveCount(4)
     expect(errors).toEqual([])
   })
 
-  test('only the kinds that were logged are shown, with their numbers', async ({ page, context }) => {
+  test('every kind has its row, with its numbers or "not logged yet"', async ({ page, context }) => {
     await context.route('**/api/log', (r) => r.fulfill({ json: logReply({ chai: { today: 2, month: 14, year: 90, total: 90, last: at } }) }))
     await page.goto('/')
     const card = page.locator('#counts')
-    await expect(card.locator('.count')).toHaveCount(1)
-    await expect(card).toContainText('2 today')
-    await expect(card).toContainText('14 this month · last today')
+    await expect(card.locator('.count')).toHaveCount(4)
+    const row = (name: string) => card.locator('.count', { hasText: name })
+    await expect(row('chai')).toContainText('2 today')
+    await expect(row('chai')).toContainText('14 this month · last today')
+    await expect(row('parotta')).toContainText('0 today')
+    await expect(row('parotta')).toContainText('not logged yet')
+    await expect(row('badminton days')).toContainText('0 this month')
   })
 
   test('a once-a-day kind shows days this month and this year, with the place', async ({ page, context }) => {
@@ -764,7 +795,18 @@ test.describe('accessibility (axe-core)', () => {
     ],
   ]
   for (const [name, path, scheme, setup] of states) {
-    test(`${name}: no violations`, async ({ page }) => {
+    test(`${name}: no violations`, async ({ page, context }) => {
+      // Every card with data, whatever the local D1 holds, and no real GitHub call (it can take
+      // longer than the wait below): axe checks every card on every run.
+      const at = new Date().toISOString()
+      const totals = { today: 2, month: 14, year: 90, total: 90, last: at }
+      await context.route('**/api/github', (r) => r.fulfill({ json: { repo: 'home', url: 'https://github.com/kishore280/home', at } }))
+      await context.route('**/api/log', (r) =>
+        r.request().method() === 'GET'
+          ? r.fulfill({ json: logReply({ chai: { ...totals, hours: chaiHours }, parotta: totals, beach: { ...totals, place: 'Marina' }, badminton: totals }) })
+          : r.fallback(),
+      )
+      await context.route('**/api/log/days?**', (r) => r.fulfill({ json: daysReply(84, { [istToday()]: { chai: 2, badminton: 1 }, [daysAgo(3)]: { parotta: 1 } }) }))
       // Reduced motion: axe checks the final colours, not a row that is still fading in.
       await page.emulateMedia({ colorScheme: scheme, reducedMotion: 'reduce' })
       await page.goto(path)

@@ -648,11 +648,11 @@ h2 {
   margin: 0 0 12px;
   display: grid;
   justify-items: center;
+  align-content: start;
   gap: 4px;
-}
-
-.chai-clock.pending {
-  height: 180px; /* the dial and its line, kept while the counts load */
+  /* The dial and its line. Fixed, so the loading place (.pending) and the clock are the same size
+     whatever the font (web.dev "Optimize CLS"). */
+  height: 176px;
 }
 
 .chai-clock-dial {
@@ -713,20 +713,25 @@ h2 {
    scrolls sideways inside its own box on phones, starting at today). Every part keeps its height
    while it loads, so nothing moves (web.dev "Optimize CLS"). */
 .heat-kinds,
-.heat-range {
+.heat-range,
+.heat-foot {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
 }
 
+/* One line that scrolls sideways when the kinds do not fit, so its height never depends on how
+   many kinds there are (a wrap to a second line would push the card down). */
 .heat-kinds {
   min-height: 30px; /* kept while the kinds load */
   margin-bottom: 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 
 .heat-kinds button,
 .heat-range button {
+  flex: none;
   font: 700 13px var(--body);
   color: var(--text);
   background: var(--chip);
@@ -747,7 +752,6 @@ h2 {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 6px;
-  min-height: 62px; /* kept while the numbers load */
   margin: 0 0 12px;
 }
 
@@ -795,21 +799,25 @@ h2 {
   min-height: 124px;
 }
 
+/* Room for two lines, the most a day with every kind takes, so a longer day does not push. */
 .heat-day {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 8px;
   margin: 8px 0;
-}
-
-.heat-day p {
-  margin: 0;
-  min-height: 1.5em;
   font-size: 14px;
+  line-height: 1.5;
+  min-height: 3em;
 }
 
-.heat-day button {
+.heat-foot {
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.heat-foot span {
+  margin-right: auto;
+}
+
+.heat-step {
   font: 800 18px/1 var(--body);
   color: var(--text);
   background: var(--chip);
@@ -820,19 +828,9 @@ h2 {
   cursor: pointer;
 }
 
-.heat-day button:disabled {
+.heat-step:disabled {
   opacity: 0.4;
   cursor: default;
-}
-
-.heat-range {
-  justify-content: flex-end;
-  font-size: 13px;
-  color: var(--muted);
-}
-
-.heat-range span {
-  margin-right: auto;
 }
 
 /* counts: compact for the narrow left column. label left, number right, details below */
@@ -858,6 +856,17 @@ h2 {
   font-weight: 600;
   font-size: 14px;
   color: var(--muted);
+  /* One line, like the loading line: a long name ("badminton days") is cut, not wrapped. */
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* An emoji font has taller metrics than the text font; line-height 1 keeps its line as tall as
+   a plain text line, so every row is the same height. */
+.kind-emoji {
+  line-height: 1;
 }
 
 .count dd {
