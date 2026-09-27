@@ -82,10 +82,8 @@ logs check-ins); the Worker stores it in D1 and the counts card updates within s
 - **On the home page:** the counts card has the **chai clock** (chai per hour of the day in IST, for
   all time: `log_hours`, `migrations/0005_log_hours.sql`, kept by three more triggers). Its wedges are
   d3-shape `arc()`, sized with d3-scale `scaleRadial` so the area follows the count
-  ([D3 docs](https://d3js.org/d3-scale/radial)). The **my days** card follows the
-  way 2026 coding tools show activity (Claude Code `/stats`, `opencode stats`): the numbers first
-  (streak now, best streak, days with something, days with 3+ things), then a grid of the last
-  year, 12 weeks on request. The default **all** view puts every kind in one grid, like GitHub's
+  ([D3 docs](https://d3js.org/d3-scale/radial)). The **my days** card is a grid of the last
+  year, 12 weeks on request (no number tiles). The default **all** view puts every kind in one grid, like GitHub's
   contribution graph: a day is darker for more different things done. A tap on a day (or the ‹ ›
   buttons) says what it had; the chips show one kind alone. The grid is
   [react-activity-calendar](https://github.com/grubersjoe/react-activity-calendar); it draws in the
