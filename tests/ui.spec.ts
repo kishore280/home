@@ -639,19 +639,25 @@ test.describe('photos (shared Google Photos album)', () => {
     await expect(page.locator('[cmdk-item]', { hasText: 'Photos' })).toHaveCount(0)
   })
 
-  test('a photo that does not load is a plain tile: no alt text, underline or broken icon on show', async ({ page, context }) => {
-    await context.route('https://lh3.googleusercontent.com/**', (r) => r.abort())
-    await context.route('**/api/photos', (r) => r.fulfill({ json: { photos: [photo(1, '2026-09-27T13:01:03Z')] } }))
+  test('a photo that does not load is hidden; with none loaded there is no card', async ({ page, context }) => {
+    await context.route('https://lh3.googleusercontent.com/**', (r) =>
+      r.request().url().includes('test-1') ? r.abort() : r.fulfill({ contentType: 'image/png', body: pixel }),
+    )
+    await context.route('**/api/photos', (r) =>
+      r.fulfill({ json: { photos: [photo(1, '2026-09-27T13:01:03Z'), photo(2, '2026-09-26T08:00:00Z')] } }),
+    )
     await page.goto('/')
-    const img = page.locator('#photos img')
-    await expect(img).toHaveAttribute('alt', /Photo 1 of 1/) // screen readers still get it
-    await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth === 0)).toBe(true)
-    const look = await img.evaluate((el) => ({
-      text: getComputedStyle(el).color,
-      line: getComputedStyle(el.parentElement!).textDecorationLine,
-      cover: getComputedStyle(el, '::before').content,
-    }))
-    expect(look).toEqual({ text: 'rgba(0, 0, 0, 0)', line: 'none', cover: '""' })
+    const card = page.locator('#photos')
+    await card.scrollIntoViewIfNeeded() // the photos load lazily, near the screen
+    await expect(card.locator('img')).toHaveCount(1)
+    await expect(card.locator('img')).toHaveAttribute('src', /test-2/)
+    await expect(card.locator('img')).toHaveAttribute('alt', /^Photo 1 of 1 /)
+
+    await context.unroute('https://lh3.googleusercontent.com/**')
+    await context.route('https://lh3.googleusercontent.com/**', (r) => r.abort())
+    await page.reload()
+    await page.locator('footer').scrollIntoViewIfNeeded()
+    await expect(card).toHaveCount(0)
   })
 
   test('with no photos (or no answer from Google), there is no card', async ({ page, context }) => {
