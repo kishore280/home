@@ -795,7 +795,18 @@ test.describe('accessibility (axe-core)', () => {
     ],
   ]
   for (const [name, path, scheme, setup] of states) {
-    test(`${name}: no violations`, async ({ page }) => {
+    test(`${name}: no violations`, async ({ page, context }) => {
+      // Every card with data, whatever the local D1 holds, and no real GitHub call (it can take
+      // longer than the wait below): axe checks every card on every run.
+      const at = new Date().toISOString()
+      const totals = { today: 2, month: 14, year: 90, total: 90, last: at }
+      await context.route('**/api/github', (r) => r.fulfill({ json: { repo: 'home', url: 'https://github.com/kishore280/home', at } }))
+      await context.route('**/api/log', (r) =>
+        r.request().method() === 'GET'
+          ? r.fulfill({ json: logReply({ chai: { ...totals, hours: chaiHours }, parotta: totals, beach: { ...totals, place: 'Marina' }, badminton: totals }) })
+          : r.fallback(),
+      )
+      await context.route('**/api/log/days?**', (r) => r.fulfill({ json: daysReply(84, { [istToday()]: { chai: 2, badminton: 1 }, [daysAgo(3)]: { parotta: 1 } }) }))
       // Reduced motion: axe checks the final colours, not a row that is still fading in.
       await page.emulateMedia({ colorScheme: scheme, reducedMotion: 'reduce' })
       await page.goto(path)
