@@ -35,18 +35,19 @@ export function Photos() {
       <ul className="photos" onPointerEnter={preload} onPointerDown={preload} onFocus={preload}>
         {photos.map((p, i) => {
           // A different name for each photo (two can share a day), so each link says which one it opens.
-          const alt = `Photo ${i + 1} of ${photos.length} from kish’s album, added ${day.format(new Date(p.added))}`
+          const alt = `${p.video ? 'Video' : 'Photo'} ${i + 1} of ${photos.length} from kish’s album, added ${day.format(new Date(p.added))}`
           return (
             <li key={p.id}>
               <a
-                href={`${p.url}=s0`}
+                href={`${p.url}=${p.video ? 'm37' : 's0'}`}
                 target="_blank"
                 rel="noreferrer"
                 referrerPolicy="no-referrer"
-                data-umami-event="Photo open"
+                data-umami-event={p.video ? 'Video open' : 'Photo open'}
                 onClick={(e) => show(e, i)}
               >
                 <img src={`${p.url}=w400-h400-c-rw`} alt={alt} width={400} height={400} loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setBroken((b) => [...b, p.id])} />
+                {p.video ? <span className="play" aria-hidden="true" /> : null}
               </a>
             </li>
           )

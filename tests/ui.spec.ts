@@ -639,6 +639,36 @@ test.describe('photos (shared Google Photos album)', () => {
     await expect(page.locator('[cmdk-item]', { hasText: 'Photos' })).toHaveCount(0)
   })
 
+  test('a video in the album: a play mark, it plays in the viewer (1080p, then 720p, 360p), the download is the original', async ({ page, context, log }) => {
+    await context.route('https://lh3.googleusercontent.com/**', (r) =>
+      /=(dv|m\d\d)$/.test(r.request().url())
+        ? r.fulfill({ contentType: 'video/mp4', body: Buffer.alloc(0), headers: { 'content-disposition': 'attachment;filename="ride.mp4"' } })
+        : r.fulfill({ contentType: 'image/png', body: pixel }),
+    )
+    await context.route('**/api/photos', (r) =>
+      r.fulfill({ json: { photos: [{ ...photo(1, '2026-09-27T13:01:03Z'), video: true }, photo(2, '2026-09-26T08:00:00Z')] } }),
+    )
+    await page.goto('/')
+    const tiles = page.locator('#photos a[target]')
+    await expect(tiles).toHaveCount(2)
+    await expect(tiles.first().locator('.play')).toBeVisible()
+    await expect(tiles.nth(1).locator('.play')).toHaveCount(0)
+    await expect(tiles.first().locator('img')).toHaveAttribute('alt', /^Video 1 of 2 /)
+    await expect(tiles.first()).toHaveAttribute('href', 'https://lh3.googleusercontent.com/pw/test-1=m37') // without JavaScript
+    await tiles.first().click()
+    const viewer = page.getByRole('dialog')
+    const video = viewer.locator('video')
+    await expect(video).toHaveAttribute('poster', 'https://lh3.googleusercontent.com/pw/test-1=s1920')
+    await expect(video).toHaveAttribute('controls')
+    expect(await video.locator('source').evaluateAll((s) => s.map((e) => (e as HTMLSourceElement).src.split('=')[1]))).toEqual(['m37', 'm22', 'm18'])
+    const download = page.waitForEvent('download')
+    await viewer.getByRole('button', { name: 'Download' }).click()
+    expect((await download).url()).toBe('https://lh3.googleusercontent.com/pw/test-1=dv')
+    await expectEvents(log, ['Video open', 'Photo download'])
+    await page.keyboard.press('ArrowRight') // a photo after a video is still a photo
+    await expect(viewer.locator('img[src$="test-2=s0"]')).toHaveCount(1)
+  })
+
   test('a photo that does not load is hidden; with none loaded there is no card', async ({ page, context }) => {
     await context.route('https://lh3.googleusercontent.com/**', (r) =>
       r.request().url().includes('test-1') ? r.abort() : r.fulfill({ contentType: 'image/png', body: pixel }),

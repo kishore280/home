@@ -1,6 +1,7 @@
-import Lightbox, { type SlideImage } from 'yet-another-react-lightbox'
+import Lightbox, { type Slide } from 'yet-another-react-lightbox'
 import Counter from 'yet-another-react-lightbox/plugins/counter'
 import Download from 'yet-another-react-lightbox/plugins/download'
+import Video from 'yet-another-react-lightbox/plugins/video'
 import Zoom from 'yet-another-react-lightbox/plugins/zoom'
 import 'yet-another-react-lightbox/plugins/counter.css'
 import 'yet-another-react-lightbox/styles.css'
@@ -18,7 +19,21 @@ import { track } from '../lib/track'
 // opening it downloads it. Our own download function (the plugin's documented `download.download`)
 // opens it at once; the plugin's default first probes the URL with a synchronous XHR, which the
 // site's CSP blocks for Google (connect-src), and logs an error.
-const slide = (p: Photo): SlideImage => ({ src: `${p.url}=s0`, width: p.width, height: p.height, download: `${p.url}=d` })
+// A video (the plugin's documented `sources`): Google's stream, 1080p first, then 720p and 360p, as
+// the browser takes the first source it can play. It plays at once, as it opens on a tap. Its
+// download (=dv) is the original file.
+const slide = (p: Photo): Slide =>
+  p.video
+    ? {
+        type: 'video',
+        width: p.width,
+        height: p.height,
+        poster: `${p.url}=s1920`,
+        autoPlay: true,
+        sources: ['m37', 'm22', 'm18'].map((q) => ({ src: `${p.url}=${q}`, type: 'video/mp4' })),
+        download: `${p.url}=dv`,
+      }
+    : { src: `${p.url}=s0`, width: p.width, height: p.height, download: `${p.url}=d` }
 
 function open(url: string) {
   const link = Object.assign(document.createElement('a'), { href: url, rel: 'noopener noreferrer' })
@@ -32,7 +47,7 @@ export default function PhotoViewer({ photos, index, onClose }: { photos: Photo[
       close={onClose}
       index={index}
       slides={photos.map(slide)}
-      plugins={[Zoom, Counter, Download]}
+      plugins={[Zoom, Counter, Download, Video]}
       className="viewer"
       zoom={{ maxZoomPixelRatio: 1 }}
       download={{

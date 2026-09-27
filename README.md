@@ -21,7 +21,7 @@ Coding agents: read [AGENTS.md](AGENTS.md) for the rules, commands, tests and ho
 | Right now: local time | Browser | `timeZone` in `src/data.ts` |
 | Counts: parotta, chai, beach days | The `/log` page → D1 | `SCROBBLE_TOKEN` (below) |
 | Updates, 88×31 buttons | `src/data.ts`, `public/*.svg` | Nothing |
-| Photos: the newest 6 of a shared album | A public Google Photos shared album | `photosAlbum` in `src/data.ts` |
+| Photos: the newest 6 of a shared album (videos too) | A public Google Photos shared album | `photosAlbum` in `src/data.ts` |
 | ⌘K menu | cmdk | Nothing |
 
 Only real data is shown. A part with no data is hidden.
@@ -145,6 +145,10 @@ Add a photo to the shared album on the phone, and it shows on the site within th
   so it follows light and dark. Download saves the original file: Google's `=d` link answers with
   `Content-Disposition: attachment`. Umami events: `Photo open`, `Photo download`. The page never links to the album
   or sends its address; the photos are seen here.
+- **Videos:** Google's album data marks a video with the field `76647426` (the library drops it, so
+  `worker/photos.ts` runs the library's own parse steps and keeps it). The tile has a ▶ mark. The
+  viewer's Video plugin plays Google's stream: `=m37` (1080p), then `=m22` (720p) and `=m18` (360p),
+  from `*.googlevideo.com` (allowed in the CSP's `media-src`). **Download** (`=dv`) is the original file.
 - **Now, not in an hour:** on `/log`, tap **refresh photos**. With the phone's token, `/api/photos`
   clears the saved list in every Cloudflare location with a **purge by Cache-Tag** (`photos`), free on
   every plan since April 2025 and done in under 150 ms
