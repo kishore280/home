@@ -40,11 +40,11 @@
     "@vitejs/plugin-react": "^6.1.1",
     "beasties": "^0.5.4",
     "oxlint": "^1.81.0",
-    "typescript": "~6.0.2",
+    "typescript": "^7.0.2",
     "vite": "^8.3.0",
     "vite-plugin-csp-guard": "^4.0.1",
     "workbox-build": "^7.4.1",
-    "wrangler": "^4.141.0"
+    "wrangler": "^4.142.0"
   },
   "overrides": {
     "uuid": "^11.1.1"
