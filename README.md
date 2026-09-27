@@ -94,6 +94,12 @@ logs check-ins); the Worker stores it in D1 and the counts card updates within s
     every kind, one primary-key range read per kind, no sort (at most 4 × 365 rows). The answer is kept
     60 s in Cloudflare's edge cache ([Workers Cache API](https://developers.cloudflare.com/workers/runtime-apis/cache/)),
     so most visits read no D1 rows at all.
+  - **Loading:** a reload shows the last answer at once and swaps in the fresh one
+    (stale-while-revalidate, as in the [SWR cache docs](https://swr.vercel.app/docs/advanced/cache);
+    `src/lib/saved.ts`). Before the code runs, the grey loading lines match the kinds logged: the
+    head script sizes them from the last visit, and the build from the live log
+    (`<html data-log-rows data-log-clock>`), the same way the theme script avoids a dark-mode flash.
+    A skeleton should mirror the page it stands for ([NN/g](https://www.nngroup.com/articles/skeleton-screens/)).
   - **Speed:** an SVG `<title>` per square instead of the library's tooltip component (about 400 ms
     less main-thread blocking on a 4× slowed CPU), and one click listener for the whole grid.
     12 weeks (84 squares) is lighter still, about 30% less blocking than the year.

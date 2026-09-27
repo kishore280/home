@@ -1,7 +1,7 @@
-import useSWR from 'swr'
 import { site } from '../data'
-import { fetcher, type LogKind, type LogSummary } from '../lib/api'
+import { type LogKind, type LogSummary } from '../lib/api'
 import { useNow } from '../lib/client'
+import { useSaved } from '../lib/saved'
 import { Card } from './Card'
 import { ChaiClock } from './ChaiClock'
 import { KindIcon } from './KindIcon'
@@ -55,7 +55,7 @@ const pendingRow = (i: number) => (
 
 export function Counts() {
   const now = useNow(60_000)
-  const { data, error } = useSWR('/api/log', fetcher<LogSummary>, { refreshInterval: 60_000 })
+  const { data, error } = useSaved<LogSummary>('/api/log', { refreshInterval: 60_000 })
   const pending = data === undefined && !error
   // A kind never logged has no row; with nothing logged at all, there is no card. The loading rows
   // are one per kind, so fewer rows can follow: the card then gets shorter, which moves only what is

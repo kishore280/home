@@ -1,8 +1,8 @@
 import { cloneElement, useEffect, useRef, useState, type MouseEvent } from 'react'
 import { ActivityCalendar, type Activity } from 'react-activity-calendar'
-import useSWR from 'swr'
-import { fetcher, type LogDays, type LogKind, type LogSummary } from '../lib/api'
+import { type LogDays, type LogKind, type LogSummary } from '../lib/api'
 import { useIsClient } from '../lib/client'
+import { useSaved } from '../lib/saved'
 import { Card } from './Card'
 import { KindIcon } from './KindIcon'
 
@@ -81,7 +81,7 @@ function DayNote({ day, today, counts, kinds }: { day: string; today: string; co
 }
 
 export function YearHeatmap() {
-  const { data: summary, error } = useSWR('/api/log', fetcher<LogSummary>, { refreshInterval: 60_000 })
+  const { data: summary, error } = useSaved<LogSummary>('/api/log', { refreshInterval: 60_000 })
   const kinds = summary?.kinds.filter((k) => k.last !== null) ?? []
   const [choice, setChoice] = useState('all')
   // The year by default; 12 weeks on request.
@@ -89,7 +89,7 @@ export function YearHeatmap() {
   const [picked, setPicked] = useState<string | null>(null)
   const kind = kinds.find((k) => k.kind === choice)
   // No timer: day totals change slowly; SWR reloads when the visitor comes back to the tab.
-  const { data } = useSWR(kinds.length ? `/api/log/days?range=${range}` : null, fetcher<LogDays>)
+  const { data } = useSaved<LogDays>(kinds.length ? `/api/log/days?range=${range}` : null)
   const calendar = useRef<HTMLElement>(null)
   const client = useIsClient()
 

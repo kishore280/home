@@ -17,4 +17,21 @@
       document.querySelectorAll('meta[name="theme-color"]').forEach(function (m) { m.content = c })
     }
   } catch (e) {}
+  // Size the loading lines of the counts card before first paint, the same way: as many rows as
+  // kinds logged at the last visit, and the clock only if chai had hours (src/lib/saved.ts keeps
+  // the last /api/log answer). Without a last visit, the build's live shape stays (prerender.mjs).
+  try {
+    var s = JSON.parse(localStorage.getItem('swr /api/log:v1') || 'null')
+    if (s && s.kinds) {
+      var n = 0
+      var h = 0
+      s.kinds.forEach(function (k) {
+        if (!k.last) return
+        n++
+        if (k.kind === 'chai' && k.hours && k.hours.some(Boolean)) h = 1
+      })
+      document.documentElement.dataset.logRows = n
+      document.documentElement.dataset.logClock = h
+    }
+  } catch (e) {}
 </script>

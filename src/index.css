@@ -889,6 +889,17 @@ h2 {
 }
 
 /* A loading row: soft bars where the label, the number and the line under them will be. */
+/* Only as many loading lines as the kinds logged, and the clock's place only if it will show:
+   <html data-log-rows data-log-clock> comes from the visitor's last visit (src/head.html) or the
+   live log at build time (scripts/prerender.mjs). NN/g: a skeleton mirrors the page it stands for. */
+html[data-log-rows='0'] .count.pending,
+html[data-log-rows='1'] .count.pending:nth-child(n + 2),
+html[data-log-rows='2'] .count.pending:nth-child(n + 3),
+html[data-log-rows='3'] .count.pending:nth-child(n + 4),
+html[data-log-clock='0'] .chai-clock.pending {
+  display: none;
+}
+
 .count.pending dt::before,
 .count.pending dd::before {
   content: '';
