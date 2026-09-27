@@ -19,11 +19,10 @@ import { track } from '../lib/track'
 // opening it downloads it. Our own download function (the plugin's documented `download.download`)
 // opens it at once; the plugin's default first probes the URL with a synchronous XHR, which the
 // site's CSP blocks for Google (connect-src), and logs an error.
-// A video (the plugin's documented `sources`; the browser plays the first one it can): Google's
-// adaptive HLS stream (=mm,hls, 144p to 1080p by the network, like YouTube), which Safari, Chrome
-// (Android, and desktop since 142) and Edge play natively with no player code; else one MP4 stream,
-// 1080p, 720p or 360p (Firefox). It plays at once, as it opens on a tap. Its download (=dv) is the
-// original file.
+// A video (the plugin's documented `sources`; the browser plays the first one it can): Google's MP4
+// stream, 1080p, else 720p or 360p. It plays at once, as it opens on a tap. Its download (=dv) is the
+// original file. Not Google's HLS stream (=mm,hls): Chrome's native HLS player fails on it and does
+// not go on to the next source (checked in Chrome 154).
 const slide = (p: Photo): Slide =>
   p.video
     ? {
@@ -32,10 +31,7 @@ const slide = (p: Photo): Slide =>
         height: p.height,
         poster: `${p.url}=s1920`,
         autoPlay: true,
-        sources: [
-          { src: `${p.url}=mm,hls`, type: 'application/vnd.apple.mpegurl' },
-          ...['m37', 'm22', 'm18'].map((q) => ({ src: `${p.url}=${q}`, type: 'video/mp4' })),
-        ],
+        sources: ['m37', 'm22', 'm18'].map((q) => ({ src: `${p.url}=${q}`, type: 'video/mp4' })),
         download: `${p.url}=dv`,
       }
     : { src: `${p.url}=s0`, width: p.width, height: p.height, download: `${p.url}=d` }
