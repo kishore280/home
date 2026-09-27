@@ -51,7 +51,7 @@ The site runs locally with `wrangler dev`, and the test browser opens it as `htt
 ## Log chai, parotta and beach days (from the phone)
 
 `kichoow.com/log` is a private page (`noindex`, not linked) with big buttons: ☕ chai +1,
-🫓 parotta +1 / +2, 🌊 beach day (with an optional place). A tap posts to `POST /api/log` with
+🫓 parotta +1 / +2, 🌊 beach day and 🏸 badminton day (with an optional place). A tap posts to `POST /api/log` with
 `Authorization: Bearer <token>` (the way [anonrig/adamvsyagiz.com](https://github.com/anonrig/adamvsyagiz.com)
 logs check-ins); the Worker stores it in D1 and the counts card updates within seconds.
 
@@ -60,7 +60,7 @@ logs check-ins); the Worker stores it in D1 and the counts card updates within s
   ([Workbox background sync](https://developer.chrome.com/docs/workbox/modules/workbox-background-sync), up to 24 h).
   Each log has an id, so a replayed request is counted once. The page itself opens offline too.
 - **Shortcuts:** `/log` is its own installable app ("kish log", `public/log.webmanifest`). Install it
-  (Chrome → ⋮ → Install app), then long-press its icon: **Chai +1**, **Parotta +1**, **Beach day**
+  (Chrome → ⋮ → Install app), then long-press its icon: **Chai +1**, **Parotta +1**, **Beach day**, **Badminton day** (Android shows the first 3)
   ([manifest shortcuts](https://web.dev/learn/pwa/enhancements)). Only the installed app logs from these links.
 - **A short buzz** when a tap is taken (`navigator.vibrate`, Android).
 - **The data** (`migrations/0004_log.sql`), designed the way database people recommend:
@@ -89,15 +89,15 @@ logs check-ins); the Worker stores it in D1 and the counts card updates within s
 - **Fix or add a tap by hand** in the D1 Console; the totals follow by themselves:
   `INSERT INTO log_entries (kind, at) VALUES ('chai', unixepoch('2026-09-25 20:15', '-330 minutes') * 1000);`
   (a chai at 20:15 IST on 25 Sep), or `DELETE FROM log_entries WHERE id = 42;`.
-- **A new kind** (gym, sleep, …) is one row, no code change: the buttons and the counts card
-  come from `log_kinds`. In the D1 Console:
-  `INSERT INTO log_kinds (kind, emoji, label, once_a_day, sort) VALUES ('gym', '🏋️', 'gym', 0, 4);`
-  (`once_a_day = 1` counts a day once, like beach days.)
+- **A new kind** (gym, sleep, …): the buttons, the counts row, the heatmap chip and the toasts
+  come from `log_kinds`, so the data is one row. A migration keeps it in the repo, and three small
+  code changes follow it (the placeholder rows, the app shortcut, the tests). The full steps are in
+  `.claude/skills/add-log-kind/SKILL.md`; badminton days (`migrations/0006_badminton.sql`) is the example.
 
 ### Set up (from a phone)
 
 1. **Table.** Cloudflare dashboard → **Storage & Databases → D1 → `home` → Console**, run
-   `migrations/0004_log.sql`, then `migrations/0005_log_hours.sql` (the chai clock). Or: `npx wrangler d1 migrations apply home --remote`.
+   `migrations/0004_log.sql`, then `migrations/0005_log_hours.sql` (the chai clock) and `migrations/0006_badminton.sql`. Or: `npx wrangler d1 migrations apply home --remote`.
 2. **Token.** Nothing to add: the log uses the music token, `SCROBBLE_TOKEN` (one token for the phone).
 3. Open `kichoow.com/log`, enter the token once (the password manager can keep it), then install the app.
 

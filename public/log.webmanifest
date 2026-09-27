@@ -2,7 +2,7 @@
   "id": "/log",
   "name": "kish log",
   "short_name": "kish log",
-  "description": "Where kish logs chai, parotta and beach days.",
+  "description": "Where kish logs chai, parotta, beach days and badminton days.",
   "start_url": "/log",
   "scope": "/log",
   "display": "standalone",
@@ -16,6 +16,7 @@
   "shortcuts": [
     { "name": "Chai +1", "short_name": "chai +1", "url": "/log?add=chai", "icons": [{ "src": "/icon-512.png", "sizes": "512x512" }] },
     { "name": "Parotta +1", "short_name": "parotta +1", "url": "/log?add=parotta", "icons": [{ "src": "/icon-512.png", "sizes": "512x512" }] },
-    { "name": "Beach day", "short_name": "beach day", "url": "/log?add=beach", "icons": [{ "src": "/icon-512.png", "sizes": "512x512" }] }
+    { "name": "Beach day", "short_name": "beach day", "url": "/log?add=beach", "icons": [{ "src": "/icon-512.png", "sizes": "512x512" }] },
+    { "name": "Badminton day", "short_name": "badminton day", "url": "/log?add=badminton", "icons": [{ "src": "/icon-512.png", "sizes": "512x512" }] }
   ]
 }
