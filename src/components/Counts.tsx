@@ -39,8 +39,9 @@ function Row({ kind, now }: { kind: LogKind & { last: string }; now: number }) {
 }
 
 // While the counts load, the clock's place and one line per kind, so the card does not grow when
-// they arrive (web.dev "Optimize CLS"). It is in the pre-rendered HTML; 3 is the number of kinds today.
-const PENDING_ROWS = 3
+// they arrive (web.dev "Optimize CLS"). It is in the pre-rendered HTML; 4 is the number of kinds today
+// (log_kinds), so keep it equal when a kind is added (.claude/skills/add-log-kind).
+const PENDING_ROWS = 4
 const pendingRow = (i: number) => (
   <div className="count pending" key={i} aria-hidden="true">
     <dt />

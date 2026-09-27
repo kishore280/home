@@ -57,15 +57,16 @@ async function expectEvents(log: Log, events: string[]) {
 // moment to show up. (Everything that can be waited for uses web-first assertions.)
 const settle = (page: Page) => page.waitForTimeout(600)
 
-// A GET /api/log reply (worker/log.ts): the three kinds, with the totals given for some of them.
+// A GET /api/log reply (worker/log.ts): the four kinds, with the totals given for some of them.
 // Mocked with context.route, which also sees the service worker's requests (it caches /api/log).
 type Totals = { today: number; month: number; year: number; total: number; last: string; place?: string; hours?: number[] }
-const logReply = (totals: Partial<Record<'chai' | 'parotta' | 'beach', Totals>>) => ({
+const logReply = (totals: Partial<Record<'chai' | 'parotta' | 'beach' | 'badminton', Totals>>) => ({
   kinds: (
     [
       ['chai', '☕', 'chai', false],
       ['parotta', '🫓', 'parotta', false],
       ['beach', '🌊', 'beach days', true],
+      ['badminton', '🏸', 'badminton days', true],
     ] as const
   ).map(([kind, emoji, label, onceADay]) => ({
     kind,
@@ -448,7 +449,7 @@ test.describe('speed', () => {
     await page
       .context()
       .route('**/api/log', (r) =>
-        r.fulfill({ json: logReply({ chai: { ...totals, hours: chaiHours }, parotta: totals, beach: { ...totals, place: 'Marina' } }) }),
+        r.fulfill({ json: logReply({ chai: { ...totals, hours: chaiHours }, parotta: totals, beach: { ...totals, place: 'Marina' }, badminton: totals }) }),
       )
     await page.context().route('**/api/log/days?**', (r) => r.fulfill({ json: daysReply('chai', { [at.slice(0, 10)]: 2 }) }))
     await page.goto('/')
@@ -457,7 +458,7 @@ test.describe('speed', () => {
     await expect(page.locator('.row', { hasText: 'last played' })).toBeVisible()
     await expect(page.locator('.row', { hasText: 'building' })).toBeVisible()
     await expect(page.locator('.row.pending')).toHaveCount(0)
-    await expect(page.locator('.count')).toHaveCount(3)
+    await expect(page.locator('.count')).toHaveCount(4)
     await expect(page.locator('.count.pending')).toHaveCount(0)
     await expect(page.locator('.chai-clock figcaption')).toBeVisible()
     await expect(page.locator('#year rect[data-level="4"]')).toHaveCount(1)
@@ -584,7 +585,7 @@ test.describe('counts card', () => {
 
   test('the pre-rendered page keeps the place of the clock, the counts and the year', async ({ request }) => {
     const html = await (await request.get('http://127.0.0.1:8787/')).text()
-    expect(html.match(/class="count pending"/g)).toHaveLength(3)
+    expect(html.match(/class="count pending"/g)).toHaveLength(4)
     expect(html).toContain('class="chai-clock pending"')
     expect(html).toContain('class="heat-box"') // the year's place; the calendar draws in the browser
   })

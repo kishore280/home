@@ -62,7 +62,7 @@ test('a POST needs the token; other methods are refused', async ({ request }) =>
 
 test('before any log every kind is empty', async ({ request }) => {
   const res = await request.get(api)
-  if (res.status() !== 204) expect(byKind(await res.json())).toEqual({ chai: null, parotta: null, beach: null })
+  if (res.status() !== 204) expect(byKind(await res.json())).toEqual({ chai: null, parotta: null, beach: null, badminton: null })
 })
 
 test('a chai counts in today, month, year and total', async ({ request }) => {
@@ -202,6 +202,19 @@ test('the heatmap reads the day totals of the last 365 days', async ({ request }
   expect(await (await request.get(`${api}/days?kind=nothing`)).json()).toMatchObject({ days: [] })
 })
 
+test('badminton days (migrations/0006): once a day, like beach days, and the migration is safe to run twice', async ({ request }) => {
+  wrangler('--file migrations/0006_badminton.sql') // a second run changes nothing
+  const kinds = (await (await request.get(api)).json()).kinds as { kind: string; emoji: string; label: string; onceADay: boolean }[]
+  expect(kinds.map((k) => k.kind)).toEqual(['chai', 'parotta', 'beach', 'badminton']) // the order on the site
+  expect(kinds.find((k) => k.kind === 'badminton')).toMatchObject({ emoji: '🏸', label: 'badminton days', onceADay: true })
+  const first = await (await post(request, { id: crypto.randomUUID(), kind: 'badminton', place: 'SDAT court' })).json()
+  expect(first).toMatchObject({ ok: true, kind: 'badminton', count: 1 })
+  expect(await (await post(request, { id: crypto.randomUUID(), kind: 'badminton' })).json()).toEqual({ ok: true, duplicate: true })
+  expect((await summary(request)).badminton).toMatchObject({ ...counts(1), onceADay: true, place: 'SDAT court' })
+  await post(request, { id: first.id }, '/undo')
+  expect((await summary(request)).badminton).toBeNull()
+})
+
 test('a new kind is one row in log_kinds, no code change', async ({ request }) => {
   sql(`INSERT INTO log_kinds (kind, emoji, label, once_a_day, sort) VALUES ('gym', '🏋️', 'gym', 0, 9)`)
   try {
@@ -325,13 +338,25 @@ test.describe('the /log page', () => {
   test('a beach day keeps its place; a second one the same day is refused', async ({ page }) => {
     await signedIn(page)
     await page.goto('/log')
-    await page.getByLabel('beach place (optional)').fill('Marina')
+    await page.getByLabel('beach / badminton place (optional)').fill('Marina')
     await button(page, /beach day/).click()
     await expect(page.locator('[data-sonner-toast]', { hasText: 'beach +1 · 1 this month' })).toBeVisible()
     await expect(page.locator('#counts')).toContainText('Marina')
-    await expect(page.getByLabel('beach place (optional)')).toHaveValue('')
+    await expect(page.getByLabel('beach / badminton place (optional)')).toHaveValue('')
     await button(page, /beach day/).click()
     await expect(page.getByText('today is already a beach day')).toBeVisible()
+  })
+
+  test('a badminton day has its own button, with the court as the place', async ({ page }) => {
+    await signedIn(page)
+    await page.goto('/log')
+    await page.getByLabel('beach / badminton place (optional)').fill('SDAT court')
+    await button(page, /badminton day/).click()
+    await expect(page.locator('[data-sonner-toast]', { hasText: 'badminton +1 · 1 this month' })).toBeVisible()
+    await expect(page.locator('#counts')).toContainText('badminton days')
+    await expect(page.locator('#counts')).toContainText('SDAT court')
+    await button(page, /badminton day/).click()
+    await expect(page.getByText('today is already a badminton day')).toBeVisible()
   })
 
   test('with no signal, the log waits and is sent when the network is back', async ({ page, context, request }) => {
@@ -384,7 +409,8 @@ test.describe('the /log page', () => {
     const origin = 'http://127.0.0.1:8787'
     const manifest = await (await request.get(`${origin}/log.webmanifest`)).json()
     expect(manifest).toMatchObject({ start_url: '/log', scope: '/log', display: 'standalone' })
-    expect(manifest.shortcuts.map((s: { url: string }) => s.url)).toEqual(['/log?add=chai', '/log?add=parotta', '/log?add=beach'])
+    // In order of use: Chrome for Android shows only the first 3 (web.dev "App shortcuts").
+    expect(manifest.shortcuts.map((s: { url: string }) => s.url)).toEqual(['/log?add=chai', '/log?add=parotta', '/log?add=beach', '/log?add=badminton'])
     const html = await (await request.get(`${origin}/log`)).text()
     expect(html).toContain('<link rel="manifest" href="/log.webmanifest">')
     expect(html).toContain('noindex, nofollow')
