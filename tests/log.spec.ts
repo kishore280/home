@@ -360,6 +360,11 @@ test.describe('the /log page', () => {
     await page.getByRole('button', { name: 'refresh photos' }).click()
     await expect(page.locator('[data-sonner-toast]', { hasText: 'Photos refreshed: 1 on the site' })).toBeVisible()
     expect(asked).toEqual(['Bearer test-token-0123456789-abcdef'])
+    // The two small links keep apart, with room for their touch areas (4 px each side).
+    const refresh = (await page.getByRole('button', { name: 'refresh photos' }).boundingBox())!
+    const forget = (await page.getByRole('button', { name: 'forget token on this device' }).boundingBox())!
+    const apart = forget.y >= refresh.y + refresh.height || forget.x - (refresh.x + refresh.width) >= 16
+    expect(apart).toBe(true)
   })
 
   test('a badminton day has its own button, with the court as the place', async ({ page }) => {
