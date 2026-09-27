@@ -1001,14 +1001,6 @@ html[data-log-clock='0'] .chai-clock.pending {
   --yarl__slide_icon_error_color: var(--accent-text);
 }
 
-/* Chrome on Android draws its own play button in the middle of the whole video, but its loading
-   spinner in the middle of the space above its control bar, so the two circles do not line up
-   (checked in Chrome 154's player shadow DOM). Play and pause stay in the control bar. This is
-   the one part of Chrome's player that a page may style (the spinner's parts are -internal-). */
-.viewer video::-webkit-media-controls-overlay-play-button {
-  display: none;
-}
-
 .viewer .yarl__container {
   background: var(--yarl__color_backdrop) radial-gradient(var(--dots) 1.5px, transparent 1.5px) 0 0 / 18px 18px;
 }
@@ -1221,7 +1213,6 @@ kbd {
       'main';
   }
 }
-
 
 .narrow-page {
   max-width: 560px;
