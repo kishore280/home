@@ -554,7 +554,7 @@ const photo = (n: number, added: string) => ({
 const pixel = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', 'base64')
 
 test.describe('photos (shared Google Photos album)', () => {
-  test('the newest photos show as small squares that open large, with no referrer', async ({ page, context }) => {
+  test('the newest photos show as small squares that open the original, with no referrer', async ({ page, context }) => {
     await context.route('https://lh3.googleusercontent.com/**', (r) => r.fulfill({ contentType: 'image/png', body: pixel }))
     await context.route('**/api/photos', (r) =>
       r.fulfill({ json: { album: 'https://photos.app.goo.gl/KDhFbCbEwc7fBAR17', photos: [photo(1, '2026-09-27T13:01:03Z'), photo(2, '2026-09-26T08:00:00Z')] } }),
@@ -567,7 +567,7 @@ test.describe('photos (shared Google Photos album)', () => {
     await expect(images.first()).toHaveAttribute('src', 'https://lh3.googleusercontent.com/pw/test-1=w400-h400-c-rw')
     await expect(images.first()).toHaveAttribute('alt', 'Photo 1 of 2 from kish’s album, added 27 Sept')
     await expect(images.first()).toHaveAttribute('referrerpolicy', 'no-referrer')
-    await expect(card.getByRole('link').first()).toHaveAttribute('href', 'https://lh3.googleusercontent.com/pw/test-1=w2048-rw')
+    await expect(card.getByRole('link').first()).toHaveAttribute('href', 'https://lh3.googleusercontent.com/pw/test-1=s0')
     await expect(card.getByRole('link', { name: 'the whole album' })).toHaveAttribute('href', 'https://photos.app.goo.gl/KDhFbCbEwc7fBAR17')
     // Squares, 3 a row, inside the page (phones).
     const box = (await images.first().boundingBox())!
@@ -575,7 +575,7 @@ test.describe('photos (shared Google Photos album)', () => {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   })
 
-  test('a tap opens the viewer: the original photo, zoom, counter, download of the original, Escape closes', async ({ page, context }) => {
+  test('a tap opens the viewer on the original photo: grows from its thumbnail, zoom, counter, download, keys', async ({ page, context, log }) => {
     await context.route('https://lh3.googleusercontent.com/**', (r) =>
       r.request().url().endsWith('=d')
         ? r.fulfill({ contentType: 'image/jpeg', body: pixel, headers: { 'content-disposition': 'attachment;filename="chai.jpg"' } })
@@ -586,30 +586,37 @@ test.describe('photos (shared Google Photos album)', () => {
     )
     const viewerCode: string[] = []
     page.on('request', (r) => {
-      if (/PhotoViewer-.*\.js$/.test(r.url())) viewerCode.push(r.url())
+      if (/photoViewer-.*\.js$/.test(r.url())) viewerCode.push(r.url())
     })
     await page.goto('/')
-    const tiles = page.locator('#photos a[target]').filter({ has: page.locator('img') })
+    const tiles = page.locator('#photos a[data-pswp-width]')
     await expect(tiles).toHaveCount(2)
+    // Without the viewer (no JavaScript, a middle click), the link is the original photo.
+    await expect(tiles.nth(1)).toHaveAttribute('href', 'https://lh3.googleusercontent.com/pw/test-2=s0')
     await settle(page)
     expect(viewerCode).toEqual([]) // the viewer loads only when it is about to be used
     await tiles.nth(1).click()
-    const viewer = page.getByRole('dialog')
+    const viewer = page.locator('.pswp')
     await expect(viewer).toBeVisible()
+    await expect(viewer).toHaveAttribute('role', 'dialog')
+    await expect(viewer).toHaveAttribute('aria-label', 'Photo viewer')
     await expect(page).toHaveURL('/') // opened here, not in a new tab
-    await expect(viewer).toContainText('2 / 2')
-    // The original file at once (=s0), no smaller copy first; zoom goes up to its real pixels.
-    await expect(viewer.locator('img[src$="test-2=s0"]')).toHaveCount(1)
-    await expect(viewer.locator('img[src*="=w"]')).toHaveCount(0)
-    await expect(viewer.getByRole('button', { name: 'Zoom in' })).toBeVisible()
+    await expect(viewer.locator('.pswp__counter')).toHaveText('2 / 2')
+    // The original file (=s0), full size; zoom goes up to its real pixels.
+    await expect(viewer.locator('.pswp__img:not(.pswp__img--placeholder)[src$="test-2=s0"]')).toHaveCount(1)
+    await expect(viewer.getByRole('button', { name: 'Zoom' })).toBeVisible()
     // Download: the original file, as Google sends it (Content-Disposition: attachment).
+    const downloadButton = viewer.getByRole('link', { name: 'Download the original' })
+    await expect(downloadButton).toHaveAttribute('href', 'https://lh3.googleusercontent.com/pw/test-2=d')
     const download = page.waitForEvent('download')
-    await viewer.getByRole('button', { name: 'Download' }).click()
+    await downloadButton.click()
     expect((await download).url()).toBe('https://lh3.googleusercontent.com/pw/test-2=d')
+    await expectEvents(log, ['Photo open', 'Photo download'])
     await page.keyboard.press('ArrowLeft')
-    await expect(viewer).toContainText('1 / 2')
+    await expect(viewer.locator('.pswp__counter')).toHaveText('1 / 2')
+    await expect(downloadButton).toHaveAttribute('href', 'https://lh3.googleusercontent.com/pw/test-1=d')
     await page.keyboard.press('Escape')
-    await expect(viewer).toBeHidden()
+    await expect(page.locator('.pswp')).toHaveCount(0)
   })
 
   test('with no photos (or no answer from Google), there is no card', async ({ page, context }) => {
@@ -932,8 +939,8 @@ test.describe('accessibility (axe-core)', () => {
       '/',
       'dark',
       async (page) => {
-        await page.locator('#photos a[target]').first().click()
-        await expect(page.getByRole('dialog')).toBeVisible()
+        await page.locator('#photos a[data-pswp-width]').first().click()
+        await expect(page.locator('.pswp__img:not(.pswp__img--placeholder)').first()).toBeVisible()
       },
     ],
     ['404', '/nope', 'dark'],
