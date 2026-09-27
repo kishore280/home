@@ -487,7 +487,6 @@ test.describe('speed', () => {
     await expect(page.locator('.count.pending')).toHaveCount(0)
     await expect(page.locator('.chai-clock figcaption')).toBeVisible()
     await expect(page.locator(`#year rect[data-date="${istToday()}"]`)).toHaveAttribute('data-level', String(Object.keys(today).length))
-    await expect(page.locator('#year .heat-tiles dd')).toHaveCount(4)
     await expect(page.locator('#year .heat-day')).toContainText('(today)')
     await expect(page.locator('.stats dd')).toHaveCount(2)
     await expect(page.locator('#photos img')).toHaveCount(2)
@@ -863,11 +862,6 @@ test.describe('counts card', () => {
     await expect(card).toContainText('last 12 months')
     await expect(card.locator(`rect[data-date="${istToday()}"]`)).toHaveAttribute('data-level', '2')
     await expect(card.locator(`rect[data-date="${daysAgo(1)}"]`)).toHaveAttribute('data-level', '1')
-    const tile = (label: string) => card.locator('.heat-tiles div', { has: page.getByText(label, { exact: true }) }).locator('dd')
-    await expect(tile('day streak')).toHaveText('2')
-    await expect(tile('best streak')).toHaveText('2')
-    await expect(tile('days with something')).toHaveText('3')
-    await expect(tile('days with 3+ things')).toHaveText('0')
     // Today first, with every kind it had (the chai glass for chai).
     await expect(note).toContainText('(today): 3 chai · 🫓 1 parotta')
     await expect(note.locator('.chai-icon')).toBeVisible()
@@ -883,9 +877,7 @@ test.describe('counts card', () => {
     await expect(card.getByRole('button', { name: 'chai' }).locator('.chai-icon')).toBeVisible()
     await card.getByRole('button', { name: 'parotta' }).click()
     await expect(card.getByRole('heading')).toHaveText('parotta')
-    await expect(tile('parotta days')).toHaveText('2')
-    await expect(tile('in all')).toHaveText('4')
-    await expect(tile('day streak')).toHaveText('1')
+    await expect(card.locator('dl')).toHaveCount(0) // no number tiles, only the grid
     // The year scrolls inside its card, never the page (phones). 12 weeks is asked for only when chosen.
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
     expect(ranges).toEqual(['365'])
@@ -927,7 +919,7 @@ test.describe('counts card', () => {
     await page.reload()
     await expect(counts.locator('.count', { hasText: 'chai' })).toContainText('2 today')
     await expect(counts.locator('.count.pending')).toHaveCount(0)
-    await expect(page.locator('#year .heat-tiles dd').first()).not.toHaveText('\u00a0')
+    await expect(page.locator(`#year rect[data-date="${istToday()}"]`)).toHaveCount(1) // the saved days, at once
     release()
     await expect(counts.locator('.count', { hasText: 'chai' })).toContainText('3 today')
   })

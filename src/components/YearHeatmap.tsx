@@ -7,7 +7,7 @@ import { Card } from './Card'
 import { KindIcon } from './KindIcon'
 
 // Every logged day, as the 2026 coding tools show activity (Claude Code /stats, opencode stats):
-// the numbers first (streaks, days), then a grid of the last year (12 weeks on request).
+// a grid of the last year (12 weeks on request).
 // "all" is the default: one grid for every kind, as GitHub puts commits, pull requests and issues
 // in one graph. A day is darker for more different things done, not a sum (3 chai and 1 beach
 // day are not "4"). A tap on a day, or the ‹ › buttons, says what it had.
@@ -43,20 +43,6 @@ function byDay(data: LogDays): Counts {
 // Every day of the window, oldest first (the library needs the first and last day to set the range).
 const everyDay = (data: LogDays) =>
   Array.from({ length: Math.round((Date.parse(data.to) - Date.parse(data.from)) / DAY_MS) + 1 }, (_, i) => addDays(data.from, i))
-
-// Streak now: the days in a row up to today, or up to yesterday while today is still empty
-// (a streak is not broken before the day is over). Best: the longest run in the window.
-function streaks(values: number[]) {
-  let best = 0
-  let run = 0
-  for (const v of values) {
-    run = v > 0 ? run + 1 : 0
-    best = Math.max(best, run)
-  }
-  let now = 0
-  for (let i = values.at(-1) ? values.length - 1 : values.length - 2; i >= 0 && values[i] > 0; i--) now++
-  return { now, best }
-}
 
 // "27 Sep: 🍵 2 chai · 🏸 badminton"
 function DayNote({ day, today, counts, kinds }: { day: string; today: string; counts: Counts; kinds: LogKind[] }) {
@@ -116,23 +102,6 @@ export function YearHeatmap() {
     count: values[i],
     level: kind ? (values[i] ? Math.ceil((values[i] / max) * 4) : 0) : values[i],
   }))
-  const { now, best } = streaks(values)
-  const active = values.filter(Boolean).length
-  // The labels are fixed text, so they are in the pre-rendered HTML and only the numbers arrive
-  // later: the tiles keep their size (web.dev "Optimize CLS").
-  const tiles: [number, string][] = kind
-    ? [
-        [now, 'day streak'],
-        [best, 'best streak'],
-        [active, `${kind.kind} days`],
-        [values.reduce((a, b) => a + b, 0), kind.onceADay ? 'days in all' : 'in all'],
-      ]
-    : [
-        [now, 'day streak'],
-        [best, 'best streak'],
-        [active, 'days with something'],
-        [values.filter((v) => v >= 3).length, 'days with 3+ things'],
-      ]
   const today = data?.to ?? ''
   const day = picked && days.includes(picked) ? picked : today
   const step = (n: number) => setPicked(addDays(day, n))
@@ -157,14 +126,6 @@ export function YearHeatmap() {
           </button>
         ))}
       </div>
-      <dl className="heat-tiles">
-        {tiles.map(([n, label]) => (
-          <div key={label}>
-            <dt>{label}</dt>
-            <dd>{data ? n : '\u00a0'}</dd>
-          </div>
-        ))}
-      </dl>
       {/* The squares are for pointers; the ‹ › buttons below do the same from a keyboard. */}
       {/* oxlint-disable-next-line jsx-a11y/click-events-have-key-events jsx-a11y/no-static-element-interactions */}
       <div className={`heat-box range-${range}`} onClick={pick}>

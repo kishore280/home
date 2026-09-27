@@ -748,35 +748,6 @@ h2 {
   border-color: var(--accent-text);
 }
 
-.heat-tiles {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 6px;
-  margin: 0 0 12px;
-}
-
-.heat-tiles div {
-  display: flex;
-  flex-direction: column-reverse;
-  justify-content: flex-end;
-  background: var(--chip);
-  border-radius: 12px;
-  padding: 6px 8px;
-}
-
-.heat-tiles dd {
-  margin: 0;
-  font: 800 20px/1.2 var(--body);
-  font-variant-numeric: tabular-nums;
-}
-
-.heat-tiles dt {
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1.25;
-  color: var(--text); /* --muted on --chip is 4.49:1, under the 4.5:1 rule */
-}
-
 .heat {
   color: var(--muted);
 }
@@ -1028,6 +999,14 @@ html[data-log-clock='0'] .chai-clock.pending {
   --yarl__counter_filter: none;
   --yarl__slide_icon_loading_color: var(--accent);
   --yarl__slide_icon_error_color: var(--accent-text);
+}
+
+/* Chrome on Android draws its own play button in the middle of the whole video, but its loading
+   spinner in the middle of the space above its control bar, so the two circles do not line up
+   (checked in Chrome 154's player shadow DOM). Play and pause stay in the control bar. This is
+   the one part of Chrome's player that a page may style (the spinner's parts are -internal-). */
+.viewer video::-webkit-media-controls-overlay-play-button {
+  display: none;
 }
 
 .viewer .yarl__container {
