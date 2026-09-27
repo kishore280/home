@@ -57,6 +57,9 @@ export default function App() {
     { group: 'Do', label: 'Switch light / dark', run: () => toast(toggleTheme() === 'dark' ? 'Dark mode' : 'Light mode') },
     ...(site.email ? [{ group: 'Do', label: 'Copy email', run: copyEmail }] : []),
     ...links.map((l) => ({ group: 'Links', label: l.label, run: () => window.open(l.href, '_blank', 'noopener') })),
+    // Only when the photos card is on the page (it hides with no photos). The hash jump is the
+    // browser's own: it scrolls to the card and moves the Tab start there.
+    ...(menuOpen && document.getElementById('photos') ? [{ group: 'Go', label: 'Photos', run: () => void (location.hash = 'photos') }] : []),
     { group: 'Secret', label: 'Offline only', href: '/offline' },
   ]
 

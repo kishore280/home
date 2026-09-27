@@ -7,9 +7,9 @@ export const site = {
   // Search results and share cards. Only real facts about kish.
   title: 'Kishore (kish)',
   description:
-    'Kishore’s corner of the internet: code, badminton, beach runs, chai, parotta and a Himalayan, from beach-side South India.',
+    'Kishore’s corner of the internet: code and AI agents, badminton, beach runs, chai, parotta and a Himalayan, from beach-side South India.',
   // One sentence under "hi, i'm …".
-  intro: '',
+  intro: 'hands-on with AI agents development.',
   // A few lines about you. Each string is one paragraph.
   about: [] as string[],
   // IANA time zone for the live clock.
