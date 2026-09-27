@@ -18,6 +18,7 @@ kishore's personal site, live at **https://kichoow.com**. React 19 + TypeScript 
 | `migrations/` | D1 tables (0005: `log_hours`, the chai clock; 0006: badminton days). Apply new ones with `npx wrangler d1 migrations apply home --remote`. |
 | `tests/ui.spec.ts` | UI tests (Playwright + axe-core). |
 | `.claude/skills/` | The skills listed below. |
+| `.claude/hooks/` | `session-start.sh`: sets up Claude Code on the web sessions (packages, test browser). |
 
 ## Rules
 
@@ -59,6 +60,10 @@ npm run cf-typegen   # regenerate Worker types after changing wrangler.jsonc
 ```
 
 `npm run audit` and `npm run og` need a Chromium once: `npx playwright install chromium` (or set `CHROMIUM_PATH` to a Chrome/Chromium you already have).
+
+**Claude Code on the web:** `.claude/hooks/session-start.sh` runs `npm install` and sets `CHROMIUM_PATH` to the container's Chromium (`/opt/pw-browsers/chromium-*`); without it, Playwright looks for a browser build that is not there and every UI test fails at launch. Other cloud agents: set `CHROMIUM_PATH` the same way.
+
+**Testing video:** Playwright's Chromium has no H.264, so an MP4 never plays in it. To see a video play, use Chrome for Testing: `npx @puppeteer/browsers install chrome@stable --path <dir>`, then launch it with `executablePath`. A browser behind the container's proxy gets Google's media only with `proxy: { server: process.env.HTTPS_PROXY }` (and the local site in `bypass`).
 
 ## Test
 
