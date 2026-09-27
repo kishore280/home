@@ -19,6 +19,8 @@ export const site = {
   github: 'kishore280',
   // Your status.cafe user name for the status card.
   statusCafe: '',
+  // A public shared Google Photos album: its newest photos show in the photos card (worker/photos.ts).
+  photosAlbum: 'https://photos.app.goo.gl/KDhFbCbEwc7fBAR17',
 }
 
 export const links: { label: string; href: string }[] = [

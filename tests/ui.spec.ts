@@ -463,6 +463,8 @@ test.describe('speed', () => {
     const at = new Date().toISOString()
     await page.route('**/api/now-playing', (r) => r.fulfill({ json: { title: 'A long song title that fills the line', artist: 'Artist', at, until: at } }))
     await page.route('**/api/github', (r) => r.fulfill({ json: { repo: 'home', url: 'https://github.com/kishore280/home', at } }))
+    await page.context().route('https://lh3.googleusercontent.com/**', (r) => r.fulfill({ contentType: 'image/png', body: pixel }))
+    await page.context().route('**/api/photos', (r) => r.fulfill({ json: { album: 'https://photos.app.goo.gl/x', photos: [photo(1, at), photo(2, at)] } }))
     const totals = { today: 2, month: 14, year: 90, total: 90, last: at }
     await page
       .context()
@@ -484,6 +486,7 @@ test.describe('speed', () => {
     await expect(page.locator('#year .heat-tiles dd')).toHaveCount(4)
     await expect(page.locator('#year .heat-day')).toContainText('(today)')
     await expect(page.locator('.stats dd')).toHaveCount(2)
+    await expect(page.locator('#photos img')).toHaveCount(2)
     await settle(page)
     expect(await page.evaluate(() => (window as unknown as { __cls: number }).__cls)).toBeLessThan(0.001)
   })
@@ -539,6 +542,64 @@ test.describe('speed', () => {
 // The phone's scrobbler (Pano Scrobbler, "Custom ListenBrainz") talks to /api/scrobble/. The
 // requests below are the ones it sends (its ListenBrainz.kt). They go straight to the local
 // server, not through the browser's kichoow.com mapping.
+// The photos card reads /api/photos (worker/photos.ts: the shared Google Photos album).
+const photo = (n: number, added: string) => ({
+  id: `photo-${n}`,
+  url: `https://lh3.googleusercontent.com/pw/test-${n}`,
+  width: 3000,
+  height: 4000,
+  added,
+})
+// A 1x1 PNG, so the tests never load real photos from Google.
+const pixel = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', 'base64')
+
+test.describe('photos (shared Google Photos album)', () => {
+  test('the newest photos show as small squares that open large, with no referrer', async ({ page, context }) => {
+    await context.route('https://lh3.googleusercontent.com/**', (r) => r.fulfill({ contentType: 'image/png', body: pixel }))
+    await context.route('**/api/photos', (r) =>
+      r.fulfill({ json: { album: 'https://photos.app.goo.gl/KDhFbCbEwc7fBAR17', photos: [photo(1, '2026-09-27T13:01:03Z'), photo(2, '2026-09-26T08:00:00Z')] } }),
+    )
+    await page.goto('/')
+    const card = page.locator('#photos')
+    await expect(card.getByRole('heading')).toHaveText('photos')
+    const images = card.locator('img')
+    await expect(images).toHaveCount(2)
+    await expect(images.first()).toHaveAttribute('src', 'https://lh3.googleusercontent.com/pw/test-1=w400-h400-c-rw')
+    await expect(images.first()).toHaveAttribute('alt', 'Photo 1 of 2 from kish’s album, added 27 Sept')
+    await expect(images.first()).toHaveAttribute('referrerpolicy', 'no-referrer')
+    await expect(card.getByRole('link').first()).toHaveAttribute('href', 'https://lh3.googleusercontent.com/pw/test-1=w2048-rw')
+    await expect(card.getByRole('link', { name: 'the whole album' })).toHaveAttribute('href', 'https://photos.app.goo.gl/KDhFbCbEwc7fBAR17')
+    // Squares, 3 a row, inside the page (phones).
+    const box = (await images.first().boundingBox())!
+    expect(Math.abs(box.width - box.height)).toBeLessThan(1)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  })
+
+  test('with no photos (or no answer from Google), there is no card', async ({ page, context }) => {
+    await context.route('**/api/photos', (r) => r.fulfill({ json: { album: 'https://photos.app.goo.gl/x', photos: [] } }))
+    await page.goto('/')
+    await expect(page.locator('#counts, .clock').first()).toBeVisible()
+    await settle(page)
+    await expect(page.locator('#photos')).toHaveCount(0)
+  })
+
+  test('the API gives the album and its newest photos, from the edge cache after the first time', async ({ request, isMobile }) => {
+    test.skip(isMobile, 'API only; one run is enough')
+    const res = await request.get('http://127.0.0.1:8787/api/photos')
+    expect(res.status()).toBe(200)
+    expect(res.headers()['cache-control']).toMatch(/^public, max-age=(3600|300)$/)
+    const body = await res.json()
+    expect(body.album).toMatch(/^https:\/\/photos\.app\.goo\.gl\//)
+    // Real Google: the album may be unreachable from here, then the list is empty (the card hides).
+    expect(body.photos.length).toBeLessThanOrEqual(6)
+    for (const p of body.photos) expect(p.url).toMatch(/^https:\/\/lh3\.googleusercontent\.com\//)
+    const added = body.photos.map((p: { added: string }) => p.added)
+    expect(added).toEqual([...added].sort().reverse()) // newest first
+    expect(await (await request.get('http://127.0.0.1:8787/api/photos?x=1')).text()).toBe(JSON.stringify(body))
+    expect((await request.post('http://127.0.0.1:8787/api/photos')).status()).toBe(405)
+  })
+})
+
 test.describe('now playing (ListenBrainz API)', () => {
   // One shared table in the local D1: run in order (and with --workers=1 when using --repeat-each).
   test.describe.configure({ mode: 'serial' })
@@ -849,6 +910,8 @@ test.describe('accessibility (axe-core)', () => {
       const at = new Date().toISOString()
       const totals = { today: 2, month: 14, year: 90, total: 90, last: at }
       await context.route('**/api/github', (r) => r.fulfill({ json: { repo: 'home', url: 'https://github.com/kishore280/home', at } }))
+      await context.route('https://lh3.googleusercontent.com/**', (r) => r.fulfill({ contentType: 'image/png', body: pixel }))
+      await context.route('**/api/photos', (r) => r.fulfill({ json: { album: 'https://photos.app.goo.gl/x', photos: [photo(1, at), photo(2, at)] } }))
       await context.route('**/api/log', (r) =>
         r.request().method() === 'GET'
           ? r.fulfill({ json: logReply({ chai: { ...totals, hours: chaiHours }, parotta: totals, beach: { ...totals, place: 'Marina' }, badminton: totals }) })

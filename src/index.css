@@ -958,6 +958,37 @@ html[data-log-clock='0'] .chai-clock.pending {
 }
 
 /* 88×31 buttons */
+/* photos (Photos.tsx): 3 square tiles per row from the shared album. */
+.photos {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0 0 10px;
+  padding: 0;
+  list-style: none;
+}
+
+.photos a {
+  display: block;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--chip);
+}
+
+.photos img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+
+.photos-album {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent-text);
+}
+
 .buttons {
   display: flex;
   flex-wrap: wrap;

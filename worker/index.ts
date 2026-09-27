@@ -4,6 +4,7 @@ import { fail, type Env } from './db'
 import { github } from './github'
 import { days, log, undo } from './log'
 import { nowPlaying } from './now-playing'
+import { photos } from './photos'
 import { scrobble } from './scrobble'
 
 export default {
@@ -22,6 +23,8 @@ export default {
         return undo(request, env)
       case '/api/log/days':
         return days(request, env, ctx)
+      case '/api/photos':
+        return photos(request, ctx)
     }
     if (pathname.startsWith('/api/scrobble/1/')) return scrobble(request, env, pathname.slice('/api/scrobble/1/'.length))
     if (pathname.startsWith('/api/')) return fail('Not found.', 404)
