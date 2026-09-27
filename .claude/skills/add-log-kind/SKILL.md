@@ -1,11 +1,11 @@
 ---
 name: add-log-kind
-description: "Add a new thing to count on kichoow.com (a new kind for the /log page, the counts card and the year heatmap), for example badminton, gym or sleep. Use when the user asks to track, log or count something new, or to change or remove a kind."
+description: "Add a new thing to count on kichoow.com (a new kind for the /log page, the counts card and the "my days" card), for example badminton, gym or sleep. Use when the user asks to track, log or count something new, or to change or remove a kind."
 ---
 
 # Add a kind to the log
 
-The /log page, the counts card, the year heatmap and the toasts all read the kinds from the D1
+The /log page, the counts card, the "my days" card (its chips, its grid and the day note) and the toasts all read the kinds from the D1
 table `log_kinds`. A new kind is **one row**. Only the parts in step 3 do not follow by themselves.
 Badminton days (`migrations/0006_badminton.sql`, PR "Badminton days") is the worked example.
 
@@ -15,9 +15,9 @@ Badminton days (`migrations/0006_badminton.sql`, PR "Badminton days") is the wor
 |---|---|---|
 | `kind` | The id: lowercase, one word, never changed later (entries point to it). Also the button text and the `?add=` shortcut. | `badminton` |
 | `emoji` | Shown before the name. Chai is the exception: `KindIcon.tsx` draws the chai glass. | `🏸` |
-| `label` | The name on the counts card and the heatmap title ("a year of …"). Plural of days for a once-a-day kind. | `badminton days` |
+| `label` | The name on the counts card and the "my days" title when the kind's chip is picked. Plural of days for a once-a-day kind. | `badminton days` |
 | `once_a_day` | `1`: one per day (a "day" button and an optional place, like beach). `0`: taps with +1 and +2 buttons (like chai). | `1` |
-| `sort` | The order on the page, the counts and the heatmap chips. | `4` |
+| `sort` | The order on the page, the counts and the "my days" chips. | `4` |
 
 ## 2. The migration (the database)
 
@@ -48,7 +48,7 @@ ON CONFLICT (kind) DO NOTHING;
 | `src/components/ChaiClock.tsx` | Nothing: the clock is for chai only | |
 
 The /log buttons, the place field (shared by all once-a-day kinds: its label lists them, like
-"beach / badminton place (optional)"), the toasts, the counts row and the heatmap chip need no change.
+"beach / badminton place (optional)"), the toasts, the counts row, the "my days" chip, its "all" grid (the legend goes to the number of kinds) and the day note need no change.
 
 ## 4. Tests (all must pass: `npm run build`, `npm run lint`, `npm run audit`)
 

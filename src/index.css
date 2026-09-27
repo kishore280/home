@@ -709,17 +709,24 @@ h2 {
   fill: var(--accent-deep);
 }
 
-/* A year of chai (YearHeatmap.tsx, react-activity-calendar): it scrolls sideways inside its own
-   box when the card is narrower (phones), starting at today. */
-.heat-kinds {
+/* My days (YearHeatmap.tsx, react-activity-calendar): numbers, then 12 weeks (or the year, which
+   scrolls sideways inside its own box on phones, starting at today). Every part keeps its height
+   while it loads, so nothing moves (web.dev "Optimize CLS"). */
+.heat-kinds,
+.heat-range {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 6px;
+}
+
+.heat-kinds {
   min-height: 30px; /* kept while the kinds load */
   margin-bottom: 10px;
 }
 
-.heat-kinds button {
+.heat-kinds button,
+.heat-range button {
   font: 700 13px var(--body);
   color: var(--text);
   background: var(--chip);
@@ -729,19 +736,103 @@ h2 {
   cursor: pointer;
 }
 
-.heat-kinds button[aria-pressed='true'] {
+.heat-kinds button[aria-pressed='true'],
+.heat-range button[aria-pressed='true'] {
   color: var(--on-accent);
   background: var(--accent-text);
   border-color: var(--accent-text);
+}
+
+.heat-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  min-height: 62px; /* kept while the numbers load */
+  margin: 0 0 12px;
+}
+
+.heat-tiles div {
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-end;
+  background: var(--chip);
+  border-radius: 12px;
+  padding: 6px 8px;
+}
+
+.heat-tiles dd {
+  margin: 0;
+  font: 800 20px/1.2 var(--body);
+  font-variant-numeric: tabular-nums;
+}
+
+.heat-tiles dt {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--text); /* --muted on --chip is 4.49:1, under the 4.5:1 rule */
 }
 
 .heat {
   color: var(--muted);
 }
 
-/* The calendar's height (months, 7 rows of 9 + 2 px, footer), kept before it draws. */
-.heat-box {
+.heat rect {
+  cursor: pointer;
+}
+
+.heat rect.picked {
+  stroke: var(--text);
+  stroke-width: 1.5px;
+}
+
+/* The calendar's height (months, 7 rows, legend), kept before it draws. */
+.heat-box.range-84 {
+  min-height: 157px;
+}
+
+.heat-box.range-365 {
   min-height: 124px;
+}
+
+.heat-day {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.heat-day p {
+  margin: 0;
+  min-height: 1.5em;
+  font-size: 14px;
+}
+
+.heat-day button {
+  font: 800 18px/1 var(--body);
+  color: var(--text);
+  background: var(--chip);
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  width: 36px;
+  height: 36px;
+  cursor: pointer;
+}
+
+.heat-day button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.heat-range {
+  justify-content: flex-end;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.heat-range span {
+  margin-right: auto;
 }
 
 /* counts: compact for the narrow left column. label left, number right, details below */

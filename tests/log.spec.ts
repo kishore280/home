@@ -189,17 +189,32 @@ test('the chai clock counts each hour of the day in IST, also for fixes in the C
   expect(await hours()).toEqual(before)
 })
 
-test('the heatmap reads the day totals of the last 365 days', async ({ request }) => {
-  const res = await request.get(`${api}/days?kind=chai`)
-  expect(res.headers()['cache-control']).toBe('public, max-age=60')
-  const body = await res.json()
+test('the heatmap reads the day totals of every kind for 84 or 365 days, from the edge cache after the first time', async ({ request }) => {
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(Date.now())
-  expect(body).toMatchObject({ kind: 'chai', to: today })
-  expect((Date.parse(body.to) - Date.parse(body.from)) / 86_400_000).toBe(364)
-  const todays = body.days.find(([day]: [string, number]) => day === today)
-  expect(todays?.[1]).toBe((await summary(request)).chai?.today)
-  expect((await request.get(`${api}/days`)).status()).toBe(400)
-  expect(await (await request.get(`${api}/days?kind=nothing`)).json()).toMatchObject({ days: [] })
+  for (const range of [84, 365]) {
+    const res = await request.get(`${api}/days?range=${range}`)
+    expect(res.headers()['cache-control']).toBe('public, max-age=60')
+    const body = await res.json()
+    expect(body.to).toBe(today)
+    expect((Date.parse(body.to) - Date.parse(body.from)) / 86_400_000).toBe(range - 1)
+    for (const [day, kind, count] of body.days as [string, string, number][]) {
+      expect(day >= body.from && day <= body.to).toBe(true)
+      expect(typeof kind).toBe('string')
+      expect(count).toBeGreaterThan(0)
+    }
+  }
+  expect((await (await request.get(`${api}/days`)).json()).to).toBe(today) // 84 by default
+  expect((await request.get(`${api}/days?range=7`)).status()).toBe(400)
+  expect((await request.post(`${api}/days`)).status()).toBe(405)
+  // A page from before this change (?kind=) still gets its old answer: [day, count], 365 days, sorted.
+  const old = await (await request.get(`${api}/days?kind=chai`)).json()
+  expect(old).toMatchObject({ kind: 'chai', to: today })
+  expect((Date.parse(old.to) - Date.parse(old.from)) / 86_400_000).toBe(364)
+  for (const row of old.days) expect(row).toHaveLength(2)
+  // The same range again comes from the cache (Workers Cache API): the same body, even with other
+  // things in the URL, and no new rows read.
+  const first = await (await request.get(`${api}/days?range=84`)).text()
+  expect(await (await request.get(`${api}/days?range=84&x=1`)).text()).toBe(first)
 })
 
 test('badminton days (migrations/0006): once a day, like beach days, and the migration is safe to run twice', async ({ request }) => {

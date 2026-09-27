@@ -188,27 +188,43 @@ async function summary(env: Env): Promise<Response> {
   return Response.json({ kinds }, { headers: { 'cache-control': 'public, max-age=15' } })
 }
 
-const DAYS = 365
+// The heatmap windows: 12 weeks (the default view) or the year.
+const RANGES = new Set([84, 365])
 
-// GET /api/log/days?kind=chai: the last 365 days (IST) with an entry, oldest first, for the heatmap.
-// One primary-key range read of the day rollups, at most 365 rows.
-export async function days(request: Request, env: Env): Promise<Response> {
+// GET /api/log/days?range=84: the day totals of every kind for the last 84 (or 365) days in IST,
+// as [day, kind, count], in no order (no ORDER BY, so SQLite needs no sort; the page sorts). One primary-key range read per kind: at most 4 x 84 rows.
+// The answer is kept for 60 s in the data centre's cache (Workers Cache API), so most visits read
+// no rows at all. https://developers.cloudflare.com/workers/runtime-apis/cache/
+export async function days(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   if (request.method !== 'GET') return fail('Use GET.', 405)
-  const kind = new URL(request.url).searchParams.get('kind')
-  if (!kind || kind.length > 32) return fail('kind is required.')
+  const url = new URL(request.url)
+  // A page opened before this change (still open, or kept by the service worker until its next
+  // visit) asks ?kind=chai and reads [day, count] for 365 days. Answer it that way for now.
+  // TODO: remove after a few weeks (added 2026-09-27).
+  const old = url.searchParams.get('kind')
+  const range = old ? 365 : Number(url.searchParams.get('range') ?? 84)
+  if (!RANGES.has(range)) return fail('range is 84 or 365.')
+  // One cache key per range, whatever else is in the URL.
+  const key = new Request(`${url.origin}${url.pathname}?range=${range}${old ? `&kind=${encodeURIComponent(old)}` : ''}`)
+  const cached = await caches.default.match(key)
+  if (cached) return cached
   const now = Date.now()
   const to = dayOf.format(now)
-  const from = dayOf.format(now - (DAYS - 1) * 86_400_000)
+  const from = dayOf.format(now - (range - 1) * 86_400_000)
   const rows = await env.DB.prepare(
-    `SELECT period AS day, count FROM log_totals
-     WHERE kind = ?1 AND grain = 'day' AND period BETWEEN ?2 AND ?3 ORDER BY period`,
+    `SELECT period AS day, kind, count FROM log_totals
+     WHERE kind IN (SELECT kind FROM log_kinds) AND grain = 'day' AND period BETWEEN ?1 AND ?2`,
   )
-    .bind(kind, from, to)
-    .all<{ day: string; count: number }>()
+    .bind(from, to)
+    .all<{ day: string; kind: string; count: number }>()
     .catch(() => null)
   if (!rows) return new Response(null, { status: 204 })
-  return Response.json(
-    { kind, from, to, days: rows.results.map((r) => [r.day, r.count]) },
+  const response = Response.json(
+    old
+      ? { kind: old, from, to, days: rows.results.filter((r) => r.kind === old).map((r) => [r.day, r.count]).sort() }
+      : { from, to, days: rows.results.map((r) => [r.day, r.kind, r.count]) },
     { headers: { 'cache-control': 'public, max-age=60' } },
   )
+  ctx.waitUntil(caches.default.put(key, response.clone()))
+  return response
 }
