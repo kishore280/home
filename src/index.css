@@ -1227,6 +1227,14 @@ kbd {
 }
 
 /* /log: big buttons for one-thumb logging. */
+/* The /log page's small links, in a row that wraps. The gap is wider than their touch areas
+   (4 px each side, above), so a tap never lands on the neighbour. */
+.log-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+}
+
 .log-buttons {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

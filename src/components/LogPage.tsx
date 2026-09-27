@@ -161,12 +161,14 @@ export function LogPage() {
                 <input value={place} onChange={(e) => setPlace(e.target.value)} maxLength={60} autoComplete="off" />
               </label>
             ) : null}
-            <button type="button" className="link-button" onClick={() => void refreshPhotos(token)}>
-              refresh photos
-            </button>
-            <button type="button" className="link-button" onClick={() => forget()}>
-              forget token on this device
-            </button>
+            <div className="log-links">
+              <button type="button" className="link-button" onClick={() => void refreshPhotos(token)}>
+                refresh photos
+              </button>
+              <button type="button" className="link-button" onClick={() => forget()}>
+                forget token on this device
+              </button>
+            </div>
           </>
         ) : (
           // A real sign-in form, so the phone's password manager offers to save the token.
