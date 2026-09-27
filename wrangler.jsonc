@@ -8,6 +8,9 @@
 	"name": "home",
 	"main": "worker/index.ts",
 	"compatibility_date": "2026-09-25",
+	// Node.js APIs for google-photos-album-image-url-fetch (its HTTP client, gaxios), used by /api/photos.
+	// https://developers.cloudflare.com/workers/runtime-apis/nodejs/
+	"compatibility_flags": ["nodejs_compat"],
 	"assets": {
 		"directory": "./dist",
 		"binding": "ASSETS",

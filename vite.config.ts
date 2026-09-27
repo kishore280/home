@@ -30,7 +30,8 @@ export default defineConfig({
         'script-src': ["'self'", 'https://static.cloudflareinsights.com', 'https://cloud.umami.is'],
         // React style props and sonner's injected styles.
         'style-src': ["'self'", "'unsafe-inline'"],
-        'img-src': ["'self'", 'data:'],
+        // Photos from the shared Google Photos album (worker/photos.ts).
+        'img-src': ["'self'", 'data:', 'https://lh3.googleusercontent.com'],
         'font-src': ["'self'", 'data:'],
         // status.cafe is read directly by the browser; the analytics scripts report to their own hosts.
         'connect-src': ["'self'", 'https://status.cafe', 'https://cloudflareinsights.com', 'https://gateway.umami.is'],

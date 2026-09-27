@@ -8,6 +8,7 @@ import { RightNow } from './components/RightNow'
 import { YearHeatmap } from './components/YearHeatmap'
 import { Counts } from './components/Counts'
 import { Buttons } from './components/Buttons'
+import { Photos } from './components/Photos'
 import type { MenuItem } from './components/CommandMenu'
 import { useCounters } from './hooks/useCounters'
 import { shortDate } from './lib/time'
@@ -115,6 +116,7 @@ export default function App() {
           ) : null}
 
           <Buttons />
+          <Photos />
 
           <footer>
             <button

@@ -21,6 +21,7 @@ Coding agents: read [AGENTS.md](AGENTS.md) for the rules, commands, tests and ho
 | Right now: local time | Browser | `timeZone` in `src/data.ts` |
 | Counts: parotta, chai, beach days | The `/log` page → D1 | `SCROBBLE_TOKEN` (below) |
 | Updates, 88×31 buttons | `src/data.ts`, `public/*.svg` | Nothing |
+| Photos: the newest 6 of a shared album | A public Google Photos shared album | `photosAlbum` in `src/data.ts` |
 | ⌘K menu | cmdk | Nothing |
 
 Only real data is shown. A part with no data is hidden.
@@ -120,6 +121,24 @@ logs check-ins); the Worker stores it in D1 and the counts card updates within s
 
 If a table or the token is missing, `/log` says what to set up (the API answers `503`), instead of
 "wrong token".
+
+## Photos (a shared Google Photos album)
+
+Add a photo to the shared album on the phone, and it shows on the site within the hour.
+
+- **How:** since 31 March 2025 the Google Photos API can no longer read albums an app did not make
+  ([Google](https://developers.google.com/photos/support/updates)), so `worker/photos.ts` reads the
+  public album page with [google-photos-album-image-url-fetch](https://github.com/yumetodo/google-photos-album-image-url-fetch).
+  This is not an official API: if Google changes the page, the card hides until the library is fixed.
+  The library runs in the Worker with `nodejs_compat`; its old `uuid` is raised by an npm override
+  (`npm audit`: 0).
+- **Cost:** no D1. The answer is kept 1 hour in the edge cache, so Google is asked at most once an
+  hour per Cloudflare location.
+- **Images** load from Google's image server in the size needed: a 400 px WebP square in the grid
+  (about 40 kB), 2048 px when opened, with no referrer. Checked with exifr: Google serves them with
+  no GPS location, the original included. Also turn off "Show location" in the album's options.
+- **Change the album:** put its share link (`https://photos.app.goo.gl/…`) in `photosAlbum` in
+  `src/data.ts`. Empty hides the card.
 
 ## Views and pats (Cloudflare D1)
 
