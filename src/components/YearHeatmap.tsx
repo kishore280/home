@@ -11,7 +11,9 @@ import { KindIcon } from './KindIcon'
 // It draws only in the browser: its loading state reads the visitor's motion setting, so the
 // pre-render and the first render would not match. .heat-box keeps its place meanwhile (no shift).
 // Each day's text is an SVG <title> (the browser's own tooltip), added with renderBlock as the
-// library's docs show: its floating-ui tooltips are a component per square, 365 of them.
+// library's docs show. Its `tooltips` prop puts a Suspense, a lazy Floating UI tooltip and six hooks
+// on each of the 365 squares: measured on a 4x slowed CPU, 620-730 ms of long tasks against
+// 220-320 ms with <title>. (Neither opens on a tap: both are hover tooltips.)
 // Two colours: the library mixes the levels between them (CSS colours, so the site's tokens work
 // in light and dark).
 const THEME = ['var(--chip)', 'var(--accent-deep)']

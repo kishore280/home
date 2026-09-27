@@ -27,6 +27,7 @@ kishore's personal site, live at **https://kichoow.com**. React 19 + TypeScript 
 - **Pre-render safe.** Anything that depends on the visitor's clock or browser renders only after `useIsClient()` is true (`src/lib/client.ts`), or hydration will not match.
 - **Code loaded later** uses `lazyPreload()` from `src/lib/lazy.tsx`, not `React.lazy` (React 19 holds a lazy reveal for 300 ms). Preload it on hover, focus or idle.
 - **Style:** soft lavender; colours are tokens in `src/index.css` (light and dark). Text needs 4.5:1 contrast.
+- **SQL changes get a database review** before they ship: search the SQLite and D1 docs and expert write-ups for the pattern; run `EXPLAIN QUERY PLAN` on each new query (a primary key or covering index, no full scan of a table that grows, no temp B-tree); run the migration twice on a local D1 (`--local --persist-to <dir>`) to prove it is safe to repeat; count the rows a request reads and writes (D1 bills rows); keep remote D1's splitter rules (uppercase `BEGIN`/`END`, no comments or quotes inside trigger bodies).
 - **Free tier only** (Cloudflare Workers, D1, Umami Cloud Hobby). Nothing that costs money.
 - **Secrets** (API keys, tokens) never go in the code or Git. They are Worker secrets in the Cloudflare dashboard.
 - **Analytics:** a click is tracked with `data-umami-event="Name"`; anything else with `track()` / `trackOnce()` / `trackHover()` from `src/lib/track.ts`. Umami sends with `fetch` keepalive, so a same-tab navigation does not wait for its event (see `CommandMenu.tsx`).

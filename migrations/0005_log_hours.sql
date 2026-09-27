@@ -6,6 +6,8 @@
 -- log_entries (SQLite runs every trigger of an event). Safe to run twice: the fill recounts.
 -- Same rules as 0004_log.sql for the remote D1 splitter: uppercase BEGIN/END, no comments inside
 -- trigger bodies, no quotes in comments. The hour of an entry is its UTC time plus 5:30 (IST).
+-- The fill has WHERE true: the SQLite docs ask for a WHERE in an INSERT from a SELECT with an
+-- upsert, so the ON of ON CONFLICT is never read as a join (sqlite.org/lang_upsert.html).
 
 CREATE TABLE IF NOT EXISTS log_hours (
   kind TEXT NOT NULL REFERENCES log_kinds (kind),
@@ -17,6 +19,7 @@ CREATE TABLE IF NOT EXISTS log_hours (
 INSERT INTO log_hours (kind, hour, count)
 SELECT kind, CAST(strftime('%H', at / 1000, 'unixepoch', '+330 minutes') AS INTEGER) AS h, sum(count)
 FROM log_entries
+WHERE true
 GROUP BY kind, h
 ON CONFLICT (kind, hour) DO UPDATE SET count = excluded.count;
 
