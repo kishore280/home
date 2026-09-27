@@ -22,9 +22,13 @@
 	"preview_urls": false,
 	// Keep variables set in the Cloudflare dashboard (e.g. the SCROBBLE_TOKEN secret) on each deploy.
 	"keep_vars": true,
-	// No plain-text variables; secrets (SCROBBLE_TOKEN) are set in the dashboard, never here.
-	// Matches the dashboard, which suggests this block.
-	"vars": {},
+	// Plain-text variables: only values that are not secret. Secrets (SCROBBLE_TOKEN, PURGE_TOKEN) are
+	// set in the dashboard, never here.
+	"vars": {
+		// The kichoow.com zone, for "refresh photos" (purge by Cache-Tag, worker/photos.ts). An ID, not a
+		// secret; the PURGE_TOKEN secret is what allows the purge.
+		"ZONE_ID": "63ee1d0d39bb264952f3388f375f4eb4"
+	},
 	// Logs and traces for the Worker (/api/* only; static files do not run it).
 	// Free plan: 200,000 events/day with 3 days retention; past that, 1% sampling, no bill.
 	"observability": {
