@@ -3,7 +3,8 @@ import { site } from '../data'
 import { fetcher, type LogKind, type LogSummary } from '../lib/api'
 import { useNow } from '../lib/client'
 import { Card } from './Card'
-import { chaiIcon } from './ChaiIcon'
+import { ChaiClock } from './ChaiClock'
+import { KindIcon } from './KindIcon'
 
 // Everything logged from the /log page, one row per kind (worker/log.ts counts them in IST).
 const dayKey = new Intl.DateTimeFormat('en-CA', { timeZone: site.timeZone }) // YYYY-MM-DD
@@ -29,7 +30,7 @@ function Row({ kind, now }: { kind: LogKind & { last: string }; now: number }) {
   return (
     <div className="count">
       <dt>
-        {kind.kind === 'chai' ? chaiIcon : <span aria-hidden="true">{kind.emoji}</span>} {kind.label}
+        <KindIcon kind={kind.kind} emoji={kind.emoji} /> {kind.label}
       </dt>
       <dd className="count-main">{main}</dd>
       <dd className="count-sub">{sub}</dd>
@@ -37,8 +38,8 @@ function Row({ kind, now }: { kind: LogKind & { last: string }; now: number }) {
   )
 }
 
-// While the counts load, one line per kind so the card does not grow when they arrive (web.dev
-// "Optimize CLS"). It is in the pre-rendered HTML; 3 is the number of kinds today.
+// While the counts load, the clock's place and one line per kind, so the card does not grow when
+// they arrive (web.dev "Optimize CLS"). It is in the pre-rendered HTML; 3 is the number of kinds today.
 const PENDING_ROWS = 3
 const pendingRow = (i: number) => (
   <div className="count pending" key={i} aria-hidden="true">
@@ -56,10 +57,13 @@ export function Counts() {
   const pending = data === undefined && !error
   // A kind never logged is hidden; with nothing logged at all, so is the card.
   const shown = data?.kinds.filter(logged) ?? []
+  const chai = shown.find((k) => k.kind === 'chai')
   if (!pending && shown.length === 0) return null
 
   return (
     <Card title="counts" id="counts">
+      {pending ? <div className="chai-clock pending" aria-hidden="true" /> : null}
+      {chai && chai.hours.some(Boolean) ? <ChaiClock hours={chai.hours} /> : null}
       <dl className="counts">
         {pending
           ? Array.from({ length: PENDING_ROWS }, (_, i) => pendingRow(i))

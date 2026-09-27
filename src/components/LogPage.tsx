@@ -8,6 +8,7 @@ import { toast, useToastRequested } from '../lib/toast'
 import { BackHome } from './BackHome'
 import { Card } from './Card'
 import { Counts } from './Counts'
+import { KindIcon } from './KindIcon'
 // Part of this page's bundle, not lazy: the page must work with no signal (the service worker
 // precaches it), and a lazy chunk may not load then.
 import Toasts from './Toasts'
@@ -47,7 +48,8 @@ async function sendUndo(token: string, id: string) {
 async function sendLog(token: string, kind: LogKind, count: number, place?: string): Promise<'ok' | 'unauthorized' | 'failed'> {
   navigator.vibrate?.(30) // a short buzz as the tap is taken (Android; other browsers ignore it)
   const id = crypto.randomUUID() // the Worker counts a replayed request once
-  const label = `${kind.emoji} ${kind.kind} +${count}`
+  const label = `${kind.kind} +${count}`
+  const icon = <KindIcon kind={kind.kind} emoji={kind.emoji} /> // chai: the glass
   const action = { label: 'Undo', onClick: () => void sendUndo(token, id) }
   // The phone's time zone, kept with the entry (days are counted in IST; this keeps the truth).
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
@@ -60,16 +62,16 @@ async function sendLog(token: string, kind: LogKind, count: number, place?: stri
       toast(reply.error ?? `Could not log ${kind.kind}. Try again.`, { error: true })
       return 'failed'
     }
-    if (reply.duplicate) toast(`${kind.emoji} today is already a ${kind.kind} day`)
-    // With the new total, as adamvsyagiz.com's log page does: "☕ chai +1 · 3 today".
-    else toast(`${label} · ${kind.onceADay ? `${reply.month} this month` : `${reply.today} today`}`, { action })
+    if (reply.duplicate) toast(`today is already a ${kind.kind} day`, { icon })
+    // With the new total, as adamvsyagiz.com's log page does: "chai +1 · 3 today".
+    else toast(`${label} · ${kind.onceADay ? `${reply.month} this month` : `${reply.today} today`}`, { action, icon })
     return 'ok'
   } catch {
     if (!queued()) {
       toast('No signal: not saved. Try again online.', { error: true })
       return 'failed'
     }
-    toast(`${label}: no signal, it will be sent when you are back online`, { action })
+    toast(`${label}: no signal, it will be sent when you are back online`, { action, icon })
     return 'ok'
   } finally {
     void refresh()
@@ -135,7 +137,7 @@ export function LogPage() {
                 {kinds.flatMap((kind) =>
                   (kind.onceADay ? [0] : [1, 2]).map((count) => (
                     <button key={`${kind.kind}${count}`} type="button" onClick={() => void log(kind, count || 1)}>
-                      <span aria-hidden="true">{kind.emoji}</span> {kind.kind} {count ? `+${count}` : 'day'}
+                      <KindIcon kind={kind.kind} emoji={kind.emoji} /> {kind.kind} {count ? `+${count}` : 'day'}
                     </button>
                   )),
                 )}

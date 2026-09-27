@@ -5,6 +5,7 @@ import { Mascot, type MascotHandle } from './components/Mascot'
 import { Status } from './components/Status'
 import { Stats } from './components/Stats'
 import { RightNow } from './components/RightNow'
+import { YearHeatmap } from './components/YearHeatmap'
 import { Counts } from './components/Counts'
 import { Buttons } from './components/Buttons'
 import type { MenuItem } from './components/CommandMenu'
@@ -98,6 +99,7 @@ export default function App() {
 
         <main className="main" id="main" tabIndex={-1}>
           <RightNow />
+          <YearHeatmap />
 
           {updates.length > 0 ? (
             <Card title="updates">

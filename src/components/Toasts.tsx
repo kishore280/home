@@ -7,6 +7,6 @@ const OPTIONS = { className: 'toast' }
 // Loaded with lazyPreload (src/lib/lazy.tsx), mounted on the first toast. Toaster subscribes in its own effect,
 // which runs before this one, so the queued messages are not lost.
 export default function Toasts() {
-  useEffect(() => connectToaster((m) => (m.error ? toast.error(m.text) : toast(m.text, { action: m.action, duration: m.action ? 5000 : undefined }))), [])
+  useEffect(() => connectToaster((m) => (m.error ? toast.error(m.text) : toast(m.text, { action: m.action, icon: m.icon, duration: m.action ? 5000 : undefined }))), [])
   return <Toaster position="bottom-center" toastOptions={OPTIONS} />
 }

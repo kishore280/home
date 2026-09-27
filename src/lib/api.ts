@@ -34,5 +34,8 @@ export type LogKind = {
   total: number
   last: string | null
   place: string | null
+  hours: number[] // 24 counts, hour of the day in IST (the chai clock)
 }
 export type LogSummary = { kinds: LogKind[] }
+// GET /api/log/days?kind=chai: [day, count] for the days with an entry, in the last 365 days (IST).
+export type LogDays = { kind: string; from: string; to: string; days: [string, number][] }
