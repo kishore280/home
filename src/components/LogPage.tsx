@@ -31,7 +31,8 @@ const post = (token: string, path: string, body: object) =>
 async function refreshPhotos(token: string) {
   const res = await fetch('/api/photos', { headers: { authorization: `Bearer ${token}` }, cache: 'reload' }).catch(() => null)
   const count = res?.ok ? ((await res.json()) as PhotoAlbum).photos.length : null
-  toast(count === null ? 'Could not refresh the photos. Try again.' : `Photos refreshed: ${count} on the site`, { error: count === null })
+  const where = res?.headers.get('x-photos-refreshed') === 'everywhere' ? 'everywhere' : 'near you'
+  toast(count === null ? 'Could not refresh the photos. Try again.' : `Photos refreshed ${where}: ${count} on the site`, { error: count === null })
 }
 
 // Fresh counts after a change: /api/log may be in the browser's cache for 15 s.

@@ -11,7 +11,23 @@ import { site } from '../src/data'
 import { bearer, fail, tokenMatches, type Env } from './db'
 
 const SHOWN = 6
+const TAG = 'photos'
 const IMAGE_HOST = 'https://lh3.googleusercontent.com/'
+
+// Clears the saved photos in every Cloudflare data centre at once: purge by Cache-Tag, free on every
+// plan since April 2025 and done in under 150 ms, and it clears what a Worker saved with cache.put.
+// https://developers.cloudflare.com/cache/how-to/purge-cache/purge-by-tags/
+// Needs the PURGE_TOKEN secret (an API token with only Zone > Cache Purge) and ZONE_ID; without them,
+// "refresh photos" renews only the data centre that runs it.
+async function purgeEverywhere(env: Env): Promise<boolean> {
+  if (!env.PURGE_TOKEN || !env.ZONE_ID) return false
+  const res = await fetch(`https://api.cloudflare.com/client/v4/zones/${env.ZONE_ID}/purge_cache`, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${env.PURGE_TOKEN}`, 'content-type': 'application/json' },
+    body: JSON.stringify({ tags: [TAG] }),
+  }).catch(() => null)
+  return res?.ok ?? false
+}
 
 export async function photos(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   if (request.method !== 'GET') return Response.json({ error: 'Use GET.' }, { status: 405 })
@@ -25,6 +41,7 @@ export async function photos(request: Request, env: Env, ctx: ExecutionContext):
   if (token && !fresh) return fail('Invalid token.', 401)
   const cached = fresh ? undefined : await caches.default.match(key)
   if (cached) return cached
+  const everywhere = fresh && (await purgeEverywhere(env))
 
   // The library types its signal with the old abort-controller polyfill; a standard AbortSignal is the
   // same at run time (gaxios passes it to fetch).
@@ -40,8 +57,10 @@ export async function photos(request: Request, env: Env, ctx: ExecutionContext):
   const response = Response.json(
     // Only the photos: the album's own address stays out of the page.
     { photos: shown },
-    { headers: { 'cache-control': `public, max-age=${shown.length ? 3600 : 300}` } },
+    { headers: { 'cache-control': `public, max-age=${shown.length ? 3600 : 300}`, 'cache-tag': TAG } },
   )
   ctx.waitUntil(caches.default.put(key, response.clone()))
+  // For "refresh photos": where the new list is now (the body stays the same for everyone).
+  if (fresh) response.headers.set('x-photos-refreshed', everywhere ? 'everywhere' : 'here')
   return response
 }

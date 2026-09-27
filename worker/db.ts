@@ -3,7 +3,9 @@
 // Bindings (ASSETS, DB) come from wrangler.jsonc through worker-configuration.d.ts (npm run cf-typegen).
 // SCROBBLE_TOKEN (the phone's token for worker/scrobble.ts and worker/log.ts) is a secret set in the
 // Worker settings, so it is typed here.
-export type Env = Cloudflare.Env & { SCROBBLE_TOKEN?: string }
+// Secrets, set in the Cloudflare dashboard: the phone's token, and (optional) a Cache Purge API token
+// with the zone's ID, for "refresh photos" everywhere (worker/photos.ts).
+export type Env = Cloudflare.Env & { SCROBBLE_TOKEN?: string; PURGE_TOKEN?: string; ZONE_ID?: string }
 
 export const json = (data: unknown, status = 200) =>
   Response.json(data, { status, headers: { 'cache-control': 'no-store' } })
