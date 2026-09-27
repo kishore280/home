@@ -639,6 +639,21 @@ test.describe('photos (shared Google Photos album)', () => {
     await expect(page.locator('[cmdk-item]', { hasText: 'Photos' })).toHaveCount(0)
   })
 
+  test('a photo that does not load is a plain tile: no alt text, underline or broken icon on show', async ({ page, context }) => {
+    await context.route('https://lh3.googleusercontent.com/**', (r) => r.abort())
+    await context.route('**/api/photos', (r) => r.fulfill({ json: { photos: [photo(1, '2026-09-27T13:01:03Z')] } }))
+    await page.goto('/')
+    const img = page.locator('#photos img')
+    await expect(img).toHaveAttribute('alt', /Photo 1 of 1/) // screen readers still get it
+    await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth === 0)).toBe(true)
+    const look = await img.evaluate((el) => ({
+      text: getComputedStyle(el).color,
+      line: getComputedStyle(el.parentElement!).textDecorationLine,
+      cover: getComputedStyle(el, '::before').content,
+    }))
+    expect(look).toEqual({ text: 'rgba(0, 0, 0, 0)', line: 'none', cover: '""' })
+  })
+
   test('with no photos (or no answer from Google), there is no card', async ({ page, context }) => {
     await context.route('**/api/photos', (r) => r.fulfill({ json: { photos: [] } }))
     await page.goto('/')
