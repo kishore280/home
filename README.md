@@ -150,10 +150,6 @@ scrobbler needs. Storage follows the ListenBrainz server: at most two rows, no h
 | `playing_now` | `playing_now` (server clock); expires after the song's length, or 10 min | "listening" |
 | `listen` | `single` / `import`: the newest finished song (phone's `listened_at`) | "last played · 12 min. ago" |
 
-"Last played" is the newer of the two once "playing now" has expired. A song stopped before half its
-length (or 4 minutes) is never sent as a listen, because ListenBrainz says it "doesn't fully count as
-a listen", but it was still the last song played.
-
 ### Set up (all of it works from a phone)
 
 1. **Table.** Cloudflare dashboard → **Storage & Databases → D1 → `home` → Console**, run

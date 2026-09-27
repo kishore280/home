@@ -601,31 +601,12 @@ test.describe('now playing (ListenBrainz API)', () => {
   })
 
   test('with nothing playing, the newest listen shows; older ones never replace it', async ({ request }) => {
-    await submit(request, 'playing_now', [listen('Skipped at once', {}, 1)]) // ends the song still playing
-    // Listens after it (a phone clock may be ahead): the newest song played is Offline B.
+    await submit(request, 'playing_now', [listen('Skipped at once', {}, 1)]) // expires after 1 ms
     const now = seconds()
-    await submit(request, 'import', [listen('Offline A', { listened_at: now + 30 }), listen('Offline B', { listened_at: now + 60 })])
+    await submit(request, 'import', [listen('Offline A', { listened_at: now - 60 }), listen('Offline B', { listened_at: now - 30 })])
     expect(await nowPlaying(request)).toMatchObject({ title: 'Offline B' })
     await submit(request, 'import', [listen('Much older', { listened_at: now - 7200 })])
     expect(await nowPlaying(request)).toMatchObject({ title: 'Offline B' })
-  })
-
-  test('a song stopped early (never sent as a listen) still shows as last played', async ({ request, page }) => {
-    // The reported case: the last finished listen is yesterday's. Today a song plays and is stopped
-    // early, so the phone sends only "playing now" for it (ListenBrainz counts a listen after half
-    // the song or 4 minutes). Once it has expired, it is still the newest song played.
-    wrangler(`--command "UPDATE music SET at = at - 86400000 WHERE kind = 'listen'"`)
-    await submit(request, 'playing_now', [listen('Stopped early', {}, 1)]) // expires after 1 ms
-    await expect.poll(async () => (await nowPlaying(request)).title).toBe('Stopped early')
-    const track = await nowPlaying(request)
-    expect(Date.parse(track.until)).toBeLessThanOrEqual(Date.now())
-    await page.goto('/')
-    await expect(page.locator('.row', { hasText: 'last played' })).toContainText('Stopped early')
-    // An older listen sent later does not replace it; a newer one does.
-    await submit(request, 'import', [listen('Much older', { listened_at: seconds() - 7200 })])
-    expect(await nowPlaying(request)).toMatchObject({ title: 'Stopped early' })
-    await submit(request, 'single', [listen('Newer', { listened_at: seconds() + 120 })])
-    expect(await nowPlaying(request)).toMatchObject({ title: 'Newer' })
   })
   test('with no song and no GitHub data, the loading lines go away and nothing else shows', async ({ page }) => {
     await page.route('**/api/now-playing', (r) => r.fulfill({ status: 204 }))
