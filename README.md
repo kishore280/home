@@ -147,8 +147,11 @@ Add a photo to the shared album on the phone, and it shows on the site within th
   or sends its address; the photos are seen here.
 - **Videos:** Google's album data marks a video with the field `76647426` (the library drops it, so
   `worker/photos.ts` runs the library's own parse steps and keeps it). The tile has a ▶ mark. The
-  viewer's Video plugin plays Google's stream: `=m37` (1080p), then `=m22` (720p) and `=m18` (360p),
-  from `*.googlevideo.com` (allowed in the CSP's `media-src`). **Download** (`=dv`) is the original file.
+  viewer's Video plugin plays Google's adaptive HLS stream (`=mm,hls`, 144p to 1080p; native in Safari,
+  Chrome and Edge, no player code), else one MP4 stream: `=m37` (1080p), `=m22` (720p), `=m18` (360p),
+  from `*.googlevideo.com` (allowed in the CSP's `media-src`). Google's video servers answer 403 to
+  another site's Referer, so the viewer sets `<meta name="referrer" content="no-referrer">`.
+  **Download** (`=dv`) is the original file.
 - **Now, not in an hour:** on `/log`, tap **refresh photos**. With the phone's token, `/api/photos`
   clears the saved list in every Cloudflare location with a **purge by Cache-Tag** (`photos`), free on
   every plan since April 2025 and done in under 150 ms
