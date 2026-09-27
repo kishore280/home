@@ -21,7 +21,7 @@ kishore's personal site, live at **https://kichoow.com**. React 19 + TypeScript 
 
 ## Rules
 
-- **Real data only.** A part with no data is hidden, never filled with demo text. (Zero is real data: every kind keeps its counts row, with "not logged yet".)
+- **Real data only.** A part with no data is hidden, never filled with demo text.
 - **Do not hand-roll.** Use an existing library, service or the documented method. Before a fix, search the library's docs or issues for the recommended way, and say which one you used.
 - **Keep the code small.** No new dependency for something a few lines do; no copy-pasted code (check with `npx jscpd src worker scripts`).
 - **Pre-render safe.** Anything that depends on the visitor's clock or browser renders only after `useIsClient()` is true (`src/lib/client.ts`), or hydration will not match.

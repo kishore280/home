@@ -42,7 +42,7 @@ ON CONFLICT (kind) DO NOTHING;
 
 | File | What to change | Why |
 |---|---|---|
-| `src/components/Counts.tsx` | `PENDING_ROWS` = the number of kinds | Every kind has a counts row ("not logged yet" before its first log), so the placeholder rows must equal the number of kinds, or the card changes size when the counts load (layout shift test). |
+| `src/components/Counts.tsx` | `PENDING_ROWS` = the number of kinds | The loading rows before the counts arrive, one per kind (a kind shows its row only once it is logged). |
 | `public/log.webmanifest` | Add a shortcut `/log?add=<kind>` with a distinct `name`; update `description` | Long-press shortcuts of the installed app. Order them by use: **Chrome for Android shows only the first 3** ([web.dev: App shortcuts](https://web.dev/articles/app-shortcuts)). |
 | `src/components/KindIcon.tsx` | Only for a kind that needs a drawn icon instead of its emoji (like chai) | |
 | `src/components/ChaiClock.tsx` | Nothing: the clock is for chai only | |

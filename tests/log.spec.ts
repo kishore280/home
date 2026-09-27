@@ -1,7 +1,7 @@
 // /api/log (worker/log.ts) and the /log page: the phone logs chai, parotta and beach days; the site
 // reads the totals. API requests go straight to the local server (playwright.config.ts); the page
 // runs in the test browser as kichoow.com.
-import { execSync } from 'node:child_process'
+import { wrangler } from './d1'
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
 
 const api = 'http://127.0.0.1:8787/api/log'
@@ -22,19 +22,6 @@ const summary = async (request: APIRequestContext) => {
   return byKind(await res.json())
 }
 const counts = (n: number) => ({ today: n, month: n, year: n, total: n })
-// A wrangler command on the local D1. The test server has the same database file open, so SQLite
-// can answer SQLITE_BUSY ("the database file is locked"); its docs say to try again, so we do.
-function wrangler(args: string) {
-  for (let attempt = 1; ; attempt++) {
-    try {
-      return execSync(`npx wrangler d1 execute home --local ${args}`, { encoding: 'utf8', stdio: 'pipe' })
-    } catch (error) {
-      const out = `${(error as { stdout?: string }).stdout}${(error as { stderr?: string }).stderr}`
-      if (attempt === 5 || !out.includes('SQLITE_BUSY')) throw error
-      execSync('sleep 0.5')
-    }
-  }
-}
 const sql = (command: string) => wrangler(`--json --command "${command}"`)
 
 // One shared pair of tables in the local D1: run in order (and with --workers=1 when using --repeat-each).

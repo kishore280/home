@@ -1,7 +1,7 @@
 // UI tests: every tap target, the ⌘K menu, the offline page, the 404 page, layout width,
 // accessibility and analytics events. Runs on "desktop" and "mobile" (playwright.config.ts).
 // Method: .claude/skills/ui-test (adversarial checks) and .claude/skills/webapp-testing.
-import { execSync } from 'node:child_process'
+import { wrangler } from './d1'
 import AxeBuilder from '@axe-core/playwright'
 import { test as base, expect, type APIRequestContext, type Locator, type Page } from '@playwright/test'
 
@@ -465,14 +465,14 @@ test.describe('speed', () => {
         r.fulfill({ json: logReply(reply(totals)) }),
       )
     const today: Record<string, number> = shape === 'only chai logged' ? { chai: 2 } : { chai: 2, badminton: 1 }
-    await page.context().route('**/api/log/days?**', (r) => r.fulfill({ json: daysReply(84, { [istToday()]: today }) }))
+    await page.context().route('**/api/log/days?**', (r) => r.fulfill({ json: daysReply(365, { [istToday()]: today }) }))
     await page.goto('/')
     // Wait for everything that arrives after the page: the clock, the rows, the mascot's line and the views.
     await expect(page.locator('.clock')).toBeVisible()
     await expect(page.locator('.row', { hasText: 'last played' })).toBeVisible()
     await expect(page.locator('.row', { hasText: 'building' })).toBeVisible()
     await expect(page.locator('.row.pending')).toHaveCount(0)
-    await expect(page.locator('.count')).toHaveCount(4)
+    await expect(page.locator('.count')).toHaveCount(Object.keys(reply(totals)).length) // the logged kinds
     await expect(page.locator('.count.pending')).toHaveCount(0)
     await expect(page.locator('.chai-clock figcaption')).toBeVisible()
     await expect(page.locator(`#year rect[data-date="${istToday()}"]`)).toHaveAttribute('data-level', String(Object.keys(today).length))
@@ -551,7 +551,7 @@ test.describe('now playing (ListenBrainz API)', () => {
   test.beforeEach(({ isMobile }) => test.skip(isMobile, 'API only; one run is enough'))
   // Start with no music (the local D1 keeps its rows between runs).
   test.beforeAll(() => {
-    execSync('npx wrangler d1 execute home --local --command "DELETE FROM music"', { stdio: 'ignore' })
+    wrangler('--command "DELETE FROM music"')
   })
 
   test('the token and the request are checked like ListenBrainz does', async ({ request }) => {
@@ -621,7 +621,7 @@ test.describe('counts card', () => {
     const html = await (await request.get('http://127.0.0.1:8787/')).text()
     expect(html.match(/class="count pending"/g)).toHaveLength(4)
     expect(html).toContain('class="chai-clock pending"')
-    expect(html).toContain('class="heat-box range-84"') // the grid's place; the calendar draws in the browser
+    expect(html).toContain('class="heat-box range-365"') // the grid's place; the calendar draws in the browser
   })
 
   test('the chai clock shows the hours of the day, with the chai glass', async ({ page, context }) => {
@@ -659,8 +659,9 @@ test.describe('counts card', () => {
     const note = card.locator('.heat-day')
     await expect(card.getByRole('heading')).toHaveText('my days')
     await expect(card.getByRole('button', { name: 'all' })).toHaveAttribute('aria-pressed', 'true')
-    // 12 weeks by default: 84 squares. Today had 2 of the 2 kinds: the darkest.
-    await expect(card.locator('.heat rect[data-date]')).toHaveCount(84)
+    // The year by default: 365 squares. Today had 2 of the 2 kinds: the darkest.
+    await expect(card.locator('.heat rect[data-date]')).toHaveCount(365)
+    await expect(card).toContainText('last 12 months')
     await expect(card.locator(`rect[data-date="${istToday()}"]`)).toHaveAttribute('data-level', '2')
     await expect(card.locator(`rect[data-date="${daysAgo(1)}"]`)).toHaveAttribute('data-level', '1')
     const tile = (label: string) => card.locator('.heat-tiles div', { has: page.getByText(label, { exact: true }) }).locator('dd')
@@ -686,40 +687,38 @@ test.describe('counts card', () => {
     await expect(tile('parotta days')).toHaveText('2')
     await expect(tile('in all')).toHaveText('4')
     await expect(tile('day streak')).toHaveText('1')
-    // The year: asked for only when chosen; it scrolls inside its card, never the page (phones).
-    expect(ranges).toEqual(['84'])
-    await card.getByRole('button', { name: 'year' }).click()
-    await expect(card.locator('.heat rect[data-date]')).toHaveCount(365)
-    await expect(card).toContainText('last 12 months')
-    expect(ranges).toEqual(['84', '365'])
+    // The year scrolls inside its card, never the page (phones). 12 weeks is asked for only when chosen.
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+    expect(ranges).toEqual(['365'])
+    await card.getByRole('button', { name: '12 weeks' }).click()
+    await expect(card.locator('.heat rect[data-date]')).toHaveCount(84)
+    await expect(card).toContainText('last 12 weeks')
+    expect(ranges).toEqual(['365', '84'])
   })
 
   test('a day row of a kind the counts do not show (the two answers from different moments) breaks nothing', async ({ page, context }) => {
     await context.route('**/api/log', (r) => r.fulfill({ json: logReply({ chai: { today: 1, month: 1, year: 1, total: 1, last: at } }) }))
     await context.route('**/api/log/days?**', (r) =>
-      r.fulfill({ json: daysReply(84, { [istToday()]: { chai: 1, parotta: 2, beach: 1, gym: 1 } }) }),
+      r.fulfill({ json: daysReply(365, { [istToday()]: { chai: 1, parotta: 2, beach: 1, gym: 1 } }) }),
     )
     const errors: string[] = []
     page.on('pageerror', (e) => errors.push(e.message))
     await page.goto('/')
     await expect(page.locator(`#year rect[data-date="${istToday()}"]`)).toHaveAttribute('data-level', '1')
     await expect(page.locator('#year .heat-day')).toContainText('(today): 1 chai')
-    await expect(page.locator('#counts .count')).toHaveCount(4)
+    await expect(page.locator('#counts .count')).toHaveCount(1)
+    await expect(page.locator('#year .react-activity-calendar__legend-colors')).toContainText('1 thing')
     expect(errors).toEqual([])
   })
 
-  test('every kind has its row, with its numbers or "not logged yet"', async ({ page, context }) => {
+  test('only the kinds that were logged are shown, with their numbers', async ({ page, context }) => {
     await context.route('**/api/log', (r) => r.fulfill({ json: logReply({ chai: { today: 2, month: 14, year: 90, total: 90, last: at } }) }))
     await page.goto('/')
     const card = page.locator('#counts')
-    await expect(card.locator('.count')).toHaveCount(4)
-    const row = (name: string) => card.locator('.count', { hasText: name })
-    await expect(row('chai')).toContainText('2 today')
-    await expect(row('chai')).toContainText('14 this month · last today')
-    await expect(row('parotta')).toContainText('0 today')
-    await expect(row('parotta')).toContainText('not logged yet')
-    await expect(row('badminton days')).toContainText('0 this month')
+    await expect(card.locator('.count')).toHaveCount(1)
+    await expect(card).toContainText('2 today')
+    await expect(card).toContainText('14 this month · last today')
+    await expect(card).not.toContainText('parotta')
   })
 
   test('a once-a-day kind shows days this month and this year, with the place', async ({ page, context }) => {
@@ -806,7 +805,7 @@ test.describe('accessibility (axe-core)', () => {
           ? r.fulfill({ json: logReply({ chai: { ...totals, hours: chaiHours }, parotta: totals, beach: { ...totals, place: 'Marina' }, badminton: totals }) })
           : r.fallback(),
       )
-      await context.route('**/api/log/days?**', (r) => r.fulfill({ json: daysReply(84, { [istToday()]: { chai: 2, badminton: 1 }, [daysAgo(3)]: { parotta: 1 } }) }))
+      await context.route('**/api/log/days?**', (r) => r.fulfill({ json: daysReply(365, { [istToday()]: { chai: 2, badminton: 1 }, [daysAgo(3)]: { parotta: 1 } }) }))
       // Reduced motion: axe checks the final colours, not a row that is still fading in.
       await page.emulateMedia({ colorScheme: scheme, reducedMotion: 'reduce' })
       await page.goto(path)

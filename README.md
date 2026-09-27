@@ -23,7 +23,7 @@ Coding agents: read [AGENTS.md](AGENTS.md) for the rules, commands, tests and ho
 | Updates, 88×31 buttons | `src/data.ts`, `public/*.svg` | Nothing |
 | ⌘K menu | cmdk | Nothing |
 
-Only real data is shown. A part with no data is hidden (zero is real data: a kind not logged yet still has its counts row).
+Only real data is shown. A part with no data is hidden.
 
 ## Local development
 
@@ -84,19 +84,19 @@ logs check-ins); the Worker stores it in D1 and the counts card updates within s
   ([D3 docs](https://d3js.org/d3-scale/radial)). The **my days** card follows the
   way 2026 coding tools show activity (Claude Code `/stats`, `opencode stats`): the numbers first
   (streak now, best streak, days with something, days with 3+ things), then a grid of the last
-  12 weeks, the year on request. The default **all** view puts every kind in one grid, like GitHub's
+  year, 12 weeks on request. The default **all** view puts every kind in one grid, like GitHub's
   contribution graph: a day is darker for more different things done. A tap on a day (or the ‹ ›
   buttons) says what it had; the chips show one kind alone. The grid is
   [react-activity-calendar](https://github.com/grubersjoe/react-activity-calendar); it draws in the
   browser only (its loading state reads the visitor's motion setting), in boxes that keep their
   place, so nothing moves.
-  - **Data:** `GET /api/log/days?range=84` (or `365`, only when "year" is tapped): the day totals of
-    every kind, one primary-key range read per kind, no sort (at most 4 × 84 rows). The answer is kept
+  - **Data:** `GET /api/log/days?range=365` (or `84` when "12 weeks" is tapped): the day totals of
+    every kind, one primary-key range read per kind, no sort (at most 4 × 365 rows). The answer is kept
     60 s in Cloudflare's edge cache ([Workers Cache API](https://developers.cloudflare.com/workers/runtime-apis/cache/)),
     so most visits read no D1 rows at all.
-  - **Speed:** 84 squares instead of 365, an SVG `<title>` per square instead of a tooltip component,
-    and one click listener for the whole grid: about 30% less main-thread blocking than the year
-    grid (Playwright, 4× slowed CPU).
+  - **Speed:** an SVG `<title>` per square instead of the library's tooltip component (about 400 ms
+    less main-thread blocking on a 4× slowed CPU), and one click listener for the whole grid.
+    12 weeks (84 squares) is lighter still, about 30% less blocking than the year.
 - **Fix or add a tap by hand** in the D1 Console; the totals follow by themselves:
   `INSERT INTO log_entries (kind, at) VALUES ('chai', unixepoch('2026-09-25 20:15', '-330 minutes') * 1000);`
   (a chai at 20:15 IST on 25 Sep), or `DELETE FROM log_entries WHERE id = 42;`.
