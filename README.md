@@ -137,6 +137,13 @@ Add a photo to the shared album on the phone, and it shows on the site within th
 - **Images** load from Google's image server in the size needed: a 400 px WebP square in the grid
   (about 40 kB), 2048 px when opened, with no referrer. Checked with exifr: Google serves them with
   no GPS location, the original included. Also turn off "Show location" in the album's options.
+- **Viewer:** a tap opens [Yet Another React Lightbox](https://yet-another-react-lightbox.com/)
+  (swipe, arrow keys, pinch and double-tap zoom, a counter and download). It loads only when a finger
+  or pointer comes near the photos (about 15 kB compressed). It opens the original file at once
+  (`=s0`, full size), zoom goes up to its real pixels, and only the photos before and after are loaded
+  ahead. It is styled with the library's documented CSS variables from the site's tokens (`.viewer`),
+  so it follows light and dark. Download saves the original file: Google's `=d` link answers with
+  `Content-Disposition: attachment`.
 - **Change the album:** put its share link (`https://photos.app.goo.gl/…`) in `photosAlbum` in
   `src/data.ts`. Empty hides the card.
 

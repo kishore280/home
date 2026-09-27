@@ -575,6 +575,43 @@ test.describe('photos (shared Google Photos album)', () => {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   })
 
+  test('a tap opens the viewer: the original photo, zoom, counter, download of the original, Escape closes', async ({ page, context }) => {
+    await context.route('https://lh3.googleusercontent.com/**', (r) =>
+      r.request().url().endsWith('=d')
+        ? r.fulfill({ contentType: 'image/jpeg', body: pixel, headers: { 'content-disposition': 'attachment;filename="chai.jpg"' } })
+        : r.fulfill({ contentType: 'image/png', body: pixel }),
+    )
+    await context.route('**/api/photos', (r) =>
+      r.fulfill({ json: { album: 'https://photos.app.goo.gl/x', photos: [photo(1, '2026-09-27T13:01:03Z'), photo(2, '2026-09-26T08:00:00Z')] } }),
+    )
+    const viewerCode: string[] = []
+    page.on('request', (r) => {
+      if (/PhotoViewer-.*\.js$/.test(r.url())) viewerCode.push(r.url())
+    })
+    await page.goto('/')
+    const tiles = page.locator('#photos a[target]').filter({ has: page.locator('img') })
+    await expect(tiles).toHaveCount(2)
+    await settle(page)
+    expect(viewerCode).toEqual([]) // the viewer loads only when it is about to be used
+    await tiles.nth(1).click()
+    const viewer = page.getByRole('dialog')
+    await expect(viewer).toBeVisible()
+    await expect(page).toHaveURL('/') // opened here, not in a new tab
+    await expect(viewer).toContainText('2 / 2')
+    // The original file at once (=s0), no smaller copy first; zoom goes up to its real pixels.
+    await expect(viewer.locator('img[src$="test-2=s0"]')).toHaveCount(1)
+    await expect(viewer.locator('img[src*="=w"]')).toHaveCount(0)
+    await expect(viewer.getByRole('button', { name: 'Zoom in' })).toBeVisible()
+    // Download: the original file, as Google sends it (Content-Disposition: attachment).
+    const download = page.waitForEvent('download')
+    await viewer.getByRole('button', { name: 'Download' }).click()
+    expect((await download).url()).toBe('https://lh3.googleusercontent.com/pw/test-2=d')
+    await page.keyboard.press('ArrowLeft')
+    await expect(viewer).toContainText('1 / 2')
+    await page.keyboard.press('Escape')
+    await expect(viewer).toBeHidden()
+  })
+
   test('with no photos (or no answer from Google), there is no card', async ({ page, context }) => {
     await context.route('**/api/photos', (r) => r.fulfill({ json: { album: 'https://photos.app.goo.gl/x', photos: [] } }))
     await page.goto('/')
@@ -888,6 +925,15 @@ test.describe('accessibility (axe-core)', () => {
         await page.evaluate(() => navigator.serviceWorker.ready)
         await page.context().setOffline(true)
         await expect(page.locator('canvas.sand')).toBeVisible()
+      },
+    ],
+    [
+      'home, photo viewer open',
+      '/',
+      'dark',
+      async (page) => {
+        await page.locator('#photos a[target]').first().click()
+        await expect(page.getByRole('dialog')).toBeVisible()
       },
     ],
     ['404', '/nope', 'dark'],
