@@ -52,9 +52,6 @@ export function Photos() {
           )
         })}
       </ul>
-      <a className="photos-album" href={data.album} target="_blank" rel="noreferrer" data-umami-event="Photos album link">
-        the whole album <span aria-hidden="true">↗</span>
-      </a>
     </Card>
   )
 }

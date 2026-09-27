@@ -15,7 +15,8 @@ const IMAGE_HOST = 'https://lh3.googleusercontent.com/'
 export async function photos(request: Request, ctx: ExecutionContext): Promise<Response> {
   if (request.method !== 'GET') return Response.json({ error: 'Use GET.' }, { status: 405 })
   if (!site.photosAlbum) return new Response(null, { status: 204 })
-  const key = new Request(new URL('/api/photos', request.url))
+  // The version in the key starts a new cache when the answer's shape changes (v2: no album address).
+  const key = new Request(new URL('/api/photos?v=2', request.url))
   const cached = await caches.default.match(key)
   if (cached) return cached
 
@@ -31,7 +32,8 @@ export async function photos(request: Request, ctx: ExecutionContext): Promise<R
   // An empty answer (the album cannot be read, or has no photos) hides the card, and is kept only
   // 5 minutes, so the card comes back soon after Google answers again.
   const response = Response.json(
-    { album: site.photosAlbum, photos: shown },
+    // Only the photos: the album's own address stays out of the page.
+    { photos: shown },
     { headers: { 'cache-control': `public, max-age=${shown.length ? 3600 : 300}` } },
   )
   ctx.waitUntil(caches.default.put(key, response.clone()))

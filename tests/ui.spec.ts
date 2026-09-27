@@ -464,7 +464,7 @@ test.describe('speed', () => {
     await page.route('**/api/now-playing', (r) => r.fulfill({ json: { title: 'A long song title that fills the line', artist: 'Artist', at, until: at } }))
     await page.route('**/api/github', (r) => r.fulfill({ json: { repo: 'home', url: 'https://github.com/kishore280/home', at } }))
     await page.context().route('https://lh3.googleusercontent.com/**', (r) => r.fulfill({ contentType: 'image/png', body: pixel }))
-    await page.context().route('**/api/photos', (r) => r.fulfill({ json: { album: 'https://photos.app.goo.gl/x', photos: [photo(1, at), photo(2, at)] } }))
+    await page.context().route('**/api/photos', (r) => r.fulfill({ json: { photos: [photo(1, at), photo(2, at)] } }))
     const totals = { today: 2, month: 14, year: 90, total: 90, last: at }
     await page
       .context()
@@ -557,7 +557,7 @@ test.describe('photos (shared Google Photos album)', () => {
   test('the newest photos show as small squares that open the original, with no referrer', async ({ page, context }) => {
     await context.route('https://lh3.googleusercontent.com/**', (r) => r.fulfill({ contentType: 'image/png', body: pixel }))
     await context.route('**/api/photos', (r) =>
-      r.fulfill({ json: { album: 'https://photos.app.goo.gl/KDhFbCbEwc7fBAR17', photos: [photo(1, '2026-09-27T13:01:03Z'), photo(2, '2026-09-26T08:00:00Z')] } }),
+      r.fulfill({ json: { photos: [photo(1, '2026-09-27T13:01:03Z'), photo(2, '2026-09-26T08:00:00Z')] } }),
     )
     await page.goto('/')
     const card = page.locator('#photos')
@@ -568,7 +568,7 @@ test.describe('photos (shared Google Photos album)', () => {
     await expect(images.first()).toHaveAttribute('alt', 'Photo 1 of 2 from kish’s album, added 27 Sept')
     await expect(images.first()).toHaveAttribute('referrerpolicy', 'no-referrer')
     await expect(card.getByRole('link').first()).toHaveAttribute('href', 'https://lh3.googleusercontent.com/pw/test-1=s0')
-    await expect(card.getByRole('link', { name: 'the whole album' })).toHaveAttribute('href', 'https://photos.app.goo.gl/KDhFbCbEwc7fBAR17')
+    await expect(card.getByRole('link')).toHaveCount(2) // the photos only, no link to the album
     // Squares, 3 a row, inside the page (phones).
     const box = (await images.first().boundingBox())!
     expect(Math.abs(box.width - box.height)).toBeLessThan(1)
@@ -582,7 +582,7 @@ test.describe('photos (shared Google Photos album)', () => {
         : r.fulfill({ contentType: 'image/png', body: pixel }),
     )
     await context.route('**/api/photos', (r) =>
-      r.fulfill({ json: { album: 'https://photos.app.goo.gl/x', photos: [photo(1, '2026-09-27T13:01:03Z'), photo(2, '2026-09-26T08:00:00Z')] } }),
+      r.fulfill({ json: { photos: [photo(1, '2026-09-27T13:01:03Z'), photo(2, '2026-09-26T08:00:00Z')] } }),
     )
     const viewerCode: string[] = []
     page.on('request', (r) => {
@@ -620,20 +620,20 @@ test.describe('photos (shared Google Photos album)', () => {
   })
 
   test('with no photos (or no answer from Google), there is no card', async ({ page, context }) => {
-    await context.route('**/api/photos', (r) => r.fulfill({ json: { album: 'https://photos.app.goo.gl/x', photos: [] } }))
+    await context.route('**/api/photos', (r) => r.fulfill({ json: { photos: [] } }))
     await page.goto('/')
     await expect(page.locator('#counts, .clock').first()).toBeVisible()
     await settle(page)
     await expect(page.locator('#photos')).toHaveCount(0)
   })
 
-  test('the API gives the album and its newest photos, from the edge cache after the first time', async ({ request, isMobile }) => {
+  test('the API gives the newest photos (not the album address), from the edge cache after the first time', async ({ request, isMobile }) => {
     test.skip(isMobile, 'API only; one run is enough')
     const res = await request.get('http://127.0.0.1:8787/api/photos')
     expect(res.status()).toBe(200)
     expect(res.headers()['cache-control']).toMatch(/^public, max-age=(3600|300)$/)
     const body = await res.json()
-    expect(body.album).toMatch(/^https:\/\/photos\.app\.goo\.gl\//)
+    expect(Object.keys(body)).toEqual(['photos'])
     // Real Google: the album may be unreachable from here, then the list is empty (the card hides).
     expect(body.photos.length).toBeLessThanOrEqual(6)
     for (const p of body.photos) expect(p.url).toMatch(/^https:\/\/lh3\.googleusercontent\.com\//)
@@ -964,7 +964,7 @@ test.describe('accessibility (axe-core)', () => {
       const totals = { today: 2, month: 14, year: 90, total: 90, last: at }
       await context.route('**/api/github', (r) => r.fulfill({ json: { repo: 'home', url: 'https://github.com/kishore280/home', at } }))
       await context.route('https://lh3.googleusercontent.com/**', (r) => r.fulfill({ contentType: 'image/png', body: pixel }))
-      await context.route('**/api/photos', (r) => r.fulfill({ json: { album: 'https://photos.app.goo.gl/x', photos: [photo(1, at), photo(2, at)] } }))
+      await context.route('**/api/photos', (r) => r.fulfill({ json: { photos: [photo(1, at), photo(2, at)] } }))
       await context.route('**/api/log', (r) =>
         r.request().method() === 'GET'
           ? r.fulfill({ json: logReply({ chai: { ...totals, hours: chaiHours }, parotta: totals, beach: { ...totals, place: 'Marina' }, badminton: totals }) })

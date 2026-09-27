@@ -963,7 +963,7 @@ html[data-log-clock='0'] .chai-clock.pending {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
-  margin: 0 0 10px;
+  margin: 0;
   padding: 0;
   list-style: none;
 }
@@ -981,12 +981,6 @@ html[data-log-clock='0'] .chai-clock.pending {
   height: auto;
   aspect-ratio: 1;
   object-fit: cover;
-}
-
-.photos-album {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--accent-text);
 }
 
 .buttons {

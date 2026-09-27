@@ -146,7 +146,8 @@ Add a photo to the shared album on the phone, and it shows on the site within th
   and it is off with reduced motion. The code (about 19 kB compressed) loads only when a finger or
   pointer comes near the photos. It is styled from the site's tokens with PhotoSwipe's documented CSS
   variables (`src/lib/photoViewer.css`), so it follows light and dark. Umami events: `Photo open`,
-  `Photo download`, `Photos album link`.
+  `Photo download`. The page never links to the album or sends its address; the photos are
+  seen here.
 - **Change the album:** put its share link (`https://photos.app.goo.gl/…`) in `photosAlbum` in
   `src/data.ts`. Empty hides the card.
 
