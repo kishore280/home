@@ -970,9 +970,34 @@ html[data-log-clock='0'] .chai-clock.pending {
 
 .photos a {
   display: block;
+  position: relative;
   border-radius: 12px;
   overflow: hidden;
   background: var(--chip);
+}
+
+/* A video tile: a round play mark in the middle (white on a dark glass, so it shows on any frame). */
+.photos .play {
+  position: absolute;
+  inset: 0;
+  width: 40px;
+  height: 40px;
+  margin: auto;
+  border-radius: 50%;
+  background: rgb(0 0 0 / 0.45);
+  backdrop-filter: blur(4px);
+}
+
+.photos .play::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 14px;
+  height: 16px;
+  translate: 2px 0;
+  background: #fff;
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
 }
 
 .photos img {

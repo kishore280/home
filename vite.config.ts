@@ -32,6 +32,8 @@ export default defineConfig({
         'style-src': ["'self'", "'unsafe-inline'"],
         // Photos from the shared Google Photos album (worker/photos.ts).
         'img-src': ["'self'", 'data:', 'https://lh3.googleusercontent.com'],
+        // Album videos: lh3 sends the stream on to Google's video servers (worker/photos.ts).
+        'media-src': ['https://lh3.googleusercontent.com', 'https://*.googlevideo.com'],
         'font-src': ["'self'", 'data:'],
         // status.cafe is read directly by the browser; the analytics scripts report to their own hosts.
         'connect-src': ["'self'", 'https://status.cafe', 'https://cloudflareinsights.com', 'https://gateway.umami.is'],
