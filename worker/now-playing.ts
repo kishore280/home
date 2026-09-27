@@ -1,7 +1,10 @@
 // GET /api/now-playing
 // The song for the "right now" card (rows written by worker/scrobble.ts):
 //   - "playing now" while it has not expired: the page shows "listening" until `until`;
-//   - else the newest finished listen (ListenBrainz's own "recent listens"): "last played".
+//   - else the newest song played: "last played". That is the newest finished listen, or the last
+//     "playing now" if it is newer: a song stopped before half its length (or 4 minutes) is never
+//     sent as a listen (ListenBrainz: "it doesn't fully count as a listen and should not be
+//     submitted"), but it was still the last song played.
 // The page compares `until` with the visitor's clock, so the 30 s cache never shows a stale
 // "listening". With no song yet, 204 and the music row stays hidden.
 import type { Env } from './db'
@@ -15,7 +18,7 @@ export async function nowPlaying(env: Env): Promise<Response> {
     .catch(() => ({ results: [] as Row[] }))
   const now = Date.now()
   const playing = results.find((r) => r.kind === 'playing_now' && r.until !== null && r.until > now)
-  const row = playing ?? results.find((r) => r.kind === 'listen') ?? results.find((r) => r.kind === 'playing_now')
+  const row = playing ?? results.toSorted((a, b) => b.at - a.at)[0]
   if (!row) return new Response(null, { status: 204 })
 
   const iso = (ms: number) => new Date(ms).toISOString()
