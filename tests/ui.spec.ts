@@ -613,6 +613,32 @@ test.describe('photos (shared Google Photos album)', () => {
     await expect(viewer).toBeHidden()
   })
 
+  test('⌘K → Photos goes to the card, also a second time; with no card there is no item', async ({ page, context, log, press }) => {
+    await context.route('https://lh3.googleusercontent.com/**', (r) => r.fulfill({ contentType: 'image/png', body: pixel }))
+    await context.route('**/api/photos', (r) => r.fulfill({ json: { photos: [photo(1, '2026-09-27T13:01:03Z')] } }))
+    await page.goto('/')
+    const card = page.locator('#photos')
+    await expect(card.locator('img')).toHaveCount(1)
+    for (let i = 0; i < 2; i++) {
+      await page.evaluate(() => scrollTo(0, 0))
+      await openMenu(page, press)
+      await press(page.locator('[cmdk-item]', { hasText: 'Photos' }))
+      await expect(menu(page)).toHaveCount(0)
+      await expect(card).toBeInViewport()
+      await settle(page) // the menu gives focus back; the page must stay at the card
+      await expect(card).toBeInViewport()
+    }
+    await expectEvents(log, ['Menu open', 'Menu: Photos', 'Menu open', 'Menu: Photos'])
+
+    await context.unroute('**/api/photos')
+    await context.route('**/api/photos', (r) => r.fulfill({ json: { photos: [] } }))
+    await page.evaluate(() => localStorage.clear())
+    await page.goto('/')
+    await openMenu(page, press)
+    await expect(page.locator('[cmdk-item]', { hasText: 'Pat the mascot' })).toBeVisible()
+    await expect(page.locator('[cmdk-item]', { hasText: 'Photos' })).toHaveCount(0)
+  })
+
   test('with no photos (or no answer from Google), there is no card', async ({ page, context }) => {
     await context.route('**/api/photos', (r) => r.fulfill({ json: { photos: [] } }))
     await page.goto('/')
