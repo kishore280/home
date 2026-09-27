@@ -453,6 +453,11 @@ test.describe('speed', () => {
           if (!e.hadRecentInput) (window as unknown as { __cls: number }).__cls += e.value
       }).observe({ type: 'layout-shift', buffered: true })
     })
+    // A last visit with the same kinds, so the loading lines are sized for them (src/head.html);
+    // the first-visit sizing comes from the build and has its own test.
+    const at0 = new Date().toISOString()
+    const last = logReply(reply({ today: 2, month: 14, year: 90, total: 90, last: at0 }))
+    await page.addInitScript((saved) => localStorage.setItem('swr /api/log:v1', saved), JSON.stringify(last))
     // The two late rows of "right now", as the live site gets them (the test server has no GitHub
     // access and may have no song). Their lines are kept in the HTML while they load.
     const at = new Date().toISOString()
@@ -709,6 +714,50 @@ test.describe('counts card', () => {
     await expect(page.locator('#counts .count')).toHaveCount(1)
     await expect(page.locator('#year .react-activity-calendar__legend-colors')).toContainText('1 thing')
     expect(errors).toEqual([])
+  })
+
+  test('a reload shows the last counts at once, while they are asked for again (stale-while-revalidate)', async ({ page, context }) => {
+    let reply = logReply({ chai: { today: 2, month: 2, year: 2, total: 2, last: at, hours: chaiHours } })
+    let release: () => void = () => {}
+    let gate: Promise<void> = Promise.resolve()
+    await context.route('**/api/log', async (r) => {
+      await gate
+      await r.fulfill({ json: reply })
+    })
+    await page.goto('/')
+    const counts = page.locator('#counts')
+    await expect(counts.locator('.count', { hasText: 'chai' })).toContainText('2 today')
+    // The next answer is slow: the last one shows at once, with no loading lines.
+    gate = new Promise((r) => (release = r))
+    reply = logReply({ chai: { today: 3, month: 3, year: 3, total: 3, last: at, hours: chaiHours } })
+    await page.reload()
+    await expect(counts.locator('.count', { hasText: 'chai' })).toContainText('2 today')
+    await expect(counts.locator('.count.pending')).toHaveCount(0)
+    await expect(page.locator('#year .heat-tiles dd').first()).not.toHaveText('\u00a0')
+    release()
+    await expect(counts.locator('.count', { hasText: 'chai' })).toContainText('3 today')
+  })
+
+  test('before the code runs, the loading lines match the kinds logged at the last visit', async ({ page, context }) => {
+    await context.route('**/api/log', (r) =>
+      r.fulfill({ json: logReply({ chai: { today: 1, month: 1, year: 1, total: 1, last: at, hours: chaiHours }, beach: { today: 1, month: 1, year: 1, total: 1, last: at } }) }),
+    )
+    await page.goto('/')
+    await expect(page.locator('#counts .count')).toHaveCount(2)
+    // Stop the app's code: what shows is the pre-rendered page and the head script only.
+    await context.route('**/assets/*.js', (r) => r.abort())
+    await page.reload()
+    expect(await page.evaluate(() => document.documentElement.dataset.logRows)).toBe('2')
+    await expect(page.locator('#counts .count.pending:visible')).toHaveCount(2)
+    await expect(page.locator('#counts .chai-clock.pending')).toBeVisible()
+  })
+
+  test('on a first visit, the loading lines match the live log at build time', async ({ page, context }) => {
+    await context.route('**/assets/*.js', (r) => r.abort())
+    await page.goto('/')
+    const rows = await page.evaluate(() => document.documentElement.dataset.logRows)
+    // The build reads kichoow.com/api/log; without it (no network) every line shows.
+    await expect(page.locator('#counts .count.pending:visible')).toHaveCount(rows === undefined ? 4 : Number(rows))
   })
 
   test('only the kinds that were logged are shown, with their numbers', async ({ page, context }) => {

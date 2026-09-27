@@ -21,6 +21,24 @@ const beasties = new Beasties({
   logLevel: 'warn',
 })
 
+// The loading lines of the counts card match the live log at build time: as many rows as kinds
+// logged, and the clock only if chai has hours (CSS in src/index.css hides the other lines). The
+// head script (src/head.html) uses the visitor's last visit instead when there is one. Without the
+// live answer (no network), nothing is set and all the lines show.
+async function logShape() {
+  try {
+    const res = await fetch(process.env.LOG_SHAPE_URL ?? 'https://kichoow.com/api/log', { signal: AbortSignal.timeout(5000) })
+    if (res.status !== 200) return ''
+    const logged = (await res.json()).kinds.filter((k) => k.last)
+    const clock = logged.some((k) => k.kind === 'chai' && k.hours?.some(Boolean)) ? 1 : 0
+    return ` data-log-rows="${logged.length}" data-log-clock="${clock}"`
+  } catch {
+    return ''
+  }
+}
+const shape = await logShape()
+console.log(`Counts loading lines: ${shape.trim() || 'all (live log not reached)'}`)
+
 // Read every built page first: a page can start from another one (offline-now.html from offline.html).
 const built = Object.fromEntries(Object.entries(pages).map(([page, { from = page }]) => [page, readFileSync(new URL(`../dist/${from}`, import.meta.url), 'utf8')]))
 
@@ -29,6 +47,7 @@ for (const [page, { render }] of Object.entries(pages)) {
   const html = built[page]
   if (!html.includes(marker)) throw new Error(`prerender: ${marker} not found in the page for dist/${page}`)
   const rendered = html
+    .replace(/<html([^>]*)>/, (_, attrs) => `<html${attrs}${shape}>`)
     .replace(/<meta charset[^>]*>/, (m) => m + fonts)
     .replace(marker, `<div id="root">${render()}</div>`)
   writeFileSync(file, await beasties.process(rendered))
