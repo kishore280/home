@@ -7,7 +7,7 @@ import { Card } from './Card'
 import { KindIcon } from './KindIcon'
 
 // Every logged day, as the 2026 coding tools show activity (Claude Code /stats, opencode stats):
-// the numbers first (streaks, days), then a grid of the last 12 weeks, the year on request.
+// the numbers first (streaks, days), then a grid of the last year (12 weeks on request).
 // "all" is the default: one grid for every kind, as GitHub puts commits, pull requests and issues
 // in one graph. A day is darker for more different things done, not a sum (3 chai and 1 beach
 // day are not "4"). A tap on a day, or the ‹ › buttons, says what it had.
@@ -84,7 +84,8 @@ export function YearHeatmap() {
   const { data: summary, error } = useSWR('/api/log', fetcher<LogSummary>, { refreshInterval: 60_000 })
   const kinds = summary?.kinds.filter((k) => k.last !== null) ?? []
   const [choice, setChoice] = useState('all')
-  const [range, setRange] = useState<number>(RANGES[0][0])
+  // The year by default; 12 weeks on request.
+  const [range, setRange] = useState<number>(365)
   const [picked, setPicked] = useState<string | null>(null)
   const kind = kinds.find((k) => k.kind === choice)
   // No timer: day totals change slowly; SWR reloads when the visitor comes back to the tab.
@@ -180,7 +181,7 @@ export function YearHeatmap() {
             blockRadius={range === 84 ? 3 : 2}
             fontSize={12}
             showTotalCount={false}
-            labels={{ legend: kind ? { less: 'less', more: 'more' } : { less: '0', more: `${levels} things` } }}
+            labels={{ legend: kind ? { less: 'less', more: 'more' } : { less: '0', more: `${levels} ${levels === 1 ? 'thing' : 'things'}` } }}
             renderBlock={(block, a) =>
               cloneElement(
                 block,
