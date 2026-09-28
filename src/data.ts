@@ -73,17 +73,24 @@ export type TextPage = {
 // with the text.
 export const nowPage: TextPage = {
   title: 'now · kish',
-  description: 'What kish is doing now: building AI agents and this site.',
+  description: 'What kish is doing now: trying AI and agents in small learning repos, and this site.',
   heading: 'now',
   intro: 'What I’m up to these days.',
   updated: '2026-09-28',
   sections: [
     {
-      title: 'building',
+      title: 'trying AI and agents',
       items: [
-        { text: 'hands-on with AI agents: projects to show here soon' },
-        { text: 'this site: a cat that watches you, moving 88×31 buttons', href: '/colophon' },
+        { text: 'learning by building small repos, pinned on my GitHub', href: 'https://github.com/kishore280' },
+        { text: 'research-agent', href: 'https://github.com/kishore280/research-agent' },
+        { text: 'Grounded-RAG', href: 'https://github.com/kishore280/Grounded-RAG' },
+        { text: 'Livegraph: a self-growing graph', href: 'https://github.com/kishore280/Livegraph' },
+        { text: 'vazhi', href: 'https://github.com/kishore280/vazhi' },
       ],
+    },
+    {
+      title: 'building',
+      items: [{ text: 'this site: a cat that watches you, moving 88×31 buttons', href: '/colophon' }],
     },
     {
       title: 'life',
@@ -126,9 +133,19 @@ export const colophonPage: TextPage = {
     {
       title: 'live data',
       items: [
-        { text: 'now playing: my phone scrobbles songs, ListenBrainz style' },
-        { text: 'chai, parotta, beach and badminton: logged from a small app on my phone' },
-        { text: 'photos: a shared Google Photos album' },
+        {
+          text: 'now playing: Pano Scrobbler on my phone posts each song to a small ListenBrainz-compatible API on the Worker (validate-token, submit-listens); “playing now” expires after the song’s length',
+          href: 'https://listenbrainz.readthedocs.io/en/latest/users/api/core.html',
+        },
+        {
+          text: 'chai, parotta, beach and badminton: an installable /log app (PWA) with an offline queue; each entry has an id, so a replay counts once; SQLite triggers keep day, month and year totals, so a read is a few primary-key rows',
+          href: 'https://www.sqlite.org/lang_createtrigger.html',
+        },
+        { text: 'my days: the day totals of a year, edge-cached for 60 s with the Workers Cache API' },
+        {
+          text: 'photos and videos: the Worker reads a public Google Photos album (no API can since March 2025), caches it for an hour with a Cache-Tag, and a purge by that tag refreshes every location',
+        },
+        { text: 'GitHub: the repo I pushed to last, from the REST API sorted by push time (not the slow Events API), cached for 5 min' },
       ],
     },
     {
