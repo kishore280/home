@@ -6,6 +6,8 @@ import App from './App'
 import { LogPage } from './components/LogPage'
 import { NotFoundPage } from './components/NotFoundPage'
 import { OfflinePage } from './components/OfflinePage'
+import { TextPage } from './components/TextPage'
+import { colophonPage, nowPage } from './data'
 
 const html = (page: ReactNode) => () => renderToString(<StrictMode>{page}</StrictMode>)
 
@@ -18,4 +20,6 @@ export const pages: Record<string, { render: () => string; from?: string }> = {
   'offline-now.html': { render: html(<OfflinePage initial="offline" />), from: 'offline.html' },
   '404.html': { render: html(<NotFoundPage />) },
   'log.html': { render: html(<LogPage />) },
+  'now.html': { render: html(<TextPage page={nowPage} />) },
+  'colophon.html': { render: html(<TextPage page={colophonPage} />) },
 }

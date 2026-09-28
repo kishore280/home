@@ -58,6 +58,89 @@ export const offlineNote = {
   ],
 }
 
+// Pages of short lists (TextPage.tsx): /now and /colophon, "slash pages" as the IndieWeb names them
+// (slashpages.net). A link is optional; a relative one stays on this site.
+export type TextPage = {
+  title: string
+  description: string
+  heading: string
+  intro: string
+  updated?: string
+  sections: { title: string; items: { text: string; href?: string }[] }[]
+}
+
+// /now: what kish is doing these days (the idea is Derek Sivers', nownownow.com). Update the date
+// with the text.
+export const nowPage: TextPage = {
+  title: 'now · kish',
+  description: 'What kish is doing now: building AI agents and this site.',
+  heading: 'now',
+  intro: 'What I’m up to these days.',
+  updated: '2026-09-28',
+  sections: [
+    {
+      title: 'building',
+      items: [
+        { text: 'hands-on with AI agents: projects to show here soon' },
+        { text: 'this site: a cat that watches you, moving 88×31 buttons', href: '/colophon' },
+      ],
+    },
+    {
+      title: 'life',
+      items: [{ text: 'chai, parotta, beach runs, badminton and the Himalayan, counted live on the home page', href: '/' }],
+    },
+  ],
+}
+
+// /colophon: how this site is made. Keep it true when the stack changes.
+export const colophonPage: TextPage = {
+  title: 'colophon · kish',
+  description: 'How kichoow.com is made: React, Cloudflare Workers, hand-drawn SVG and free tiers.',
+  heading: 'colophon',
+  intro: 'How this site is made.',
+  sections: [
+    {
+      title: 'code',
+      items: [
+        { text: 'React 19, TypeScript 7 and Vite, pre-rendered to plain HTML', href: 'https://react.dev' },
+        { text: 'built with coding agents (Claude Code), with the rules in AGENTS.md', href: 'https://github.com/kishore280/home' },
+        { text: '⌘K menu: cmdk; photo viewer: Yet Another React Lightbox; my days: react-activity-calendar' },
+      ],
+    },
+    {
+      title: 'hosting',
+      items: [
+        { text: 'Cloudflare Workers with static assets, and a D1 database for counts, logs and songs', href: 'https://developers.cloudflare.com/workers/' },
+        { text: 'works offline: a Workbox service worker, and a secret page that opens only offline', href: '/offline' },
+        { text: 'costs ₹0: every service is on its free tier' },
+      ],
+    },
+    {
+      title: 'drawn by hand',
+      items: [
+        { text: 'the cat and the 88×31 buttons are hand-written SVG, animated with CSS (springs with linear())' },
+        { text: 'buttons for your site: animated GIFs, listed in /.well-known/button.json', href: '/.well-known/button.json' },
+        { text: 'fonts: Nunito and Pixelify Sans' },
+      ],
+    },
+    {
+      title: 'live data',
+      items: [
+        { text: 'now playing: my phone scrobbles songs, ListenBrainz style' },
+        { text: 'chai, parotta, beach and badminton: logged from a small app on my phone' },
+        { text: 'photos: a shared Google Photos album' },
+      ],
+    },
+    {
+      title: 'kept honest',
+      items: [
+        { text: 'Playwright and axe-core tests on phone and desktop, a JavaScript budget, no layout shift' },
+        { text: 'analytics without cookies: Umami and Cloudflare Web Analytics', href: 'https://umami.is' },
+      ],
+    },
+  ],
+}
+
 // The 404 page, for addresses that do not exist.
 // The private /log page, where kish logs chai, parotta and beach days (kept out of search).
 export const logPage = {
