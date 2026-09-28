@@ -133,19 +133,11 @@ export const colophonPage: TextPage = {
     {
       title: 'live data',
       items: [
-        {
-          text: 'now playing: Pano Scrobbler on my phone posts each song to a small ListenBrainz-compatible API on the Worker (validate-token, submit-listens); “playing now” expires after the song’s length',
-          href: 'https://listenbrainz.readthedocs.io/en/latest/users/api/core.html',
-        },
-        {
-          text: 'chai, parotta, beach and badminton: an installable /log app (PWA) with an offline queue; each entry has an id, so a replay counts once; SQLite triggers keep day, month and year totals, so a read is a few primary-key rows',
-          href: 'https://www.sqlite.org/lang_createtrigger.html',
-        },
-        { text: 'my days: the day totals of a year, edge-cached for 60 s with the Workers Cache API' },
-        {
-          text: 'photos and videos: the Worker reads a public Google Photos album (no API can since March 2025), caches it for an hour with a Cache-Tag, and a purge by that tag refreshes every location',
-        },
-        { text: 'GitHub: the repo I pushed to last, from the REST API sorted by push time (not the slow Events API), cached for 5 min' },
+        { text: 'now playing: my phone sends each song to a tiny ListenBrainz-style API', href: 'https://listenbrainz.org' },
+        { text: 'chai, parotta, beach and badminton: logged from a small offline-ready app on my phone' },
+        { text: 'my days: day totals from the D1 database, cached at the edge for a minute' },
+        { text: 'photos and videos: straight from a shared Google Photos album, cached for an hour' },
+        { text: 'GitHub: the repo I pushed to last, from the GitHub API' },
       ],
     },
     {
