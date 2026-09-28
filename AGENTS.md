@@ -55,7 +55,7 @@ npm run build        # type-check, build, pre-render, service worker → dist/
 npm run lint         # oxlint
 npm run audit        # build, then the UI tests (not `npm audit`, which is npm's dependency check)
 npm run preview      # build, then the Worker and the site locally (wrangler dev)
-npm run og           # remake the share card and icons after changing the 88×31 buttons
+npm run og           # remake the share card, icons and button GIFs after changing the 88×31 buttons
 npm run cf-typegen   # regenerate Worker types after changing wrangler.jsonc
 ```
 

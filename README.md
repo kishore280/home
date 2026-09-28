@@ -20,7 +20,7 @@ Coding agents: read [AGENTS.md](AGENTS.md) for the rules, commands, tests and ho
 | Right now: building | Latest public GitHub push | `github` in `src/data.ts` |
 | Right now: local time | Browser | `timeZone` in `src/data.ts` |
 | Counts: parotta, chai, beach days | The `/log` page → D1 | `SCROBBLE_TOKEN` (below) |
-| Updates, 88×31 buttons | `src/data.ts`, `public/*.svg` | Nothing |
+| Updates, 88×31 buttons (they move; other sites get looping GIFs) | `src/data.ts`, `public/*.svg`, `public/*.gif` | Nothing |
 | Photos: the newest 6 of a shared album (videos too) | A public Google Photos shared album | `photosAlbum` in `src/data.ts` |
 | ⌘K menu | cmdk | Nothing |
 
@@ -227,7 +227,9 @@ Each push to `main` then builds and deploys. From the command line: `npx wrangle
 - `npm run build` pre-renders the page into `dist/index.html` (`src/entry-server.tsx`, `scripts/prerender.mjs`), so search engines and AI crawlers see the content without running JavaScript. It also inlines the stylesheet ([Beasties](https://github.com/danielroe/beasties)) and preloads the two Latin fonts, so the first paint needs no extra request. Parts that depend on the visitor's clock (mascot mode, local time, counts) render in the browser only (`src/lib/client.ts`).
 - `seo.ts` (a Vite plugin) builds the title, description, canonical, Open Graph / Twitter tags, JSON-LD (`ProfilePage` + `Person`), `robots.txt`, `sitemap.xml` and `llms.txt` from `src/data.ts`. Set `site.url` there to the public address.
 - `public/og.png` (1200×630) is the share card; `public/apple-touch-icon.png`, `public/icon-512.png` and `public/manifest.webmanifest` are the app icons.
-- The card and icons are made from `scripts/og/template.html` and `scripts/og/mascot.svg`. The buttons, description and domain come from `src/data.ts`. After you add a button, make them again:
+- **Moving 88×31 buttons:** each `public/button*.svg` animates itself with a little CSS inside the SVG (steam, waves, a bird, the road, sparkles, a blinking cursor; the runner is a 4-frame sprite: contact, passing, then the other leg). It stops with reduced motion. `data-loop` on the `<svg>` is the time after which every animation repeats, and `data-frame` a sprite's frame time.
+- **Other sites** copy an animated GIF (`public/button*.gif`), the classic 88×31 format every site and forum takes. `npm run og` makes them: it stops the SVG's animations at each frame time (Web Animations API), takes each frame in Chromium and encodes it with [gifenc](https://github.com/mattdesl/gifenc). The old PNGs stay for sites that already use them.
+- The card and icons are made from `scripts/og/template.html` and `scripts/og/mascot.svg` (with still buttons). The buttons, description and domain come from `src/data.ts`. After you add or change a button, make them again:
 
   ```sh
   npx playwright install chromium   # once
