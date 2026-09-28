@@ -50,6 +50,11 @@ export const myButtons: { file: string; alt: string }[] = [
 export const myStamps: { file: string; alt: string; width: number; height: number }[] = [
   { file: 'blinkie-my-agent', alt: 'my agent did it', width: 150, height: 20 },
   { file: 'blinkie-tokens', alt: 'out of tokens', width: 150, height: 20 },
+  { file: 'blinkie-back', alt: 'MY BACK HURTS!!!!', width: 150, height: 20 },
+  { file: 'blinkie-floor', alt: 'FUCK THIS, I AM SITTING ON THE FLOOR', width: 150, height: 20 },
+  { file: 'blinkie-attention', alt: 'i feel violated by corporate invasion on my attention span', width: 150, height: 20 },
+  { file: 'blinkie-gore', alt: 'I <3 GORE', width: 150, height: 20 },
+  { file: 'blinkie-bite-me', alt: 'Bite me. :)', width: 150, height: 20 },
   { file: 'stamp-badminton', alt: 'badminton ate my knees', width: 99, height: 56 },
 ]
 
