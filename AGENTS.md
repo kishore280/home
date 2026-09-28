@@ -33,6 +33,20 @@ kishore's personal site, live at **https://kichoow.com**. React 19 + TypeScript 
 - **Secrets** (API keys, tokens) never go in the code or Git. They are Worker secrets in the Cloudflare dashboard.
 - **Analytics:** a click is tracked with `data-umami-event="Name"`; anything else with `track()` / `trackOnce()` / `trackHover()` from `src/lib/track.ts`. Umami sends with `fetch` keepalive, so a same-tab navigation does not wait for its event (see `CommandMenu.tsx`).
 
+## Working with kish
+
+- **Reply in simple English** (ASD-STE100 Simplified Technical English): short sentences, common words.
+- **Show before you build** anything a visitor sees: make a few options first (a mockup page or screenshots), let kish pick, then build only the pick. Send screenshots (web and mobile) of the result.
+- **Taste:** cute, calm and personal, never "cringe". Jokes are short and dry, like blinkies.cafe and petrapixel ("ow my knees", "Bite me. :)"), not self-praise. No filler text.
+- **Decided, do not redo:** the mascot stays the cat (a dog was tried and dropped). The polaroids have no date (the album only knows the day a photo was added). The runner button's two legs are one colour. The photos card shows at most 6 tiles; the viewer swipes the whole album.
+- **Look things up first:** search the web for how experts or the library do it before a fix.
+
+### Add a blinkie (150×20) or stamp (99×56)
+
+1. Draw it as an SVG in `scripts/og/stamps/<name>.svg` in the current style: a dashed border inside the edge, pixel icons (`<rect>`s with `class="px"`, `shape-rendering: crispEdges`), plain `<text>` with `x`, `y`, `font-size` and `fill` attributes (left-aligned; `npm run og` turns it into Pixelify Sans paths), and one moving part in a `<style>` inside the SVG (blink, bob, beat or a colour flash), stopped by `prefers-reduced-motion`. Set `data-loop` on the `<svg>` to the time after which every animation repeats.
+2. Add it to `myStamps` in `src/data.ts` (blinkies first, then stamps).
+3. Run `npm run og` (writes `public/<name>.svg` and `.gif`), then update the item count and the stamp's index in the "blinkies and stamps" test in `tests/ui.spec.ts`.
+
 ## Skills (read the one that fits the task)
 
 | Skill | Use for |
