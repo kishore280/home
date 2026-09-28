@@ -286,6 +286,47 @@ h2 {
   }
 }
 
+/* An achievement: a short freeze first (hit-stop), then a bigger hop. */
+.mascot-art.big {
+  animation: hop-big 0.7s cubic-bezier(0.3, 1.6, 0.5, 1) 80ms;
+}
+
+@keyframes hop-big {
+  30% {
+    transform: translateY(-30px) scale(0.9, 1.12) rotate(-6deg);
+  }
+  60% {
+    transform: scale(1.1, 0.9);
+  }
+}
+
+/* A heart floats up from the head and fades (transform and opacity only: the GPU draws it). */
+.heart {
+  position: absolute;
+  top: 96px;
+  left: 50%;
+  color: var(--accent-2); /* the pink of the cheeks, so it shows on the lavender */
+  font-size: 20px;
+  line-height: 1;
+  opacity: 0;
+  pointer-events: none;
+  animation: heart 0.9s ease-out forwards;
+}
+
+@keyframes heart {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(0.6);
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--x)), -56px) scale(1.2);
+  }
+}
+
 .mascot-art svg {
   width: 100%;
   height: 100%;
@@ -1324,5 +1365,10 @@ kbd {
   *::after {
     animation: none !important;
     transition: none !important;
+  }
+
+  /* With no animation, a heart would stay on screen. */
+  .heart {
+    display: none;
   }
 }

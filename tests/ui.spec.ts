@@ -8,6 +8,7 @@ import { test as base, expect, type APIRequestContext, type Locator, type Page }
 declare global {
   interface Window {
     __copies: string[]
+    __buzz: (number | number[])[]
   }
 }
 
@@ -130,6 +131,46 @@ test.describe('home page', () => {
     await press(mascot)
     await expect.poll(() => log.posts).toEqual(['views', 'pats', 'pats'])
     await expectEvents(log, ['Mascot pat', 'Mascot pat'])
+  })
+
+  test('mascot game feel: a heart and a short buzz per pat, never more than 6 hearts; pat #100 is an achievement', async ({ page, context, press }) => {
+    // The counters say 98 pats: the second pat here is the 100th.
+    let pats = 98
+    await context.route('**/api/counters', (r) => {
+      if (r.request().method() === 'POST' && r.request().postDataJSON().key === 'pats') pats++
+      return r.fulfill({ json: { views: 1, pats, updated: '2026-09-28' } })
+    })
+    await context.addInitScript(() => {
+      window.__buzz = []
+      Object.defineProperty(navigator, 'vibrate', { value: (p: number | number[]) => window.__buzz.push(p) })
+    })
+    await page.goto('/')
+    const mascot = page.getByRole('button', { name: 'Pat the mascot' })
+    await expect(page.locator('.mascot .small')).toContainText('98 pats')
+    await press(mascot)
+    await expect(mascot.locator('.heart')).toHaveCount(1)
+    await expect(mascot.locator('.heart')).toHaveAttribute('aria-hidden', 'true')
+    await expect(page.locator('.bubble')).not.toContainText('#')
+    // Pat #100: the mascot says it, with a burst of hearts and a longer buzz.
+    await press(mascot)
+    await expect(page.locator('.bubble.show')).toHaveText('#100 was you! 🎉')
+    await expect(page.locator('.mascot-art.big')).toHaveCount(1)
+    await expect(mascot.locator('.heart')).toHaveCount(8)
+    expect(await page.evaluate(() => window.__buzz)).toEqual([10, [10, 60, 30]])
+    // Fast taps reuse the pool: at most 6 hearts, and a normal pat again.
+    for (let i = 0; i < 10; i++) await press(mascot)
+    await expect(mascot.locator('.heart')).toHaveCount(6)
+    await expect(page.locator('.mascot-art.big')).toHaveCount(0)
+    await expect(page.locator('.mascot .small')).toContainText('110 pats')
+  })
+
+  test('mascot hearts are hidden with reduced motion', async ({ page, press }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.goto('/')
+    const mascot = page.getByRole('button', { name: 'Pat the mascot' })
+    await press(mascot)
+    await expect(mascot.locator('.heart')).toHaveCount(1)
+    await expect(mascot.locator('.heart')).toBeHidden()
   })
 
   test('88×31 button copies its embed code and counts it', async ({ page, log, press, isMobile }) => {
@@ -691,8 +732,14 @@ test.describe('photos (shared Google Photos album)', () => {
     await expect(card.locator('img')).toHaveAttribute('src', /test-2/)
     await expect(card.locator('img')).toHaveAttribute('alt', /^Photo 1 of 1 /)
 
+    // New photos, which the browser has never loaded: photo 2 could come from its memory cache
+    // without a request, so it would never fail.
     await context.unroute('https://lh3.googleusercontent.com/**')
     await context.route('https://lh3.googleusercontent.com/**', (r) => r.abort())
+    await context.unroute('**/api/photos')
+    await context.route('**/api/photos', (r) =>
+      r.fulfill({ json: { photos: [photo(3, '2026-09-27T13:01:03Z'), photo(4, '2026-09-26T08:00:00Z')] } }),
+    )
     await page.reload()
     await page.locator('footer').scrollIntoViewIfNeeded()
     await expect(card).toHaveCount(0)

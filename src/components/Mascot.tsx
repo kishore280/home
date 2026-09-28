@@ -1,4 +1,4 @@
-import { useImperativeHandle, useRef, useState, type ReactNode, type Ref } from 'react'
+import { useImperativeHandle, useRef, useState, type CSSProperties, type ReactNode, type Ref } from 'react'
 import { useIsClient } from '../lib/client'
 import { site } from '../data'
 import { chaiIcon } from './ChaiIcon'
@@ -131,6 +131,14 @@ function Face({ mode }: { mode: Mode | null }) {
 
 export type MascotHandle = { pat: () => void }
 
+// Game feel ("juice"): each pat floats a heart up, and a phone buzzes for 10 ms (Android; other
+// browsers ignore navigator.vibrate). The hearts are a pool of the last HEARTS, so fast taps never
+// pile up elements. A round total of pats (100, 500, then every 1,000) is an achievement: the
+// mascot tells the one who gave it, with more hearts and a short freeze before the hop ("hit-stop").
+const HEARTS = 6
+const BURST = 8
+const milestone = (n: number) => n === 100 || n === 500 || (n > 0 && n % 1000 === 0)
+
 export function Mascot({
   pats,
   onPat,
@@ -146,15 +154,22 @@ export function Mascot({
   const [line, setLine] = useState('')
   const [talking, setTalking] = useState(false)
   const [hop, setHop] = useState(0)
+  const [hearts, setHearts] = useState(0)
+  const [big, setBig] = useState(false)
   const timer = useRef<number>(undefined)
 
   const pat = () => {
     const lines = mode ? [...MODES[mode].lines, ...ALWAYS] : ALWAYS
+    const total = pats === null ? 0 : pats + 1
+    const achieved = milestone(total)
+    navigator.vibrate?.(achieved ? [10, 60, 30] : 10)
     setHop((h) => h + 1)
-    setLine(lines[Math.floor(Math.random() * lines.length)])
+    setHearts((h) => h + (achieved ? BURST : 1))
+    setBig(achieved)
+    setLine(achieved ? `#${total.toLocaleString()} was you! 🎉` : lines[Math.floor(Math.random() * lines.length)])
     setTalking(true)
     window.clearTimeout(timer.current)
-    timer.current = window.setTimeout(() => setTalking(false), 1400)
+    timer.current = window.setTimeout(() => setTalking(false), achieved ? 3000 : 1400)
     onPat()
   }
   // Lets the ⌘K menu pat the mascot without reaching into the DOM.
@@ -168,10 +183,16 @@ export function Mascot({
         </span>
         {/* Animate wrappers, not the SVG, so the browser can use the GPU. */}
         <span className="mascot-breathe">
-          <span key={hop} className={`mascot-art${hop ? ' hop' : ''}${talking ? ' happy' : ''}`}>
+          <span key={hop} className={`mascot-art${hop ? ' hop' : ''}${big ? ' big' : ''}${talking ? ' happy' : ''}`}>
             <Face mode={mode} />
           </span>
         </span>
+        {Array.from({ length: Math.min(hearts, big ? BURST : HEARTS) }, (_, i) => hearts - i).map((id) => (
+          // A fixed spread from the heart's number, so the render stays pure.
+          <span key={id} className="heart" aria-hidden="true" style={{ '--x': `${((id * 37) % 120) - 60}px` } as CSSProperties}>
+            ♥
+          </span>
+        ))}
       </button>
       <p className="small">
         {mode ? MODES[mode].label : null}

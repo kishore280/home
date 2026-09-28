@@ -13,7 +13,7 @@ Coding agents: read [AGENTS.md](AGENTS.md) for the rules, commands, tests and ho
 | Part | Data | Needs |
 |---|---|---|
 | Intro, about, links, email | `src/data.ts` | Nothing |
-| Mascot (click to pat) and pat count | Cloudflare D1 | D1 binding (below) |
+| Mascot (click to pat) and pat count; each pat floats a heart and buzzes a phone; pat #100, #500 and every 1,000th is an achievement | Cloudflare D1 | D1 binding (below) |
 | Status | [status.cafe](https://status.cafe) | `statusCafe` in `src/data.ts` |
 | Stats: updated, views | Build date + D1 | D1 binding |
 | Right now: music | Your phone's scrobbler → D1 | `SCROBBLE_TOKEN` (below) |
