@@ -10,7 +10,8 @@ import { getSharedAlbumHtml, parsePhase1, parsePhase2, parsePhase3 } from 'googl
 import { site } from '../src/data'
 import { bearer, fail, tokenMatches, type Env } from './db'
 
-const SHOWN = 6
+// The newest photos the viewer swipes through (the card shows 6 of them).
+const SHOWN = 60
 
 // The library's own steps (what its fetchImageUrls does), keeping the album data, because it drops
 // the one field that says an item is a video: "76647426" (the length, the stream sizes and a video
@@ -45,8 +46,8 @@ async function purgeEverywhere(env: Env): Promise<boolean> {
 export async function photos(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   if (request.method !== 'GET') return Response.json({ error: 'Use GET.' }, { status: 405 })
   if (!site.photosAlbum) return new Response(null, { status: 204 })
-  // The version in the key starts a new cache when the answer's shape changes (v2: no album address; v3: videos).
-  const key = new Request(new URL('/api/photos?v=3', request.url))
+  // The version in the key starts a new cache when the answer's shape changes (v2: no album address; v3: videos; v4: 60 photos).
+  const key = new Request(new URL('/api/photos?v=4', request.url))
   // With the phone's token (the /log page's "refresh photos"), Google is asked now and the new
   // answer replaces the saved one. Only in the data centre that runs it (cache.put is local).
   const token = bearer(request)

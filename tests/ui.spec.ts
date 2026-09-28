@@ -856,10 +856,38 @@ test.describe('photos (shared Google Photos album)', () => {
     await expect(images.first()).toHaveAttribute('referrerpolicy', 'no-referrer')
     await expect(card.getByRole('link').first()).toHaveAttribute('href', 'https://lh3.googleusercontent.com/pw/test-1=s0')
     await expect(card.getByRole('link')).toHaveCount(2) // the photos only, no link to the album
+    // Fewer than 6: a "see all" tile fills the row and opens the viewer at the first photo.
+    await card.getByRole('button', { name: 'see all' }).click()
+    await expect(page.getByRole('dialog')).toContainText('1 / 2')
+    await page.keyboard.press('Escape')
     // Squares, 3 a row, inside the page (phones).
     const box = (await images.first().boundingBox())!
     expect(Math.abs(box.width - box.height)).toBeLessThan(1)
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  })
+
+  test('a big album: 5 polaroids and a "+N" tile that opens the viewer at photo 6, which swipes through all', async ({ page, context, log, isMobile }) => {
+    await context.route('https://lh3.googleusercontent.com/**', (r) => r.fulfill({ contentType: 'image/png', body: pixel }))
+    const album = Array.from({ length: 9 }, (_, i) => photo(i + 1, `2026-09-${String(20 - i).padStart(2, '0')}T08:00:00Z`))
+    await context.route('**/api/photos', (r) => r.fulfill({ json: { photos: album } }))
+    await page.goto('/')
+    const card = page.locator('#photos')
+    await expect(card.locator('li')).toHaveCount(6)
+    await expect(card.locator('img')).toHaveCount(5)
+    await expect(card.locator('img').first()).toHaveAttribute('alt', /^Photo 1 of 9 /)
+    const more = card.getByRole('button', { name: '+4 more' })
+    await expect(more).toBeVisible()
+    // Polaroids in 1 row on a wide screen, 2 rows of 3 on a phone.
+    const tops = await card.locator('li').evaluateAll((els) => new Set(els.map((e) => Math.round(e.getBoundingClientRect().top / 20))).size)
+    expect(tops).toBe(isMobile ? 2 : 1)
+    await more.click()
+    const viewer = page.getByRole('dialog')
+    await expect(viewer).toContainText('6 / 9')
+    for (const n of [7, 8, 9]) {
+      await page.keyboard.press('ArrowRight') // one at a time: a key press during a slide is ignored
+      await expect(viewer).toContainText(`${n} / 9`)
+    }
+    await expectEvents(log, ['Photo more'])
   })
 
   test('a tap opens the viewer: the original photo, zoom, counter, download of the original, Escape closes', async ({ page, context, log }) => {

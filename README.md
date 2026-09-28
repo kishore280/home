@@ -21,7 +21,7 @@ Coding agents: read [AGENTS.md](AGENTS.md) for the rules, commands, tests and ho
 | Right now: local time | Browser | `timeZone` in `src/data.ts` |
 | Counts: parotta, chai, beach days | The `/log` page → D1 | `SCROBBLE_TOKEN` (below) |
 | Updates, 88×31 buttons (they move; other sites get looping GIFs) | `src/data.ts`, `public/*.svg`, `public/*.gif` | Nothing |
-| Photos: the newest 6 of a shared album (videos too) | A public Google Photos shared album | `photosAlbum` in `src/data.ts` |
+| Photos: polaroids of the newest 6 of a shared album (videos too); the viewer swipes through the newest 60 | A public Google Photos shared album | `photosAlbum` in `src/data.ts` |
 | ⌘K menu | cmdk | Nothing |
 | /now and /colophon (slash pages, linked in the footer) | `nowPage` and `colophonPage` in `src/data.ts` | Nothing |
 
