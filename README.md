@@ -23,6 +23,7 @@ Coding agents: read [AGENTS.md](AGENTS.md) for the rules, commands, tests and ho
 | Updates, 88×31 buttons (they move; other sites get looping GIFs) | `src/data.ts`, `public/*.svg`, `public/*.gif` | Nothing |
 | Photos: the newest 6 of a shared album (videos too) | A public Google Photos shared album | `photosAlbum` in `src/data.ts` |
 | ⌘K menu | cmdk | Nothing |
+| /now and /colophon (slash pages, linked in the footer) | `nowPage` and `colophonPage` in `src/data.ts` | Nothing |
 
 Only real data is shown. A part with no data is hidden.
 

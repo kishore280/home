@@ -335,6 +335,28 @@ test.describe('home page', () => {
     for (const b of info.checked) expect(b).toEqual({ id: expect.any(String), alt: expect.stringMatching(/\S/), gif: 'image/gif', same: true, hotlink: true })
   })
 
+  test('slash pages: the footer leads to /now and /colophon; the profile links say rel="me"', async ({ page, press, request }) => {
+    await page.goto('/')
+    for (const l of await page.getByRole('navigation', { name: 'Elsewhere' }).getByRole('link').all()) {
+      await expect(l).toHaveAttribute('rel', /(^| )me( |$)/)
+    }
+    const more = page.getByRole('navigation', { name: 'More about kish' })
+    await press(more.getByRole('link', { name: 'now' }))
+    await expect(page).toHaveURL('/now')
+    await expect(page).toHaveTitle('now · kish')
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('now')
+    await expect(page.locator('time')).toHaveAttribute('datetime', /^\d{4}-\d{2}-\d{2}$/)
+    await page.goto('/')
+    await press(page.getByRole('navigation', { name: 'More about kish' }).getByRole('link', { name: 'colophon' }))
+    await expect(page).toHaveURL('/colophon')
+    await expect(page.getByRole('heading', { level: 2 })).not.toHaveCount(0)
+    await press(page.getByRole('link', { name: /back to kish/ }))
+    await expect(page).toHaveURL('/')
+    // Both are in the sitemap, with a canonical address each.
+    const sitemap = await (await request.get('http://127.0.0.1:8787/sitemap.xml')).text()
+    for (const path of ['/now', '/colophon']) expect(sitemap).toContain(`https://kichoow.com${path}<`)
+  })
+
   test('mascot hearts are hidden with reduced motion', async ({ page, press }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await page.goto('/')
@@ -441,6 +463,8 @@ test.describe('⌘K menu', () => {
     ['Switch light / dark', { events: ['Menu: Switch light / dark'], posts: ['views'] }],
     ['GitHub', { events: ['Menu: GitHub'], posts: ['views'], tab: true }],
     ['LinkedIn', { events: ['Menu: LinkedIn'], posts: ['views'], tab: true }],
+    ['Now', { events: ['Menu: Now'], posts: ['views'], url: '/now' }],
+    ['Colophon', { events: ['Menu: Colophon'], posts: ['views'], url: '/colophon' }],
     ['Offline only', { events: ['Menu: Offline only'], posts: ['views'], url: '/offline' }],
   ]
   for (const [item, want] of items) {
@@ -1205,7 +1229,7 @@ test.describe('404 and layout', () => {
   })
 
   for (const width of [320, 375]) {
-    for (const path of ['/', '/offline', '/nope', '/log']) {
+    for (const path of ['/', '/offline', '/nope', '/log', '/now', '/colophon']) {
       test(`${width} px wide, ${path}: no sideways scroll`, async ({ page, isMobile }) => {
         test.skip(isMobile, 'the width is set here')
         await page.setViewportSize({ width, height: 800 })
@@ -1244,6 +1268,8 @@ test.describe('accessibility (axe-core)', () => {
       },
     ],
     ['404', '/nope', 'dark'],
+    ['/now', '/now', 'light'],
+    ['/colophon', '/colophon', 'dark'],
     ['/log, token form', '/log', 'light'],
     [
       '/log, buttons',

@@ -60,6 +60,8 @@ export default function App() {
     // Only when the photos card is on the page (it hides with no photos). The hash jump is the
     // browser's own: it scrolls to the card and moves the Tab start there.
     ...(menuOpen && document.getElementById('photos') ? [{ group: 'Go', label: 'Photos', run: () => void (location.hash = 'photos') }] : []),
+    { group: 'Go', label: 'Now', href: '/now' },
+    { group: 'Go', label: 'Colophon', href: '/colophon' },
     { group: 'Secret', label: 'Offline only', href: '/offline' },
   ]
 
@@ -79,7 +81,7 @@ export default function App() {
             ))}
             <nav className="links" aria-label="Elsewhere">
               {links.map((l) => (
-                <a key={l.href} href={l.href} target="_blank" rel="noreferrer" data-umami-event={`${l.label} link`}>
+                <a key={l.href} href={l.href} target="_blank" rel="me noreferrer" data-umami-event={`${l.label} link`}>
                   {l.label} <span aria-hidden="true">↗</span>
                 </a>
               ))}
@@ -133,6 +135,11 @@ export default function App() {
               <kbd>⌘</kbd>
               <kbd>K</kbd> menu
             </button>
+            {/* Slash pages, where the IndieWeb looks for them: the footer. */}
+            <nav className="slash-links" aria-label="More about kish">
+              <a href="/now">now</a>
+              <a href="/colophon">colophon</a>
+            </nav>
           </footer>
         </main>
       </div>

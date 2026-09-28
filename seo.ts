@@ -4,7 +4,7 @@
 import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import type { Plugin } from 'vite'
-import { links, logPage, myButtons, notFound, offlineNote, site } from './src/data.ts'
+import { colophonPage, links, logPage, myButtons, notFound, nowPage, offlineNote, site } from './src/data.ts'
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')
 
@@ -63,6 +63,13 @@ export function seo(buildDate: string): Plugin {
       `<meta name="robots" content="noindex" />`,
     ],
     '404.html': [manifest, ...meta({ ...notFound, url: `${site.url}/404`, type: 'website' }), `<meta name="robots" content="noindex" />`],
+    // Slash pages, in search and the sitemap.
+    'now.html': [manifest, ...meta({ ...nowPage, url: `${site.url}/now`, type: 'website' }), `<link rel="canonical" href="${site.url}/now" />`],
+    'colophon.html': [
+      manifest,
+      ...meta({ ...colophonPage, url: `${site.url}/colophon`, type: 'website' }),
+      `<link rel="canonical" href="${site.url}/colophon" />`,
+    ],
     // Private: not in search or the sitemap.
     'log.html': [
       `<link rel="manifest" href="/log.webmanifest" />`,
@@ -77,6 +84,14 @@ export function seo(buildDate: string): Plugin {
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>${url}</loc>
+    <lastmod>${buildDate.slice(0, 10)}</lastmod>
+  </url>
+  <url>
+    <loc>${site.url}/now</loc>
+    <lastmod>${nowPage.updated ?? buildDate.slice(0, 10)}</lastmod>
+  </url>
+  <url>
+    <loc>${site.url}/colophon</loc>
     <lastmod>${buildDate.slice(0, 10)}</lastmod>
   </url>
 </urlset>
