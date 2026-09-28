@@ -1,7 +1,10 @@
-// Vite plugin: SEO tags in <head>, plus robots.txt, sitemap.xml and llms.txt, all built
+// Vite plugin: SEO tags in <head>, plus robots.txt, sitemap.xml, llms.txt and
+// .well-known/button.json, all built
 // from src/data.ts so they never drift from the page. Follows .claude/skills/seo-mastery.
+import { createHash } from 'node:crypto'
+import { readFileSync } from 'node:fs'
 import type { Plugin } from 'vite'
-import { links, logPage, notFound, offlineNote, site } from './src/data.ts'
+import { links, logPage, myButtons, notFound, offlineNote, site } from './src/data.ts'
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')
 
@@ -91,6 +94,28 @@ A small personal site with a mascot that follows kish's day in India time (IST),
 ${[{ label: 'Website', href: url }, ...links].map((l) => `- [${l.label}](${l.href})`).join('\n')}
 `
 
+  // /.well-known/button.json: the 88×31 buttons for button-wall tools, per the IETF draft "The Well
+  // Known Button Information Specification" (draft-filmroellchen-lunar-well-known-button-00). The
+  // GIFs, as they are what other sites embed; hotlink: true says linking them from here is fine.
+  const buttonJson = () =>
+    JSON.stringify(
+      {
+        $schema:
+          'https://codeberg.org/LunarEclipse/well-known-button/raw/branch/main/drafts/draft-filmroellchen-lunar-well-known-button-00.schema.json',
+        default: myButtons[0].file,
+        buttons: myButtons.map((b) => ({
+          id: b.file,
+          uri: `${site.url}/${b.file}.gif`,
+          alt: b.alt,
+          link: url,
+          sha256: createHash('sha256').update(readFileSync(`public/${b.file}.gif`)).digest('hex'),
+          hotlink: true,
+        })),
+      },
+      null,
+      2,
+    )
+
   return {
     name: 'home-seo',
     transformIndexHtml(html, ctx) {
@@ -102,6 +127,7 @@ ${[{ label: 'Website', href: url }, ...links].map((l) => `- [${l.label}](${l.hre
       this.emitFile({ type: 'asset', fileName: 'robots.txt', source: robots })
       this.emitFile({ type: 'asset', fileName: 'sitemap.xml', source: sitemap })
       this.emitFile({ type: 'asset', fileName: 'llms.txt', source: llms })
+      this.emitFile({ type: 'asset', fileName: '.well-known/button.json', source: buttonJson() })
     },
   }
 }

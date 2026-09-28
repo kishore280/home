@@ -5,7 +5,7 @@ export const site = {
   // The public address of the site, no trailing slash. Used for canonical, sitemap and share cards.
   url: 'https://kichoow.com',
   // Search results and share cards. Only real facts about kish.
-  title: 'Kishore (kish)',
+  title: 'kish',
   description:
     'Kishore’s corner of the internet: code and AI agents, badminton, beach runs, chai, parotta and a Himalayan, from beach-side South India.',
   // One sentence under "hi, i'm …".
