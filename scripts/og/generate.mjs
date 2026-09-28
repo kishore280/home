@@ -1,11 +1,12 @@
 // Makes public/og.png (1200×630 share card), public/apple-touch-icon.png and
-// public/icon-512.png from scripts/og/template.html, and an animated GIF of each 88×31 button
-// (public/<button>.gif) for other sites to embed. Run after adding or changing a button:
+// public/icon-512.png from scripts/og/template.html, an animated GIF of each 88×31 button
+// (public/<button>.gif) for other sites to embed, and the blinkies and stamps (SVG and GIF). Run after adding or changing a button:
 //   npm run og
 // Needs a Chromium for Playwright (a dev dependency): npx playwright install chromium
 // Or use a Chrome/Chromium you already have: CHROMIUM_PATH=/path/to/chrome npm run og
 import { chromium } from '@playwright/test'
 import gifenc from 'gifenc' // a CommonJS package: no named imports in Node
+import opentype from 'opentype.js'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -18,7 +19,40 @@ const file = (p) => pathToFileURL(join(root, p)).href
 
 // The buttons, domain and description come from the site data, so the card stays in step.
 const data = readFileSync(join(root, 'src/data.ts'), 'utf8')
-const buttons = [...data.matchAll(/file: '([^']+)'/g)].map((m) => m[1])
+const list = (name) => data.slice(data.indexOf(`export const ${name}`)).split('\n]')[0]
+const buttons = [...list('myButtons').matchAll(/file: '([^']+)'/g)].map((m) => m[1])
+const stamps = [...list('myStamps').matchAll(/file: '([^']+)'.*?width: (\d+), height: (\d+)/g)].map((m) => ({ file: m[1], width: +m[2], height: +m[3] }))
+
+// Blinkies and stamps: an SVG shown as an image cannot load a font, so each <text> in the sources
+// (scripts/og/stamps/) becomes a <path> of the same words in Pixelify Sans Bold (opentype.js), with
+// the text's other attributes (fill, stroke, class) kept.
+const pixelify = opentype.parse(
+  readFileSync(join(root, 'node_modules/@fontsource/pixelify-sans/files/pixelify-sans-latin-700-normal.woff')).buffer,
+)
+const entities = { '&gt;': '>', '&lt;': '<', '&amp;': '&' }
+// One glyph after another (charToGlyph, advance width, kerning), not font.getPath: that applies the
+// font's contextual substitutions, which this version of opentype.js cannot read yet, and a pixel
+// font has none a word needs.
+const wordsPath = (words, x, y, size) => {
+  const scale = size / pixelify.unitsPerEm
+  const glyphs = [...words].map((c) => pixelify.charToGlyph(c))
+  return glyphs
+    .map((g, i) => {
+      const d = g.getPath(x, y, size).toPathData(2)
+      x += (g.advanceWidth + (glyphs[i + 1] ? pixelify.getKerningValue(g, glyphs[i + 1]) : 0)) * scale
+      return d
+    })
+    .join('')
+}
+for (const { file: name } of stamps) {
+  const source = readFileSync(join(root, `scripts/og/stamps/${name}.svg`), 'utf8')
+  const out = source.replace(/<text([^>]*)>([^<]*)<\/text>/g, (_, attrs, words) => {
+    const num = (key) => Number(new RegExp(` ${key}="([\\d.]+)"`).exec(attrs)[1])
+    const d = wordsPath(words.replace(/&\w+;/g, (e) => entities[e]), num('x'), num('y'), num('font-size'))
+    return `<path d="${d}"${attrs.replace(/ (x|y|font-size)="[^"]*"/g, '')}/>`
+  })
+  writeFileSync(join(root, `public/${name}.svg`), out)
+}
 const url = data.match(/url: '([^']+)'/)[1]
 const description = data
   .match(/description:\s*'([^']+)'/)[1]
@@ -52,9 +86,10 @@ try {
   // every animation repeats, so the GIF loops without a jump; data-frame, if set, is the frame time
   // of a sprite animation (the runner's 4 poses), so each pose is one GIF frame. Transparent corners
   // stay transparent.
-  const svg = await browser.newPage({ viewport: { width: 88, height: 31 } })
+  const svg = await browser.newPage({ viewport: { width: 150, height: 56 } })
   const pixels = await browser.newPage()
-  for (const b of buttons) {
+  for (const { file: b, width, height } of [...buttons.map((b) => ({ file: b, width: 88, height: 31 })), ...stamps]) {
+    await svg.setViewportSize({ width, height })
     await svg.goto(file(`public/${b}.svg`))
     const { loop, frame } = await svg.evaluate(() => ({
       loop: Number(document.documentElement.dataset.loop) || 0,
@@ -73,18 +108,18 @@ try {
       }, i * delay)
       const png = (await svg.screenshot({ omitBackground: true })).toString('base64')
       const rgba = new Uint8Array(
-        await pixels.evaluate(async (src) => {
+        await pixels.evaluate(async ({ src, w, h }) => {
           const img = new Image()
           img.src = `data:image/png;base64,${src}`
           await img.decode()
-          const ctx = new OffscreenCanvas(88, 31).getContext('2d')
+          const ctx = new OffscreenCanvas(w, h).getContext('2d')
           ctx.drawImage(img, 0, 0)
-          return [...ctx.getImageData(0, 0, 88, 31).data]
-        }, png),
+          return [...ctx.getImageData(0, 0, w, h).data]
+        }, { src: png, w: width, h: height }),
       )
       const palette = quantize(rgba, 256, { format: 'rgba4444', oneBitAlpha: true })
       const clear = palette.findIndex((c) => c[3] === 0)
-      gif.writeFrame(applyPalette(rgba, palette, 'rgba4444'), 88, 31, {
+      gif.writeFrame(applyPalette(rgba, palette, 'rgba4444'), width, height, {
         palette,
         delay,
         transparent: clear >= 0,
@@ -94,7 +129,7 @@ try {
     gif.finish()
     writeFileSync(join(root, `public/${b}.gif`), gif.bytes())
   }
-  console.log(`Wrote ${buttons.length} button GIFs`)
+  console.log(`Wrote ${buttons.length} button GIFs, and ${stamps.length} blinkies and stamps (SVG and GIF)`)
 } finally {
   await browser.close()
   rmSync(dir, { recursive: true, force: true })

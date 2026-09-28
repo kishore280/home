@@ -44,6 +44,15 @@ export const myButtons: { file: string; alt: string }[] = [
   { file: 'button-coding', alt: 'kish codes all day' },
 ]
 
+// Blinkies (150×20) and stamps (99×56), small-web "ads" like the buttons. Their sources are in
+// scripts/og/stamps/; npm run og turns the text into shapes (opentype.js) and writes
+// public/<file>.svg and public/<file>.gif.
+export const myStamps: { file: string; alt: string; width: number; height: number }[] = [
+  { file: 'blinkie-my-agent', alt: 'my agent did it', width: 150, height: 20 },
+  { file: 'blinkie-tokens', alt: 'out of tokens', width: 150, height: 20 },
+  { file: 'stamp-badminton', alt: 'badminton ate my knees', width: 99, height: 56 },
+]
+
 // The /offline page (⌘K → Offline only): `offline` shows only while the visitor is offline;
 // `online` tells them how.
 export const offlineNote = {

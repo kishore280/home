@@ -375,6 +375,35 @@ test.describe('home page', () => {
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('hi, i’m kishore')
   })
 
+  test('blinkies and stamps: each moves, has a looping GIF of its size, and a click copies its code', async ({ page, press, log, isMobile }) => {
+    await page.goto('/')
+    const card = page.locator('.card', { has: page.getByRole('heading', { name: 'blinkies & stamps' }) })
+    const items = card.locator('button.badge')
+    await expect(items).toHaveCount(3)
+    const sizes = await items.locator('img').evaluateAll((els) =>
+      els.map((e) => ({ src: (e as HTMLImageElement).src, w: (e as HTMLImageElement).width, h: (e as HTMLImageElement).height })),
+    )
+    for (const { src, w, h } of sizes) {
+      expect([w, h]).toContainEqual(w === 150 ? 150 : 99)
+      const { svg, gif } = await page.evaluate(async (u) => {
+        const svg = await (await fetch(u)).text()
+        const bytes = [...new Uint8Array(await (await fetch(u.replace(/\.svg$/, '.gif'))).arrayBuffer())]
+        return { svg, gif: bytes }
+      }, src)
+      expect(svg).toContain('@keyframes')
+      expect(svg).toContain('prefers-reduced-motion: reduce')
+      expect(svg).not.toContain('<text') // words are shapes: an image cannot load a font
+      const bytes = Buffer.from(gif)
+      expect(bytes.subarray(0, 6).toString()).toBe('GIF89a')
+      expect([bytes.readUInt16LE(6), bytes.readUInt16LE(8)]).toEqual([w, h])
+    }
+    await press(items.nth(2)) // the stamp
+    const copied = await page.evaluate(() => window.__copies)
+    expect(copied[0]).toContain('/stamp-badminton.gif" width="99" height="56"')
+    // A mouse passes over it first (its hover counts, as for the buttons); a finger does not.
+    await expectEvents(log, [...(isMobile ? [] : ['Stamp hover: badminton ate my knees']), 'Stamp copy: badminton ate my knees'])
+  })
+
   test('mascot hearts are hidden with reduced motion', async ({ page, press }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await page.goto('/')
