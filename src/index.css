@@ -1206,7 +1206,7 @@ html[data-log-clock='0'] .chai-clock.pending {
   margin-bottom: 8px;
 }
 
-.b88 {
+.badge {
   display: block;
   border: 0;
   padding: 0;
@@ -1214,14 +1214,14 @@ html[data-log-clock='0'] .chai-clock.pending {
   cursor: pointer;
 }
 
-.b88 img {
+.badge img {
   display: block;
 }
 
 /* Hover label: shown at the bottom centre, in the same place and style as the copy
    toast. Decorative, because the same text is the image alt. Not on touch screens,
    where a tap already shows the copy toast. */
-.b88::after {
+.badge::after {
   content: attr(data-caption);
   position: fixed;
   z-index: 60;
@@ -1244,24 +1244,24 @@ html[data-log-clock='0'] .chai-clock.pending {
 }
 
 @media (hover: none) {
-  .b88::after {
+  .badge::after {
     display: none;
   }
 }
 
-.b88:hover::after,
-.b88:focus-visible::after {
+.badge:hover::after,
+.badge:focus-visible::after {
   opacity: 1;
   translate: -50% 0;
 }
 
-.b88 img {
+.badge img {
   transition:
     rotate 0.15s,
     translate 0.15s;
 }
 
-.b88:hover img {
+.badge:hover img {
   translate: 0 -3px;
   rotate: -2deg;
 }

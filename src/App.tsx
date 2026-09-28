@@ -7,7 +7,7 @@ import { Stats } from './components/Stats'
 import { RightNow } from './components/RightNow'
 import { YearHeatmap } from './components/YearHeatmap'
 import { Counts } from './components/Counts'
-import { Buttons } from './components/Buttons'
+import { Buttons, Stamps } from './components/Buttons'
 import { Photos } from './components/Photos'
 import type { MenuItem } from './components/CommandMenu'
 import { useCounters } from './hooks/useCounters'
@@ -127,6 +127,7 @@ export default function App() {
           ) : null}
 
           <Buttons />
+          <Stamps />
           <Photos />
 
           <footer>
