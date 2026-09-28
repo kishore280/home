@@ -379,7 +379,7 @@ test.describe('home page', () => {
     await page.goto('/')
     const card = page.locator('.card', { has: page.getByRole('heading', { name: 'blinkies & stamps' }) })
     const items = card.locator('button.badge')
-    await expect(items).toHaveCount(3)
+    await expect(items).toHaveCount(8)
     const sizes = await items.locator('img').evaluateAll((els) =>
       els.map((e) => ({ src: (e as HTMLImageElement).src, w: (e as HTMLImageElement).width, h: (e as HTMLImageElement).height })),
     )
@@ -397,7 +397,7 @@ test.describe('home page', () => {
       expect(bytes.subarray(0, 6).toString()).toBe('GIF89a')
       expect([bytes.readUInt16LE(6), bytes.readUInt16LE(8)]).toEqual([w, h])
     }
-    await press(items.nth(2)) // the stamp
+    await press(items.nth(7)) // the stamp, after the 7 blinkies
     const copied = await page.evaluate(() => window.__copies)
     expect(copied[0]).toContain('/stamp-badminton.gif" width="99" height="56"')
     // A mouse passes over it first (its hover counts, as for the buttons); a finger does not.
