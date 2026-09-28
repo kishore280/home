@@ -98,6 +98,12 @@ const daysReply = (range: number, counts: Record<string, Record<string, number>>
 const chaiHours = Array.from({ length: 24 }, (_, h) => ({ 11: 6, 17: 9, 8: 2 })[h] ?? 0)
 
 const menu = (page: Page) => page.locator('.cmdk-content')
+// The page is pre-rendered, so the mascot shows (and takes taps) before React runs; a tap then does
+// nothing. Its day label ("chai time", "sleeping") renders only in the browser, so wait for it first.
+async function mascotReady(page: Page) {
+  await expect(page.locator('.mascot .small')).toContainText(/time|sleeping/)
+}
+
 async function openMenu(page: Page, press: (t: Locator) => Promise<void>) {
   await expect(page.locator('[data-sonner-toast]')).toHaveCount(0, { timeout: 15_000 })
   await press(page.locator('.link-button'))
@@ -145,6 +151,7 @@ test.describe('home page', () => {
       Object.defineProperty(navigator, 'vibrate', { value: (p: number | number[]) => window.__buzz.push(p) })
     })
     await page.goto('/')
+    await mascotReady(page)
     const mascot = page.getByRole('button', { name: 'Pat the mascot' })
     await expect(page.locator('.mascot .small')).toContainText('98 pats')
     await press(mascot)
@@ -196,6 +203,7 @@ test.describe('home page', () => {
   test('mascot does an idle action now and then', async ({ page }) => {
     await page.clock.install()
     await page.goto('/')
+    await mascotReady(page)
     const mascot = page.locator('.mascot')
     await expect(mascot).not.toHaveAttribute('data-idle')
     await page.clock.fastForward(12_500)
@@ -208,6 +216,7 @@ test.describe('home page', () => {
     test.skip(isMobile, 'mouse')
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await page.goto('/')
+    await mascotReady(page)
     await page.mouse.move(0, 200)
     await settle(page)
     expect(await page.locator('.mascot').evaluate((el) => getComputedStyle(el).getPropertyValue('--lx'))).toBe('')
@@ -220,6 +229,7 @@ test.describe('home page', () => {
       return r.fulfill({ json: { views: 1, pats } })
     })
     await page.goto('/')
+    await mascotReady(page)
     const mascot = page.getByRole('button', { name: 'Pat the mascot' })
     await expect(page.locator('.mascot .small')).toContainText('299 pats')
     await press(mascot)
@@ -238,6 +248,7 @@ test.describe('home page', () => {
   test('mascot: hold it to make it purr; the hold is not a pat', async ({ page, log, isMobile }) => {
     test.skip(isMobile, 'mouse hold')
     await page.goto('/')
+    await mascotReady(page)
     const mascot = page.getByRole('button', { name: 'Pat the mascot' })
     const box = (await mascot.boundingBox())!
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
@@ -253,6 +264,7 @@ test.describe('home page', () => {
   test('mascot: the Konami code gives it a party hat', async ({ page, log, isMobile }) => {
     test.skip(isMobile, 'keyboard')
     await page.goto('/')
+    await mascotReady(page)
     await expect(page.locator('.m-hat')).toHaveCount(0)
     for (const key of ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a']) {
       await page.keyboard.press(key)
@@ -273,6 +285,7 @@ test.describe('home page', () => {
 
   test('the 88×31 buttons move (and stop with reduced motion); each has a looping GIF for other sites', async ({ page }) => {
     await page.goto('/')
+    await mascotReady(page)
     const files = await page.locator('.buttons img').evaluateAll((els) =>
       els.map((e) => (e as HTMLImageElement).src).filter((s) => /\/button[^/]*\.svg$/.test(s)),
     )
@@ -298,9 +311,34 @@ test.describe('home page', () => {
   })
 
 
+  test('button-wall tools find the buttons in /.well-known/button.json (IETF draft 00), with a GIF and its SHA-256 each', async ({ page }) => {
+    await page.goto('/')
+    await expect(page).toHaveTitle('kish')
+    const info = await page.evaluate(async () => {
+      const r = await fetch('/.well-known/button.json')
+      const json = await r.json()
+      const checked = []
+      for (const b of json.buttons) {
+        const gif = await fetch(new URL(b.uri).pathname)
+        const hash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', await gif.arrayBuffer()))]
+          .map((x) => x.toString(16).padStart(2, '0'))
+          .join('')
+        checked.push({ id: b.id, alt: b.alt, gif: gif.headers.get('content-type'), same: hash === b.sha256, hotlink: b.hotlink })
+      }
+      return { type: r.headers.get('content-type'), cors: r.headers.get('access-control-allow-origin'), schema: json.$schema, def: json.default, checked }
+    })
+    expect(info.type).toContain('application/json')
+    expect(info.cors).toBe('*')
+    expect(info.schema).toContain('draft-filmroellchen-lunar-well-known-button-00.schema.json')
+    expect(info.checked.length).toBeGreaterThan(0)
+    expect(info.checked.map((b) => b.id)).toContain(info.def)
+    for (const b of info.checked) expect(b).toEqual({ id: expect.any(String), alt: expect.stringMatching(/\S/), gif: 'image/gif', same: true, hotlink: true })
+  })
+
   test('mascot hearts are hidden with reduced motion', async ({ page, press }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await page.goto('/')
+    await mascotReady(page)
     const mascot = page.getByRole('button', { name: 'Pat the mascot' })
     await press(mascot)
     await expect(mascot.locator('.heart')).toHaveCount(1)

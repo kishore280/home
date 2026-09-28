@@ -43,7 +43,7 @@ export function Buttons() {
           </a>
         ))}
       </div>
-      <p className="small">Click a button to copy its code, and put it on your site.</p>
+      <p className="small">Click a button to copy its code, and put it on your site. Linking the image from here is fine.</p>
     </Card>
   )
 }
