@@ -317,7 +317,7 @@ h2 {
 .hop .m-tail {
   animation: tail 1s var(--spring);
 }
-.mascot {
+:root {
   --spring: linear(0, 0.53, 1.07, 1.26, 1.19, 1.02, 0.91, 0.92, 0.99, 1.04, 1.03, 1, 0.99, 1);
 }
 @keyframes ear-l {
@@ -1098,30 +1098,106 @@ html[data-log-clock='0'] .chai-clock.pending {
 }
 
 /* 88×31 buttons */
-/* photos (Photos.tsx): 3 square tiles per row from the shared album. */
+/* photos (Photos.tsx): polaroids, 6 in a row (3 on a phone), each on white paper with lavender tape
+   and a pixel doodle, tilted a little and straight on hover. */
 .photos {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 16px 14px;
   margin: 0;
-  padding: 0;
+  padding: 8px 2px 0;
   list-style: none;
 }
 
-.photos a {
+@media (max-width: 640px) {
+  .photos {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.photos li {
+  position: relative;
+  padding: 6px 6px 0;
+  border-radius: 3px;
+  background: #fff;
+  box-shadow: 0 1px 0 var(--line), 0 6px 14px rgb(58 49 80 / 0.14);
+  rotate: -2.5deg;
+  transition: rotate 0.25s var(--spring), translate 0.25s var(--spring);
+}
+
+.photos li:nth-child(even) {
+  rotate: 2deg;
+}
+
+.photos li:nth-child(3n) {
+  rotate: -1deg;
+}
+
+.photos li:hover,
+.photos li:focus-within {
+  rotate: 0deg;
+  translate: 0 -4px;
+}
+
+/* The tape */
+.photos li::before {
+  content: '';
+  position: absolute;
+  top: -7px;
+  left: 50%;
+  width: 38%;
+  height: 13px;
+  translate: -50% 0;
+  rotate: -3deg;
+  background: var(--accent-light);
+  opacity: 0.75;
+}
+
+.photos a,
+.photos .more {
   display: block;
   position: relative;
-  border-radius: 12px;
+  border-radius: 1px;
   overflow: hidden;
   background: var(--chip);
+}
+
+.photos .more {
+  display: grid;
+  place-content: center;
+  width: 100%;
+  aspect-ratio: 1;
+  border: 0;
+  color: var(--accent-text);
+  font: 700 1.25rem var(--display);
+  cursor: pointer;
+}
+
+.photos .more span {
+  font-size: 0.8rem;
+}
+
+.photos .doodle {
+  display: block;
+  width: 14px;
+  height: 12px;
+  margin: 6px auto 7px;
+  fill: #9b7fe0;
+  shape-rendering: crispEdges;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .photos li {
+    transition: none;
+  }
 }
 
 /* A video tile: a round play mark in the middle (white on a dark glass, so it shows on any frame). */
 .photos .play {
   position: absolute;
   inset: 0;
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   margin: auto;
   border-radius: 50%;
   background: rgb(0 0 0 / 0.45);
@@ -1133,8 +1209,8 @@ html[data-log-clock='0'] .chai-clock.pending {
   position: absolute;
   inset: 0;
   margin: auto;
-  width: 14px;
-  height: 16px;
+  width: 11px;
+  height: 13px;
   translate: 2px 0;
   background: #fff;
   clip-path: polygon(0 0, 100% 50%, 0 100%);
