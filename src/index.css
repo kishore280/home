@@ -360,6 +360,44 @@ h2 {
   }
 }
 
+/* Hold to purr: a soft, fast shake. A long press must not select text or open a menu. */
+.mascot-button {
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+.mascot-art.purr {
+  animation: purr 0.12s linear 12;
+}
+@keyframes purr {
+  50% {
+    transform: translateX(1.2px) rotate(0.6deg);
+  }
+}
+
+/* The Konami code's party hat. */
+.m-hat-cone {
+  fill: var(--accent-2);
+}
+.m-hat-stripe {
+  stroke: #fff;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+.m-hat-pom {
+  fill: #f3c64a;
+}
+
+/* The pat count pops when it goes up. */
+.count-pop {
+  display: inline-block;
+  animation: pop-num 0.35s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+@keyframes pop-num {
+  from {
+    transform: scale(1.35);
+  }
+}
+
 /* Dizzy after very fast pats: spiral eyes that turn. */
 .m-dizzy {
   fill: none;

@@ -2,6 +2,7 @@ import { useEffect, useImperativeHandle, useRef, useState, type CSSProperties, t
 import { useIsClient } from '../lib/client'
 import { site } from '../data'
 import { chaiIcon } from './ChaiIcon'
+import { track } from '../lib/track'
 
 // The mascot follows kish's day in IST: badminton 6–9 am, chai in the morning and
 // evening, coding in the day, the beach at sunset, parotta for dinner, sleep at night.
@@ -32,6 +33,15 @@ const ALWAYS = ['pat pat pat', 'that tickles', 'more pats, more ♥', '10/10 pat
 
 // Static SVG parts, hoisted so they are not re-created on each render.
 const paw = <ellipse className="m-body" cx="95" cy="86" rx="7.5" ry="6.5" />
+
+// The Konami code's prize: a party hat between the ears.
+const PARTY_HAT = (
+  <g className="m-hat">
+    <path className="m-hat-cone" d="M60 6 47 36h26Z" />
+    <path className="m-hat-stripe" d="M54.5 19h11M51 28h18" />
+    <circle className="m-hat-pom" cx="60" cy="6" r="4" />
+  </g>
+)
 
 const ACCESSORY: Record<Mode, ReactNode> = {
   chai: (
@@ -94,7 +104,7 @@ const ACCESSORY: Record<Mode, ReactNode> = {
 }
 
 // `mode` is null while pre-rendering: a plain, awake mascot with no accessory.
-function Face({ mode, dizzy }: { mode: Mode | null; dizzy: boolean }) {
+function Face({ mode, dizzy, party }: { mode: Mode | null; dizzy: boolean; party: boolean }) {
   const asleep = mode === 'sleep' && !dizzy
   return (
     <svg viewBox="0 0 120 120" aria-hidden="true">
@@ -139,6 +149,7 @@ function Face({ mode, dizzy }: { mode: Mode | null; dizzy: boolean }) {
       <ellipse className="m-blush" cx="85" cy="76" rx="6" ry="3.5" />
       <path className="m-mouth" d={asleep ? 'M57 75q3 2 6 0' : 'M54 73q3 4 6 0q3 4 6 0'} />
       {mode ? ACCESSORY[mode] : null}
+      {party ? PARTY_HAT : null}
     </svg>
   )
 }
@@ -151,7 +162,12 @@ export type MascotHandle = { pat: () => void }
 // mascot tells the one who gave it, with more hearts and a short freeze before the hop ("hit-stop").
 const HEARTS = 6
 const BURST = 8
-const milestone = (n: number) => n === 100 || n === 500 || (n > 0 && n % 1000 === 0)
+const milestone = (n: number) => n > 0 && n % 100 === 0
+// The pats one visitor gives on this page that get a thank-you.
+const MINE = [10, 25, 50, 100]
+const KONAMI = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a']
+const HOLD_MS = 550
+const SEEN = 'mascot-seen'
 // Very fast pats make the cat dizzy (spiral eyes): DIZZY pats within DIZZY_MS.
 const DIZZY = 6
 const DIZZY_MS = 2500
@@ -231,36 +247,100 @@ export function Mascot({
   const [hearts, setHearts] = useState(0)
   const [big, setBig] = useState(false)
   const [dizzy, setDizzy] = useState(false)
+  const [purr, setPurr] = useState(false)
+  const [party, setParty] = useState(false)
   const timer = useRef<number>(undefined)
+  const hold = useRef<number>(undefined)
+  const held = useRef(false)
   const recent = useRef<number[]>([])
+  const mine = useRef(0)
   const root = useRef<HTMLDivElement>(null)
   useLookAt(root)
   useIdle(root)
+
+  // The bubble says one line for a while, then fades; later lines replace it.
+  const say = (text: string, ms: number) => {
+    setLine(text)
+    setTalking(true)
+    window.clearTimeout(timer.current)
+    timer.current = window.setTimeout(() => {
+      setTalking(false)
+      setDizzy(false)
+      setPurr(false)
+    }, ms)
+  }
+
+  // A visitor back after 12 hours or more is welcomed (the time is kept on this device only).
+  useEffect(() => {
+    let last = 0
+    try {
+      last = Number(localStorage.getItem(SEEN)) || 0
+      localStorage.setItem(SEEN, String(Date.now()))
+    } catch {
+      return
+    }
+    if (!last || Date.now() - last < 12 * 3600_000) return
+    const t = window.setTimeout(() => say('welcome back! ♥', 2600), 1200)
+    return () => window.clearTimeout(t)
+  }, [])
+
+  // ↑ ↑ ↓ ↓ ← → ← → B A: a party hat, as in the old games.
+  useEffect(() => {
+    let at = 0
+    const key = (e: KeyboardEvent) => {
+      at = e.key === KONAMI[at] ? at + 1 : e.key === KONAMI[0] ? 1 : 0
+      if (at < KONAMI.length) return
+      at = 0
+      setParty(true)
+      say('cheat unlocked! 🎉', 2600)
+      track('Mascot Konami code')
+    }
+    addEventListener('keydown', key)
+    return () => removeEventListener('keydown', key)
+  }, [])
+
+  // Hold the cat to make it purr (long press); the click after a hold is not a pat.
+  const press = () => {
+    held.current = false
+    window.clearTimeout(hold.current)
+    hold.current = window.setTimeout(() => {
+      held.current = true
+      setPurr(true)
+      navigator.vibrate?.([20, 40, 20, 40, 20])
+      say('purrr… ♥', 1800)
+      track('Mascot purr')
+    }, HOLD_MS)
+  }
+  const release = () => window.clearTimeout(hold.current)
+  // A tap on the cat: a pat, unless it ended a hold. Counted here, not with data-umami-event, so a
+  // hold is not also counted as a pat.
+  const tap = () => {
+    if (held.current) {
+      held.current = false
+      return
+    }
+    track('Mascot pat')
+    pat()
+  }
 
   const pat = () => {
     const lines = mode ? [...MODES[mode].lines, ...ALWAYS] : ALWAYS
     const total = pats === null ? 0 : pats + 1
     const achieved = milestone(total)
+    const thanks = MINE.includes(++mine.current)
     const now = performance.now()
     recent.current = [...recent.current.filter((t) => now - t < DIZZY_MS), now]
     // More pats while dizzy keep it dizzy.
-    const spun = !achieved && (dizzy || recent.current.length >= DIZZY)
+    const spun = !achieved && !thanks && (dizzy || recent.current.length >= DIZZY)
     navigator.vibrate?.(achieved ? [10, 60, 30] : 10)
     setHop((h) => h + 1)
     setHearts((h) => h + (achieved ? BURST : 1))
     setBig(achieved)
     if (spun) setDizzy(true)
-    const line = achieved ? `#${total.toLocaleString()} was you! 🎉` : spun ? 'whoa… dizzy' : lines[Math.floor(Math.random() * lines.length)]
-    setLine(line)
-    setTalking(true)
-    window.clearTimeout(timer.current)
-    timer.current = window.setTimeout(
-      () => {
-        setTalking(false)
-        setDizzy(false)
-      },
-      achieved ? 3000 : spun ? 2200 : 1400,
-    )
+    if (achieved) say(`you are the ${total.toLocaleString()}th! ${total % 1000 ? '🎉' : '🏆'}`, 3200)
+    else if (thanks) say(`${mine.current} pats from you ♥`, 2200)
+    else if (spun) say('whoa… dizzy', 2200)
+    else say(lines[Math.floor(Math.random() * lines.length)], 1400)
     onPat()
   }
   // Lets the ⌘K menu pat the mascot without reaching into the DOM.
@@ -268,14 +348,31 @@ export function Mascot({
 
   return (
     <div className="mascot" ref={root}>
-      <button type="button" className="mascot-button" onClick={pat} aria-label="Pat the mascot" data-umami-event="Mascot pat">
-        <span className={`bubble${talking ? ' show' : ''}`} aria-live="polite" translate="no">
+      <button
+        type="button"
+        className="mascot-button"
+        onClick={tap}
+        onPointerDown={press}
+        onPointerUp={release}
+        onPointerLeave={release}
+        onPointerCancel={release}
+        onContextMenu={(e) => e.preventDefault()}
+        aria-label="Pat the mascot"
+      >
+        {/* A long line starts further left (a longer --tail), so it stays inside the card and the
+            tail still points at the mouth. */}
+        <span
+          className={`bubble${talking ? ' show' : ''}`}
+          style={line.length > 18 ? ({ '--tail': '74px' } as CSSProperties) : undefined}
+          aria-live="polite"
+          translate="no"
+        >
           {line}
         </span>
         {/* Animate wrappers, not the SVG, so the browser can use the GPU. */}
         <span className="mascot-breathe">
-          <span key={hop} className={`mascot-art${hop ? ' hop' : ''}${big ? ' big' : ''}${talking ? ' happy' : ''}`}>
-            <Face mode={mode} dizzy={dizzy} />
+          <span key={hop} className={`mascot-art${hop ? ' hop' : ''}${big ? ' big' : ''}${purr ? ' purr' : ''}${talking ? ' happy' : ''}`}>
+            <Face mode={mode} dizzy={dizzy} party={party} />
           </span>
         </span>
         {Array.from({ length: Math.min(hearts, big ? BURST : HEARTS) }, (_, i) => hearts - i).map((id) => (
@@ -287,7 +384,16 @@ export function Mascot({
       </button>
       <p className="small">
         {mode ? MODES[mode].label : null}
-        {pats !== null ? ` · ${pats.toLocaleString()} ${pats === 1 ? 'pat' : 'pats'}` : null}
+        {pats !== null ? (
+          <>
+            {' · '}
+            {/* A new key on each change replays a small pop on the number. */}
+            <span key={pats} className="count-pop">
+              {pats.toLocaleString()}
+            </span>{' '}
+            {pats === 1 ? 'pat' : 'pats'}
+          </>
+        ) : null}
       </p>
     </div>
   )

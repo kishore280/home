@@ -13,7 +13,7 @@ Coding agents: read [AGENTS.md](AGENTS.md) for the rules, commands, tests and ho
 | Part | Data | Needs |
 |---|---|---|
 | Intro, about, links, email | `src/data.ts` | Nothing |
-| Mascot (click to pat) and pat count; each pat floats a heart and buzzes a phone; pat #100, #500 and every 1,000th is an achievement; its eyes follow the pointer, its ears and tail spring on a pat, it twitches and looks around when idle, and very fast pats make it dizzy | Cloudflare D1 | D1 binding (below) |
+| Mascot (click to pat) and pat count; each pat floats a heart and buzzes a phone; every 100th pat of all says "you are the 100th!" (🏆 at each 1,000th), and a visitor's 10th, 25th, 50th and 100th pat get a thank-you; its eyes follow the pointer, its ears and tail spring on a pat, it twitches and looks around when idle, very fast pats make it dizzy, a long press makes it purr, the Konami code gives it a party hat, and a visitor back after 12 hours is welcomed | Cloudflare D1 | D1 binding (below) |
 | Status | [status.cafe](https://status.cafe) | `statusCafe` in `src/data.ts` |
 | Stats: updated, views | Build date + D1 | D1 binding |
 | Right now: music | Your phone's scrobbler → D1 | `SCROBBLE_TOKEN` (below) |

@@ -153,7 +153,7 @@ test.describe('home page', () => {
     await expect(page.locator('.bubble')).not.toContainText('#')
     // Pat #100: the mascot says it, with a burst of hearts and a longer buzz.
     await press(mascot)
-    await expect(page.locator('.bubble.show')).toHaveText('#100 was you! 🎉')
+    await expect(page.locator('.bubble.show')).toHaveText('you are the 100th! 🎉')
     await expect(page.locator('.mascot-art.big')).toHaveCount(1)
     await expect(mascot.locator('.heart')).toHaveCount(8)
     expect(await page.evaluate(() => window.__buzz)).toEqual([10, [10, 60, 30]])
@@ -211,6 +211,64 @@ test.describe('home page', () => {
     await page.mouse.move(0, 200)
     await settle(page)
     expect(await page.locator('.mascot').evaluate((el) => getComputedStyle(el).getPropertyValue('--lx'))).toBe('')
+  })
+
+  test('mascot: every 100th pat of all is "you are the …th", and the 10th pat of one visitor gets a thank-you', async ({ page, context, press }) => {
+    let pats = 299
+    await context.route('**/api/counters', (r) => {
+      if (r.request().method() === 'POST' && r.request().postDataJSON().key === 'pats') pats++
+      return r.fulfill({ json: { views: 1, pats } })
+    })
+    await page.goto('/')
+    const mascot = page.getByRole('button', { name: 'Pat the mascot' })
+    await expect(page.locator('.mascot .small')).toContainText('299 pats')
+    await press(mascot)
+    await expect(page.locator('.bubble.show')).toHaveText('you are the 300th! 🎉')
+    // A long line stays inside the card (it starts further left).
+    await expect(page.locator('.bubble.show')).toHaveCSS('scale', '1')
+    const card = (await page.locator('.side > *').first().boundingBox())!
+    const bubble = (await page.locator('.bubble').boundingBox())!
+    expect(bubble.x).toBeGreaterThanOrEqual(card.x)
+    expect(bubble.x + bubble.width).toBeLessThanOrEqual(card.x + card.width)
+    for (let i = 0; i < 9; i++) await press(mascot)
+    await expect(page.locator('.bubble.show')).toHaveText('10 pats from you ♥')
+    await expect(page.locator('.mascot .count-pop')).toHaveText('309')
+  })
+
+  test('mascot: hold it to make it purr; the hold is not a pat', async ({ page, log, isMobile }) => {
+    test.skip(isMobile, 'mouse hold')
+    await page.goto('/')
+    const mascot = page.getByRole('button', { name: 'Pat the mascot' })
+    const box = (await mascot.boundingBox())!
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+    await page.mouse.down()
+    await expect(page.locator('.bubble.show')).toHaveText('purrr… ♥')
+    await expect(page.locator('.mascot-art.purr')).toHaveCount(1)
+    await page.mouse.up()
+    await settle(page)
+    expect(log.posts).toEqual(['views'])
+    await expectEvents(log, ['Mascot purr'])
+  })
+
+  test('mascot: the Konami code gives it a party hat', async ({ page, log, isMobile }) => {
+    test.skip(isMobile, 'keyboard')
+    await page.goto('/')
+    await expect(page.locator('.m-hat')).toHaveCount(0)
+    for (const key of ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a']) {
+      await page.keyboard.press(key)
+    }
+    await expect(page.locator('.m-hat')).toHaveCount(1)
+    await expect(page.locator('.bubble.show')).toHaveText('cheat unlocked! 🎉')
+    await expectEvents(log, ['Mascot Konami code'])
+  })
+
+  test('mascot: a visitor back after a day is welcomed, a first visit is not', async ({ page, context }) => {
+    await page.goto('/')
+    await settle(page)
+    await expect(page.locator('.bubble.show')).toHaveCount(0)
+    await context.addInitScript(() => localStorage.setItem('mascot-seen', String(Date.now() - 2 * 86_400_000)))
+    await page.reload()
+    await expect(page.locator('.bubble.show')).toHaveText('welcome back! ♥')
   })
 
   test('mascot hearts are hidden with reduced motion', async ({ page, press }) => {
