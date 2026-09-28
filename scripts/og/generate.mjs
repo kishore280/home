@@ -32,14 +32,16 @@ const pixelify = opentype.parse(
 const entities = { '&gt;': '>', '&lt;': '<', '&amp;': '&' }
 // One glyph after another (charToGlyph, advance width, kerning), not font.getPath: that applies the
 // font's contextual substitutions, which this version of opentype.js cannot read yet, and a pixel
-// font has none a word needs.
-const wordsPath = (words, x, y, size) => {
+// font has none a word needs. With text-anchor="middle", x is the centre of the words, as in SVG.
+const wordsPath = (words, x, y, size, middle) => {
   const scale = size / pixelify.unitsPerEm
   const glyphs = [...words].map((c) => pixelify.charToGlyph(c))
+  const steps = glyphs.map((g, i) => (g.advanceWidth + (glyphs[i + 1] ? pixelify.getKerningValue(g, glyphs[i + 1]) : 0)) * scale)
+  if (middle) x -= steps.reduce((a, b) => a + b, 0) / 2
   return glyphs
     .map((g, i) => {
       const d = g.getPath(x, y, size).toPathData(2)
-      x += (g.advanceWidth + (glyphs[i + 1] ? pixelify.getKerningValue(g, glyphs[i + 1]) : 0)) * scale
+      x += steps[i]
       return d
     })
     .join('')
@@ -48,8 +50,9 @@ for (const { file: name } of stamps) {
   const source = readFileSync(join(root, `scripts/og/stamps/${name}.svg`), 'utf8')
   const out = source.replace(/<text([^>]*)>([^<]*)<\/text>/g, (_, attrs, words) => {
     const num = (key) => Number(new RegExp(` ${key}="([\\d.]+)"`).exec(attrs)[1])
-    const d = wordsPath(words.replace(/&\w+;/g, (e) => entities[e]), num('x'), num('y'), num('font-size'))
-    return `<path d="${d}"${attrs.replace(/ (x|y|font-size)="[^"]*"/g, '')}/>`
+    const middle = attrs.includes('text-anchor="middle"')
+    const d = wordsPath(words.replace(/&\w+;/g, (e) => entities[e]), num('x'), num('y'), num('font-size'), middle)
+    return `<path d="${d}"${attrs.replace(/ (x|y|font-size|text-anchor)="[^"]*"/g, '')}/>`
   })
   writeFileSync(join(root, `public/${name}.svg`), out)
 }

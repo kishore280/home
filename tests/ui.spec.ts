@@ -384,7 +384,7 @@ test.describe('home page', () => {
       els.map((e) => ({ src: (e as HTMLImageElement).src, w: (e as HTMLImageElement).width, h: (e as HTMLImageElement).height })),
     )
     for (const { src, w, h } of sizes) {
-      expect([w, h]).toContainEqual(w === 150 ? 150 : 99)
+      expect([w, h]).toEqual(w === 150 ? [150, 20] : [99, 56]) // a blinkie or a stamp
       const { svg, gif } = await page.evaluate(async (u) => {
         const svg = await (await fetch(u)).text()
         const bytes = [...new Uint8Array(await (await fetch(u.replace(/\.svg$/, '.gif'))).arrayBuffer())]

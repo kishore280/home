@@ -43,9 +43,17 @@ kishore's personal site, live at **https://kichoow.com**. React 19 + TypeScript 
 
 ### Add a blinkie (150×20) or stamp (99×56)
 
-1. Draw it as an SVG in `scripts/og/stamps/<name>.svg` in the current style: a dashed border inside the edge, pixel icons (`<rect>`s with `class="px"`, `shape-rendering: crispEdges`), plain `<text>` with `x`, `y`, `font-size` and `fill` attributes (left-aligned; `npm run og` turns it into Pixelify Sans paths), and one moving part in a `<style>` inside the SVG (blink, bob, beat or a colour flash), stopped by `prefers-reduced-motion`. Set `data-loop` on the `<svg>` to the time after which every animation repeats.
+1. Copy an existing one in `scripts/og/stamps/` (for example `blinkie-bite-me.svg`) to `<name>.svg`, with its `<style>` block (the `.px`, `.bl`, `.bob`, `.beat`, `.fl` classes and the `prefers-reduced-motion` rule). Keep the style: a dashed border inside the edge, pixel icons (`<rect class="px">`), plain `<text>` with `x`, `y`, `font-size` and `fill`, and one moving part. To centre the words, add `text-anchor="middle"` and set `x` to the centre (75 for a blinkie). Set `data-loop` on the `<svg>` to the time after which every animation repeats.
 2. Add it to `myStamps` in `src/data.ts` (blinkies first, then stamps).
-3. Run `npm run og` (writes `public/<name>.svg` and `.gif`), then update the item count and the stamp's index in the "blinkies and stamps" test in `tests/ui.spec.ts`.
+3. Run `npm run og`: it turns the `<text>` into Pixelify Sans paths and writes `public/<name>.svg` and `.gif`. It also remakes the share card, the icons and every button GIF; commit only those that look different (a re-encode can change the bytes and not the pixels).
+4. Update the item count and the stamp's index in the "blinkies and stamps" test in `tests/ui.spec.ts`.
+5. Screenshot the card for kish: `npm run build`, `npx vite preview`, then a Playwright screenshot of the `.card` that has the heading "blinkies & stamps", at 1280 px and 390 px wide.
+
+### Other tips
+
+- A new git worktree has no `node_modules`: run `npm ci` in it first (the session hook installs only the main checkout).
+- The tests reuse a server already on port 8787 (`reuseExistingServer`). Stop any other `wrangler dev` first, or the tests check that one.
+- Only the 88×31 buttons go in `/.well-known/button.json`: the draft is for 88×31 buttons, not blinkies or stamps.
 
 ## Skills (read the one that fits the task)
 
