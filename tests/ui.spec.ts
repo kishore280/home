@@ -3,6 +3,7 @@
 // Method: .claude/skills/ui-test (adversarial checks) and .claude/skills/webapp-testing.
 import { wrangler } from './d1'
 import AxeBuilder from '@axe-core/playwright'
+import { mf2 } from 'microformats-parser'
 import { test as base, expect, type APIRequestContext, type Locator, type Page } from '@playwright/test'
 
 declare global {
@@ -355,6 +356,23 @@ test.describe('home page', () => {
     // Both are in the sitemap, with a canonical address each.
     const sitemap = await (await request.get('http://127.0.0.1:8787/sitemap.xml')).text()
     for (const path of ['/now', '/colophon']) expect(sitemap).toContain(`https://kichoow.com${path}<`)
+  })
+
+  test('IndieWeb tools read an h-card from the served HTML: name, address, photo and the rel="me" profiles', async ({ page, request }) => {
+    const html = await (await request.get('http://127.0.0.1:8787/')).text()
+    const { items, rels } = mf2(html, { baseUrl: 'https://kichoow.com/' })
+    const card = items.find((i) => i.type?.includes('h-card'))
+    expect(card?.properties).toMatchObject({
+      name: ['kishore'],
+      nickname: ['kish'],
+      uid: ['https://kichoow.com/'],
+      photo: ['https://kichoow.com/icon-512.png'],
+      note: ['hands-on with AI agents development.'],
+    })
+    expect(card?.properties.url).toEqual(['https://kichoow.com/', ...(rels.me ?? [])])
+    // The <data> tags draw nothing: the heading still reads as before.
+    await page.goto('/')
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('hi, i’m kishore')
   })
 
   test('mascot hearts are hidden with reduced motion', async ({ page, press }) => {

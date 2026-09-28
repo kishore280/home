@@ -72,16 +72,22 @@ export default function App() {
       </a>
       {/* DOM order is intro, side, main so headings read in order; CSS places them. */}
       <div className="layout">
-        <header className="intro-area">
+        {/* h-card (microformats2): who this site is about, for IndieWeb tools. The <data> tags show nothing. */}
+        <header className="intro-area h-card">
           <Card>
-            <h1>hi, i’m {site.name}</h1>
-            {site.intro ? <p className="intro">{site.intro}</p> : null}
+            <h1>
+              hi, i’m <span className="p-name">{site.name}</span>
+            </h1>
+            <data className="u-url u-uid" value={`${site.url}/`} />
+            <data className="p-nickname" value={site.title} />
+            <data className="u-photo" value={`${site.url}/icon-512.png`} />
+            {site.intro ? <p className="intro p-note">{site.intro}</p> : null}
             {site.about.map((p) => (
               <p key={p}>{p}</p>
             ))}
             <nav className="links" aria-label="Elsewhere">
               {links.map((l) => (
-                <a key={l.href} href={l.href} target="_blank" rel="me noreferrer" data-umami-event={`${l.label} link`}>
+                <a key={l.href} className="u-url" href={l.href} target="_blank" rel="me noreferrer" data-umami-event={`${l.label} link`}>
                   {l.label} <span aria-hidden="true">↗</span>
                 </a>
               ))}
