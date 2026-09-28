@@ -164,6 +164,55 @@ test.describe('home page', () => {
     await expect(page.locator('.mascot .small')).toContainText('110 pats')
   })
 
+  test('mascot eyes follow the pointer, or the last tap on a phone', async ({ page, isMobile }) => {
+    await page.goto('/')
+    const mascot = page.locator('.mascot')
+    const lx = () => mascot.evaluate((el) => parseFloat(getComputedStyle(el).getPropertyValue('--lx')) || 0)
+    const box = (await mascot.boundingBox())!
+    const y = box.y + box.height / 2
+    if (isMobile) {
+      await page.touchscreen.tap(2, y)
+      await expect.poll(lx).toBeLessThan(-1)
+      await page.touchscreen.tap(page.viewportSize()!.width - 2, y)
+      await expect.poll(lx).toBeGreaterThan(1)
+    } else {
+      await page.mouse.move(0, y)
+      await expect.poll(lx).toBeLessThan(-1)
+      await page.mouse.move(page.viewportSize()!.width - 1, y)
+      await expect.poll(lx).toBeGreaterThan(1)
+    }
+  })
+
+  test('mascot gets dizzy after very fast pats, and gets better', async ({ page, press }) => {
+    await page.goto('/')
+    const mascot = page.getByRole('button', { name: 'Pat the mascot' })
+    for (let i = 0; i < 7; i++) await press(mascot)
+    await expect(mascot.locator('.m-dizzy')).toHaveCount(2)
+    await expect(page.locator('.bubble.show')).toHaveText('whoa… dizzy')
+    await expect(mascot.locator('.m-dizzy')).toHaveCount(0, { timeout: 5000 })
+    await expect(mascot.locator('.m-eye')).toHaveCount(2)
+  })
+
+  test('mascot does an idle action now and then', async ({ page }) => {
+    await page.clock.install()
+    await page.goto('/')
+    const mascot = page.locator('.mascot')
+    await expect(mascot).not.toHaveAttribute('data-idle')
+    await page.clock.fastForward(12_500)
+    await expect(mascot).toHaveAttribute('data-idle', /^(twitch|flick|look)$/)
+    await page.clock.fastForward(2_000)
+    await expect(mascot).not.toHaveAttribute('data-idle')
+  })
+
+  test('mascot eyes stay still with reduced motion', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'mouse')
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.goto('/')
+    await page.mouse.move(0, 200)
+    await settle(page)
+    expect(await page.locator('.mascot').evaluate((el) => getComputedStyle(el).getPropertyValue('--lx'))).toBe('')
+  })
+
   test('mascot hearts are hidden with reduced motion', async ({ page, press }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await page.goto('/')

@@ -286,6 +286,96 @@ h2 {
   }
 }
 
+/* Eyes follow the pointer (--lx, --ly from Mascot.tsx), with a short ease. */
+.m-look {
+  transform: translate(var(--lx, 0), var(--ly, 0));
+  transition: transform 0.12s ease-out;
+}
+
+/* Springs: the ears and the tail swing on their base and settle, with a damped-spring curve drawn
+   by CSS linear() easing (MDN "linear()"), so no physics code runs. */
+.m-ear-l,
+.m-ear-r,
+.m-tail {
+  transform-box: view-box;
+}
+.m-ear-l {
+  transform-origin: 42px 40px;
+}
+.m-ear-r {
+  transform-origin: 78px 40px;
+}
+.m-tail {
+  transform-origin: 90px 94px;
+}
+.hop .m-ear-l {
+  animation: ear-l 0.9s var(--spring);
+}
+.hop .m-ear-r {
+  animation: ear-r 0.9s var(--spring);
+}
+.hop .m-tail {
+  animation: tail 1s var(--spring);
+}
+.mascot {
+  --spring: linear(0, 0.53, 1.07, 1.26, 1.19, 1.02, 0.91, 0.92, 0.99, 1.04, 1.03, 1, 0.99, 1);
+}
+@keyframes ear-l {
+  from {
+    transform: rotate(-24deg);
+  }
+}
+@keyframes ear-r {
+  from {
+    transform: rotate(24deg);
+  }
+}
+@keyframes tail {
+  from {
+    transform: rotate(-30deg);
+  }
+}
+
+/* Idle actions (Mascot.tsx sets data-idle now and then). */
+.mascot[data-idle='twitch'] .m-ear-r {
+  animation: twitch 0.5s ease-in-out 2;
+}
+.mascot[data-idle='flick'] .m-tail {
+  animation: tail 1s var(--spring);
+}
+.mascot[data-idle='look'] .m-look {
+  animation: look 1.6s ease-in-out;
+}
+@keyframes twitch {
+  50% {
+    transform: rotate(14deg);
+  }
+}
+@keyframes look {
+  30% {
+    transform: translate(-3px, 0);
+  }
+  70% {
+    transform: translate(3px, 0);
+  }
+}
+
+/* Dizzy after very fast pats: spiral eyes that turn. */
+.m-dizzy {
+  fill: none;
+  stroke: var(--face);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: dizzy 0.8s linear infinite;
+}
+@keyframes dizzy {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* An achievement: a short freeze first (hit-stop), then a bigger hop. */
 .mascot-art.big {
   animation: hop-big 0.7s cubic-bezier(0.3, 1.6, 0.5, 1) 80ms;
