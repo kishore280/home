@@ -1,4 +1,4 @@
-import { useEffect, useImperativeHandle, useRef, useState, type CSSProperties, type ReactNode, type Ref, type RefObject } from 'react'
+import { useEffect, useImperativeHandle, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode, type Ref, type RefObject } from 'react'
 import { useIsClient } from '../lib/client'
 import { site } from '../data'
 import { chaiIcon } from './ChaiIcon'
@@ -252,6 +252,7 @@ export function Mascot({
   const timer = useRef<number>(undefined)
   const hold = useRef<number>(undefined)
   const held = useRef(false)
+  const downAt = useRef(0)
   const recent = useRef<number[]>([])
   const mine = useRef(0)
   const root = useRef<HTMLDivElement>(null)
@@ -299,9 +300,12 @@ export function Mascot({
     return () => removeEventListener('keydown', key)
   }, [])
 
-  // Hold the cat to make it purr (long press); the click after a hold is not a pat.
-  const press = () => {
+  // Hold the cat to make it purr (long press); the click after a hold is not a pat. A hold is judged
+  // by the real press time (event time stamps), not only by the timer: on a busy phone a quick tap's
+  // pointerup can wait in the queue past the timer, and it must still count as a pat.
+  const press = (e: ReactPointerEvent<HTMLButtonElement>) => {
     held.current = false
+    downAt.current = e.timeStamp
     window.clearTimeout(hold.current)
     hold.current = window.setTimeout(() => {
       held.current = true
@@ -311,7 +315,10 @@ export function Mascot({
       track('Mascot purr')
     }, HOLD_MS)
   }
-  const release = () => window.clearTimeout(hold.current)
+  const release = (e: ReactPointerEvent<HTMLButtonElement>) => {
+    window.clearTimeout(hold.current)
+    if (e.type === 'pointerup' && e.timeStamp - downAt.current < HOLD_MS) held.current = false
+  }
   // A tap on the cat: a pat, unless it ended a hold. Counted here, not with data-umami-event, so a
   // hold is not also counted as a pat.
   const tap = () => {

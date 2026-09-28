@@ -271,6 +271,33 @@ test.describe('home page', () => {
     await expect(page.locator('.bubble.show')).toHaveText('welcome back! ♥')
   })
 
+  test('the 88×31 buttons move (and stop with reduced motion); each has a looping GIF for other sites', async ({ page }) => {
+    await page.goto('/')
+    const files = await page.locator('.buttons img').evaluateAll((els) =>
+      els.map((e) => (e as HTMLImageElement).src).filter((s) => /\/button[^/]*\.svg$/.test(s)),
+    )
+    expect(files.length).toBeGreaterThan(0)
+    // Fetched in the page: the test site's host name leads to the local server only there.
+    const get = (url: string) =>
+      page.evaluate(async (u) => {
+        const r = await fetch(u)
+        return { type: r.headers.get('content-type'), text: await r.clone().text(), bytes: [...new Uint8Array(await r.arrayBuffer())] }
+      }, url)
+    for (const src of files) {
+      const svg = (await get(src)).text
+      expect(svg).toContain('@keyframes')
+      expect(svg).toContain('prefers-reduced-motion: reduce')
+      expect(Number(/data-loop="([\d.]+)"/.exec(svg)?.[1])).toBeGreaterThan(0)
+      const gif = await get(src.replace(/\.svg$/, '.gif'))
+      expect(gif.type).toBe('image/gif')
+      const bytes = Buffer.from(gif.bytes)
+      expect(bytes.subarray(0, 6).toString()).toBe('GIF89a')
+      expect([bytes.readUInt16LE(6), bytes.readUInt16LE(8)]).toEqual([88, 31]) // the logical screen size
+      expect(bytes.includes(Buffer.from('NETSCAPE2.0'))).toBe(true) // loops forever
+    }
+  })
+
+
   test('mascot hearts are hidden with reduced motion', async ({ page, press }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await page.goto('/')
@@ -288,7 +315,7 @@ test.describe('home page', () => {
     await expect(page.locator('[data-sonner-toast]')).toContainText('copied')
     const copied = await page.evaluate(() => window.__copies)
     expect(copied).toHaveLength(1)
-    expect(copied[0]).toContain('http://kichoow.com/button-parotta.png')
+    expect(copied[0]).toContain('http://kichoow.com/button-parotta.gif')
     expect(copied[0]).toContain('width="88" height="31"')
     await expectEvents(log, isMobile ? [`Button copy: ${label}`] : [`Button hover: ${label}`, `Button copy: ${label}`])
   })

@@ -3,9 +3,11 @@ import { trackHover } from '../lib/track'
 import { friends, myButtons } from '../data'
 import { Card } from './Card'
 
-// Other sites get the PNG (works everywhere); this page shows the sharper SVG.
+// Other sites get the animated GIF (npm run og makes it), the classic 88×31 format every site and
+// forum takes; this page shows the sharper SVG, which moves by itself. The old PNGs stay for the sites
+// that already use them.
 const embed = (file: string, alt: string) =>
-  `<a href="${location.origin}"><img src="${location.origin}/${file}.png" width="88" height="31" alt="${alt}"></a>`
+  `<a href="${location.origin}"><img src="${location.origin}/${file}.gif" width="88" height="31" alt="${alt}"></a>`
 
 async function copyEmbed(file: string, alt: string) {
   try {

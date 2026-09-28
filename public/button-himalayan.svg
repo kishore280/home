@@ -1,4 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="88" height="31" viewBox="0 0 88 31">
+<svg data-loop="0.6" xmlns="http://www.w3.org/2000/svg" width="88" height="31" viewBox="0 0 88 31">
+  <style>.road{animation:r .6s linear infinite}@keyframes r{to{transform:translateX(-14px)}}.ride{animation:ri .3s ease-in-out infinite alternate}@keyframes ri{to{transform:translateY(-.4px)}}@media (prefers-reduced-motion: reduce){*{animation:none!important}}</style>
   <title>himalayan</title>
   <defs>
     <linearGradient id="sky" x1="0" x2="0" y1="0" y2="1">
@@ -15,9 +16,9 @@
     <path d="M-2 22q30-4 92 1v9H-2Z" fill="#6b6aa0" stroke="none" opacity=".7"/>
     <!-- road -->
     <path d="M-1 27h90v5H-1Z" fill="#4a4460" stroke-width=".8"/>
-    <path d="M4 29.3h6M18 29.3h6M32 29.3h6M46 29.3h6M60 29.3h6M74 29.3h6" stroke="#ffd24a" stroke-width=".8"/>
+    <path class="road" d="M4 29.3h6M18 29.3h6M32 29.3h6M46 29.3h6M60 29.3h6M74 29.3h6" stroke="#ffd24a" stroke-width=".8"/>
     <!-- the bike, facing right (Himalayan: tall stance, split seat, rack, tall screen) -->
-    <g>
+    <g class="ride">
       <!-- swingarm and rear shock -->
       <path d="M46 19.5 35 22" stroke-width="1.6"/>
       <path d="M46 19.5 35 22" stroke="#5b5670" stroke-width=".7"/>
