@@ -1,4 +1,4 @@
-import { useImperativeHandle, useRef, useState, type CSSProperties, type ReactNode, type Ref } from 'react'
+import { useEffect, useImperativeHandle, useRef, useState, type CSSProperties, type ReactNode, type Ref, type RefObject } from 'react'
 import { useIsClient } from '../lib/client'
 import { site } from '../data'
 import { chaiIcon } from './ChaiIcon'
@@ -94,8 +94,8 @@ const ACCESSORY: Record<Mode, ReactNode> = {
 }
 
 // `mode` is null while pre-rendering: a plain, awake mascot with no accessory.
-function Face({ mode }: { mode: Mode | null }) {
-  const asleep = mode === 'sleep'
+function Face({ mode, dizzy }: { mode: Mode | null; dizzy: boolean }) {
+  const asleep = mode === 'sleep' && !dizzy
   return (
     <svg viewBox="0 0 120 120" aria-hidden="true">
       <defs>
@@ -107,18 +107,32 @@ function Face({ mode }: { mode: Mode | null }) {
       <path className="m-tail" d="M90 94q20-1 18-19-1-9-9-7" />
       <ellipse className="m-foot" cx="44" cy="104" rx="9" ry="5" />
       <ellipse className="m-foot" cx="76" cy="104" rx="9" ry="5" />
-      <path className="m-body" d="M28 44 36 10l20 24Zm64 0-8-34-20 24Z" />
-      <path className="m-ear" d="M34 38 38 20l10 14Zm52 0-4-18-10 14Z" />
+      {/* Each ear is its own group, so it can swing on its base (the springs below). */}
+      <g className="m-ear-l">
+        <path className="m-body" d="M28 44 36 10l20 24Z" />
+        <path className="m-ear" d="M34 38 38 20l10 14Z" />
+      </g>
+      <g className="m-ear-r">
+        <path className="m-body" d="M92 44 84 10 64 34Z" />
+        <path className="m-ear" d="M86 38 82 20 72 34Z" />
+      </g>
       <ellipse className="m-body m-shaded" cx="60" cy="70" rx="42" ry="37" />
       <ellipse className="m-belly" cx="60" cy="86" rx="24" ry="17" />
-      {asleep ? (
+      {dizzy ? (
+        <g>
+          <path className="m-dizzy" d="M40 64a5 5 0 1 0 5-5 3.4 3.4 0 1 0 2.4 5.8" />
+          <path className="m-dizzy" d="M70 64a5 5 0 1 0 5-5 3.4 3.4 0 1 0 2.4 5.8" />
+        </g>
+      ) : asleep ? (
         <path className="m-mouth" d="M40 65q5 4 10 0M70 65q5 4 10 0" />
       ) : (
-        <g className="m-eyes">
-          <ellipse className="m-eye" cx="45" cy="64" rx="4.8" ry="6.2" />
-          <ellipse className="m-eye" cx="75" cy="64" rx="4.8" ry="6.2" />
-          <circle className="m-glint" cx="46.6" cy="61.6" r="1.6" />
-          <circle className="m-glint" cx="76.6" cy="61.6" r="1.6" />
+        <g className="m-look">
+          <g className="m-eyes">
+            <ellipse className="m-eye" cx="45" cy="64" rx="4.8" ry="6.2" />
+            <ellipse className="m-eye" cx="75" cy="64" rx="4.8" ry="6.2" />
+            <circle className="m-glint" cx="46.6" cy="61.6" r="1.6" />
+            <circle className="m-glint" cx="76.6" cy="61.6" r="1.6" />
+          </g>
         </g>
       )}
       <ellipse className="m-blush" cx="35" cy="76" rx="6" ry="3.5" />
@@ -138,6 +152,66 @@ export type MascotHandle = { pat: () => void }
 const HEARTS = 6
 const BURST = 8
 const milestone = (n: number) => n === 100 || n === 500 || (n > 0 && n % 1000 === 0)
+// Very fast pats make the cat dizzy (spiral eyes): DIZZY pats within DIZZY_MS.
+const DIZZY = 6
+const DIZZY_MS = 2500
+const IDLE = ['twitch', 'flick', 'look'] as const
+
+// "Look-at", as game characters do: the eyes turn toward the pointer or the last tap, at most once a
+// frame (requestAnimationFrame), through two CSS variables, so React does not re-render. Off with
+// reduced motion.
+function useLookAt(el: RefObject<HTMLDivElement | null>) {
+  useEffect(() => {
+    const node = el.current
+    if (!node || matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    let frame = 0
+    let x = 0
+    let y = 0
+    const aim = () => {
+      frame = 0
+      const r = node.getBoundingClientRect()
+      const dx = x - (r.left + r.width / 2)
+      const dy = y - (r.top + r.height * 0.55)
+      const d = Math.hypot(dx, dy) || 1
+      const k = Math.min(1, d / 240) // near the face, the eyes move less
+      node.style.setProperty('--lx', `${((dx / d) * k * 3).toFixed(2)}px`)
+      node.style.setProperty('--ly', `${((dy / d) * k * 2.4).toFixed(2)}px`)
+    }
+    const move = (e: PointerEvent) => {
+      x = e.clientX
+      y = e.clientY
+      frame ||= requestAnimationFrame(aim)
+    }
+    addEventListener('pointermove', move, { passive: true })
+    addEventListener('pointerdown', move, { passive: true })
+    return () => {
+      removeEventListener('pointermove', move)
+      removeEventListener('pointerdown', move)
+      cancelAnimationFrame(frame)
+    }
+  }, [el])
+}
+
+// Idle actions, now and then (an ear twitch, a tail flick, a look around), set as a data attribute
+// for CSS. None while the tab is hidden, as a game pauses when it loses focus.
+function useIdle(el: RefObject<HTMLDivElement | null>) {
+  useEffect(() => {
+    const node = el.current
+    if (!node) return
+    let timer = 0
+    const next = () => {
+      timer = window.setTimeout(() => {
+        if (!document.hidden) node.dataset.idle = IDLE[Math.floor(Math.random() * IDLE.length)]
+        timer = window.setTimeout(() => {
+          delete node.dataset.idle
+          next()
+        }, 1600)
+      }, 6000 + Math.random() * 6000)
+    }
+    next()
+    return () => window.clearTimeout(timer)
+  }, [el])
+}
 
 export function Mascot({
   pats,
@@ -156,27 +230,44 @@ export function Mascot({
   const [hop, setHop] = useState(0)
   const [hearts, setHearts] = useState(0)
   const [big, setBig] = useState(false)
+  const [dizzy, setDizzy] = useState(false)
   const timer = useRef<number>(undefined)
+  const recent = useRef<number[]>([])
+  const root = useRef<HTMLDivElement>(null)
+  useLookAt(root)
+  useIdle(root)
 
   const pat = () => {
     const lines = mode ? [...MODES[mode].lines, ...ALWAYS] : ALWAYS
     const total = pats === null ? 0 : pats + 1
     const achieved = milestone(total)
+    const now = performance.now()
+    recent.current = [...recent.current.filter((t) => now - t < DIZZY_MS), now]
+    // More pats while dizzy keep it dizzy.
+    const spun = !achieved && (dizzy || recent.current.length >= DIZZY)
     navigator.vibrate?.(achieved ? [10, 60, 30] : 10)
     setHop((h) => h + 1)
     setHearts((h) => h + (achieved ? BURST : 1))
     setBig(achieved)
-    setLine(achieved ? `#${total.toLocaleString()} was you! 🎉` : lines[Math.floor(Math.random() * lines.length)])
+    if (spun) setDizzy(true)
+    const line = achieved ? `#${total.toLocaleString()} was you! 🎉` : spun ? 'whoa… dizzy' : lines[Math.floor(Math.random() * lines.length)]
+    setLine(line)
     setTalking(true)
     window.clearTimeout(timer.current)
-    timer.current = window.setTimeout(() => setTalking(false), achieved ? 3000 : 1400)
+    timer.current = window.setTimeout(
+      () => {
+        setTalking(false)
+        setDizzy(false)
+      },
+      achieved ? 3000 : spun ? 2200 : 1400,
+    )
     onPat()
   }
   // Lets the ⌘K menu pat the mascot without reaching into the DOM.
   useImperativeHandle(ref, () => ({ pat }))
 
   return (
-    <div className="mascot">
+    <div className="mascot" ref={root}>
       <button type="button" className="mascot-button" onClick={pat} aria-label="Pat the mascot" data-umami-event="Mascot pat">
         <span className={`bubble${talking ? ' show' : ''}`} aria-live="polite" translate="no">
           {line}
@@ -184,7 +275,7 @@ export function Mascot({
         {/* Animate wrappers, not the SVG, so the browser can use the GPU. */}
         <span className="mascot-breathe">
           <span key={hop} className={`mascot-art${hop ? ' hop' : ''}${big ? ' big' : ''}${talking ? ' happy' : ''}`}>
-            <Face mode={mode} />
+            <Face mode={mode} dizzy={dizzy} />
           </span>
         </span>
         {Array.from({ length: Math.min(hearts, big ? BURST : HEARTS) }, (_, i) => hearts - i).map((id) => (
