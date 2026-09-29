@@ -302,7 +302,7 @@ Each item follows a documented method; the source is in the code comment.
 
 - **Prefetch on hover or touch:** the `Speculation-Rules` header (`public/_headers`) points to `public/speculationrules.json` (prefetch, `moderate`, not `/api/*`), the same rules as Cloudflare Speed Brain, which does not run on Worker routes.
 - **No layout shift:** space is kept for everything that arrives after the first paint: stats, clock, mascot line, and a placeholder line for each late "right now" row ([web.dev: Optimize CLS](https://web.dev/articles/optimize-cls)). A test keeps it below 0.001.
-- **The menu and toasts open at once:** `lazyPreload()` (`src/lib/lazy.tsx`) instead of `React.lazy`, which React 19 holds for 300 ms ([facebook/react#31819](https://github.com/facebook/react/issues/31819); the fix Outline uses). Their code loads when the browser is idle; a failed load shows nothing instead of a blank page.
+- **The menu and toasts open at once:** `lazyPreload()` (`src/lib/lazy.tsx`) instead of `React.lazy`, which React 19 holds for 300 ms ([react/react#31819](https://github.com/react/react/issues/31819); the fix Outline uses). Their code loads when the browser is idle; a failed load shows nothing instead of a blank page.
 - **No flash between pages:** a menu item that opens a page leaves the menu open, and Chrome keeps it on screen until the next page paints ([Paint Holding](https://developer.chrome.com/blog/paint-holding)).
 - **Analytics never slows a click:** Umami sends with `fetch` `keepalive`, so nothing waits for it.
 

@@ -4,7 +4,7 @@ import { ErrorBoundary } from 'react-error-boundary'
 type Module<P> = { default: ComponentType<P> }
 
 // Like React.lazy, but a module that has already loaded renders at once. React.lazy suspends on
-// its first render even then, and React 19 holds a Suspense reveal for 300 ms (facebook/react#31819).
+// its first render even then, and React 19 holds a Suspense reveal for 300 ms (react/react#31819).
 // use() reads a promise's status/value fields synchronously (the `use` RFC), as Outline does
 // (outline/outline#13817). preload() starts the download early: on hover, focus or idle.
 // If the download fails (offline, a file removed by a new deploy), it shows nothing instead of
