@@ -51,6 +51,24 @@ sources at the end; each one says what to do, not why it is nice.
 - Comments say why, not what. Name the fence language (```js, ```sh, ```json) so Shiki colours it.
 - Secrets: say where they go (a Worker secret), never show a real one.
 
+## Data stories (The Pudding's way)
+
+For a post built on kish's own data (chai, Reels, songs, beach and badminton days):
+
+- **One curious question** as the title, answered with real data ("When does kish drink chai?").
+  The description is one clear number ("I logged 412 chais in 90 days").
+- **The reader takes part first:** a guess or a pick, then the reveal next to the real data.
+- **Open with the strongest finding, or with one real moment** ("Tuesday, 5 am, the third chai")
+  before the big picture.
+- **One point, one chart, stacked:** each step adds one idea and one picture. Charts carry the key
+  points; text is short. For steps that change on scroll, use `react-scrollama` (Scrollama, what The
+  Pudding uses) and the `d3-scale` / `d3-shape` already in the repo. No hand-rolled scroll code.
+- **It can stay live:** read the numbers from the API, so the story updates (their "Updating" kind).
+  Pre-render a real snapshot, so the page has no layout shift and works without JavaScript.
+- **End with "how I got this":** where the data comes from, what it misses, and the dates.
+- **Enough data first:** a pattern needs weeks of data. Do not publish a trend from a few days.
+  Real data only: never fill a chart with made-up points.
+
 ## Check before you ship
 
 1. Read it top to bottom as a scanner: headings, bold words and the first line of each part. Does
@@ -70,3 +88,5 @@ sources at the end; each one says what to do, not why it is nice.
 - GOV.UK, "Writing for GOV.UK": https://www.gov.uk/guidance/content-design/writing-for-gov-uk
 - Paul Graham, "Write Simply": https://paulgraham.com/simply.html
 - Julia Evans, "Some tactics for writing in public": https://jvns.ca/blog/2023/08/07/tactics-for-writing-in-public/
+- The Pudding, "How to Make Dope Shit, Part 3: Storytelling": https://pudding.cool/process/how-to-make-dope-shit-part-3/
+- The Pudding, example: "Why some people mow a lawn better than others": https://pudding.cool/2026/06/mow/
