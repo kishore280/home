@@ -6,7 +6,7 @@
 // Storage (migrations/0009_scroll_binges.sql) keeps the live state apart from the history, as presence
 // systems do: `scroll_now` (one row, the heartbeat) and `scroll_binges` (one row per finished binge).
 // Rows: a heartbeat writes at most 1 (none when nothing changed and the last write is under 90 s old);
-// a stop writes 1–2 and deletes old binges by index; a GET reads 2, and visitors share a 30 s copy
+// a stop writes 1–2; a GET reads 2, and visitors share a 30 s copy
 // from the data centre's cache (Workers Cache API), which a POST clears.
 import { bearer, fail, json, tokenMatches, type Env } from './db'
 
@@ -15,7 +15,6 @@ const MAX_REELS = 100_000
 const SKEW_MS = 60 * 60_000 // a phone clock up to 1 h ahead, as for the music
 const FRESH_MS = 3 * 60_000 // six missed heartbeats: the phone went quiet, the binge is over
 const REFRESH_MS = 90_000 // an unchanged heartbeat still refreshes the row this often
-const KEEP_MS = 30 * 24 * 3600_000 // binges older than 30 days are deleted
 
 type Row = { app: string; reels: number; today: number; minutes: number | null; per_reel: number | null; started: number; at: number }
 type Report = Partial<Record<'app' | 'scrolling' | 'reels' | 'started' | 'ended' | 'today' | 'minutes' | 'perReel', unknown>>
@@ -57,8 +56,9 @@ export async function scroll(request: Request, env: Env, ctx: ExecutionContext):
   } else {
     const ended = time(body.ended)
     if (ended === null || ended < started) return fail('A stopped binge needs ended, after started.')
-    // The binge is over: drop it from "now" (not a newer one), keep it if it counted anything (a
-    // retried stop updates the same row), and let old binges go.
+    // The binge is over: drop it from "now" (not a newer one), and keep it if it counted anything (a
+    // retried stop updates the same row). Binges are kept for good (the 0009 migration said 30 days),
+    // for a data story later (#91): about 20 small rows a day.
     const statements = [env.DB.prepare('DELETE FROM scroll_now WHERE id = 1 AND started <= ?1').bind(started)]
     if (reels > 0) {
       statements.push(
@@ -66,7 +66,6 @@ export async function scroll(request: Request, env: Env, ctx: ExecutionContext):
           `INSERT INTO scroll_binges (started, app, reels, today, minutes, per_reel, ended) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
            ON CONFLICT(started) DO UPDATE SET app = ?2, reels = ?3, today = ?4, minutes = ?5, per_reel = ?6, ended = ?7`,
         ).bind(started, app, reels, today, minutes, perReel, ended),
-        env.DB.prepare('DELETE FROM scroll_binges WHERE ended < ?1').bind(now - KEEP_MS),
       )
     }
     await env.DB.batch(statements)

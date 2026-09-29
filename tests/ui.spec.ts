@@ -1387,11 +1387,12 @@ test.describe('now scrolling (the phone\'s Brainrot app)', () => {
     expect(await read(request)).toMatchObject({ scrolling: false, today: 55, binge: { reels: 5 } })
   })
 
-  test('binges older than 30 days go when a new one is kept', async ({ request }) => {
-    const old = Date.now() - 31 * 24 * 3600_000
+  test('binges are kept for good (for a data story later), however old', async ({ request }) => {
+    const old = Date.now() - 400 * 24 * 3600_000
     wrangler(`--command "INSERT INTO scroll_binges (started, app, reels, today, ended) VALUES (${old}, 'instagram', 1, 1, ${old + 1})"`)
     await report(request, stop(Date.now() - 5000, 2, 57))
-    expect(sql(`SELECT COUNT(*) AS n FROM scroll_binges WHERE started = ${old}`)).toEqual([{ n: 0 }])
+    expect(sql(`SELECT COUNT(*) AS n FROM scroll_binges WHERE started = ${old}`)).toEqual([{ n: 1 }])
+    wrangler(`--command "DELETE FROM scroll_binges WHERE started = ${old}"`)
   })
 })
 
