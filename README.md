@@ -222,7 +222,7 @@ Instagram Reels (phone)
   → Brainrot counts each reel you land on (never reads captions, names or messages)
   → POST https://kichoow.com/api/scroll   (Bearer SCROBBLE_TOKEN; JSON: app, scrolling, reels, started, ended,
                                             and today so far: today, minutes, perReel)
-  → D1: `scroll_now` (one row, the heartbeat) and `scroll_binges` (one row per finished binge, 30 days)
+  → D1: `scroll_now` (one row, the heartbeat) and `scroll_binges` (one row per finished binge, kept for good)
   → GET /api/scroll   (a 30 s copy in the data centre's cache; a POST clears it)
 ```
 
