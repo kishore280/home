@@ -1513,19 +1513,25 @@ kbd {
 
 /* The blog (/blog and each post): a plain reading page, no card around the text, about 65
    characters a line. */
-.blog-page {
-  max-width: 680px;
+.blog-main {
+  /* As wide as the home page (.layout). */
+  max-width: 920px;
   margin: min(8vh, 64px) auto 0;
-  padding: 24px clamp(16px, 4vw, 32px);
   display: grid;
   gap: 16px;
+}
+.blog-page {
+  padding: clamp(20px, 4vw, 40px);
+  display: grid;
+  gap: 20px;
   background: color-mix(in srgb, var(--card) 88%, transparent);
   border-radius: var(--radius);
 }
 .blog-page h1 {
   color: var(--accent-text);
-  margin: 0;
+  margin: 0 0 8px;
 }
+
 .post-list,
 .post-rows,
 .tags {
@@ -1547,23 +1553,30 @@ kbd {
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
-.post-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 6px;
+.post-meta,
+.post-by {
+  margin: 0;
+}
+.post-foot {
+  display: grid;
+  justify-content: start;
+  gap: 10px;
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--line);
 }
 .prose {
   display: grid;
-  gap: 14px;
-  font-size: 17px;
-  line-height: 1.7;
+  gap: 18px;
+  font-size: 18px;
+  line-height: 1.75;
   min-width: 0;
 }
 .prose > * {
   margin: 0;
 }
 .prose h2 {
-  margin: 12px 0 0;
+  margin: 18px 0 0;
   font-size: 18px;
   letter-spacing: 0.02em;
   line-height: 1.3;
@@ -1628,13 +1641,7 @@ kbd {
   height: auto;
   border-radius: 10px;
 }
-.post-foot {
-  display: grid;
-  justify-content: start;
-  gap: 10px;
-  padding-top: 14px;
-  border-top: 1px dashed var(--line);
-}
+
 .tags {
   display: flex;
   flex-wrap: wrap;
