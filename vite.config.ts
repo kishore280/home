@@ -38,7 +38,30 @@ export default defineConfig({
       enforce: 'pre',
       ...mdx({
         remarkPlugins: [remarkFrontmatter],
-        rehypePlugins: [[rehypeShiki, { themes: { light: 'rose-pine-dawn', dark: 'rose-pine-moon' }, defaultColor: 'light-dark()' }]],
+        rehypePlugins: [
+          [
+            rehypeShiki,
+            {
+              themes: { light: 'rose-pine-dawn', dark: 'rose-pine-moon' },
+              defaultColor: 'light-dark()',
+              // Rosé Pine's softer colours are under 4.5:1 on its own background (AGENTS.md: text needs
+              // 4.5:1). Each is the same colour, darker (Dawn) or lighter (Moon) in OKLCH until 4.6:1,
+              // found with culori's wcagContrast (Shiki docs: "colorReplacements").
+              colorReplacements: {
+                'rose-pine-dawn': {
+                  '#9893a5': '#706b7c',
+                  '#d7827e': '#a75754',
+                  '#56949f': '#397782',
+                  '#907aa9': '#7b6693',
+                  '#b4637a': '#a5566d',
+                  '#797593': '#6f6b88',
+                  '#ea9d34': '#9b6200',
+                },
+                'rose-pine-moon': { '#6e6a86': '#8d89a6', '#3e8fb0': '#4595b6' },
+              },
+            },
+          ],
+        ],
       }),
     },
     react({ include: /\.(md|tsx?)$/ }),

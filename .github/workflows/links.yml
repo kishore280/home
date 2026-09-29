@@ -19,10 +19,18 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      # The posts: a link like /blog is a page of the live site.
       - uses: lycheeverse/lychee-action@v2
         with:
-          args: --config lychee.toml --no-progress posts src/data.ts README.md
+          args: --config lychee.toml --no-progress --base-url https://kichoow.com/ posts
           fail: true
         env:
           # github.com links: the workflow's own token avoids GitHub's rate limit for anonymous requests.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # The content and the README: a relative link is a file in the repo.
+      - uses: lycheeverse/lychee-action@v2
+        with:
+          args: --config lychee.toml --no-progress src/data.ts README.md
+          fail: true
+        env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

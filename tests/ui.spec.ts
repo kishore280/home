@@ -794,7 +794,7 @@ test.describe('blog', () => {
   })
 
   test('a post is for search engines, feed readers and IndieWeb tools: BlogPosting, canonical, RSS, h-entry, sitemap', async ({ request }) => {
-    const post = '/blog/building-this-site-with-coding-agents'
+    const post = '/blog/show-what-you-listen-to-with-pano-scrobbler'
     const html = await (await request.get(`http://127.0.0.1:8787${post}`)).text()
     const node = jsonLd(html)
     const ld = node('BlogPosting')!
@@ -805,7 +805,7 @@ test.describe('blog', () => {
     expect(html).toContain(`<link rel="canonical" href="https://kichoow.com${post}">`)
     expect(html).toContain('application/rss+xml')
     // Its own share card: a 1200×630 PNG drawn at build time (blog.ts).
-    const card = `/og/blog/building-this-site-with-coding-agents.png`
+    const card = `/og/blog/show-what-you-listen-to-with-pano-scrobbler.png`
     expect(html).toContain(`<meta property="og:image" content="https://kichoow.com${card}">`)
     expect(ld.image).toBe(`https://kichoow.com${card}`)
     const png = Buffer.from(await (await request.get(`http://127.0.0.1:8787${card}`)).body())
@@ -816,7 +816,7 @@ test.describe('blog', () => {
     const entry = items.find((i) => i.type?.includes('h-entry'))
     expect(entry?.properties.name).toEqual([ld.headline])
     expect(entry?.properties.published).toEqual([ld.datePublished])
-    expect(JSON.stringify(entry?.properties.content)).toContain('AGENTS.md')
+    expect(JSON.stringify(entry?.properties.content)).toContain('Pano Scrobbler')
     // The feed and the sitemap list it; the template page and an unknown post are not pages.
     const rss = await request.get('http://127.0.0.1:8787/blog/rss.xml')
     expect(rss.headers()['content-type']).toContain('xml')
@@ -830,7 +830,7 @@ test.describe('blog', () => {
     expect(md.headers()['x-robots-tag']).toBe('noindex')
     const text = await md.text()
     expect(text).toMatch(new RegExp(`^---\\n[\\s\\S]*canonical: https://kichoow\\.com${post}\\n---\\n\\n# ${ld.headline}\\n`))
-    expect(text).toContain('`AGENTS.md`') // the Markdown as written, not HTML
+    expect(text).toContain('`GET /1/validate-token`') // the Markdown as written, not HTML
     const full = await request.get('http://127.0.0.1:8787/llms-full.txt')
     expect(full.headers()['x-robots-tag']).toBe('noindex')
     expect(await full.text()).toContain(text)
@@ -1614,7 +1614,7 @@ test.describe('404 and layout', () => {
   })
 
   for (const width of [320, 375]) {
-    for (const path of ['/', '/offline', '/nope', '/log', '/now', '/colophon', '/blog', '/blog/building-this-site-with-coding-agents']) {
+    for (const path of ['/', '/offline', '/nope', '/log', '/now', '/colophon', '/blog', '/blog/show-what-you-listen-to-with-pano-scrobbler']) {
       test(`${width} px wide, ${path}: no sideways scroll`, async ({ page, isMobile }) => {
         test.skip(isMobile, 'the width is set here')
         await page.setViewportSize({ width, height: 800 })
@@ -1656,7 +1656,7 @@ test.describe('accessibility (axe-core)', () => {
     ['/now', '/now', 'light'],
     ['/colophon', '/colophon', 'dark'],
     ['/blog', '/blog', 'light'],
-    ['a blog post', '/blog/building-this-site-with-coding-agents', 'dark'],
+    ['a blog post', '/blog/show-what-you-listen-to-with-pano-scrobbler', 'dark'],
     ['/log, token form', '/log', 'light'],
     [
       '/log, buttons',

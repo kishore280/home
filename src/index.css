@@ -1613,6 +1613,11 @@ kbd {
   padding: 0;
   background: none;
 }
+/* Long inline code and links wrap on a narrow phone instead of widening the page. */
+.prose :not(pre) > code,
+.prose a {
+  overflow-wrap: anywhere;
+}
 .prose blockquote {
   padding-left: 14px;
   border-left: 3px solid var(--accent);
