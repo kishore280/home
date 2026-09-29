@@ -753,7 +753,7 @@ test.describe('speed', () => {
     const at = new Date().toISOString()
     await page.route('**/api/now-playing', (r) => r.fulfill({ json: { title: 'A long song title that fills the line', artist: 'Artist', at, until: at } }))
     await page.route('**/api/github', (r) => r.fulfill({ json: { repo: 'home', url: 'https://github.com/kishore280/home', at } }))
-    await page.route('**/api/scroll', (r) => r.fulfill({ json: { scrolling: true, app: 'instagram', today: 12, minutes: 2, perReel: 9, at } }))
+    await page.route('**/api/scroll', (r) => r.fulfill({ json: { scrolling: true, app: 'instagram', today: 12, minutes: 2, perReel: 9, at, binge: { reels: 3, started: at } } }))
     await page.context().route('https://lh3.googleusercontent.com/**', (r) => r.fulfill({ contentType: 'image/png', body: pixel }))
     await page.context().route('**/api/photos', (r) => r.fulfill({ json: { photos: [photo(1, at), photo(2, at)] } }))
     const totals = { today: 2, month: 14, year: 90, total: 90, last: at }
@@ -1134,7 +1134,7 @@ test.describe('now playing (ListenBrainz API)', () => {
 })
 
 test.describe('now scrolling (the phone\'s Brainrot app)', () => {
-  // One shared table in the local D1: run in order.
+  // Shared tables in the local D1: run in order.
   test.describe.configure({ mode: 'serial' })
   const api = 'http://127.0.0.1:8787/api/scroll'
   const auth = { authorization: 'Bearer test-token-0123456789-abcdef' } // SCROBBLE_TOKEN in tests/test.env
@@ -1144,10 +1144,13 @@ test.describe('now scrolling (the phone\'s Brainrot app)', () => {
     return r.status() === 204 ? null : r.json()
   }
   const beat = (started: number, reels: number, today: number, extra: object = {}) => ({ app: 'instagram', scrolling: true, reels, today, minutes: 6, perReel: 11, started, ...extra })
+  const stop = (started: number, reels: number, today: number, ended = Date.now()) => ({ ...beat(started, reels, today), scrolling: false, ended })
+  const sql = (query: string) => JSON.parse(wrangler(`--json --command "${query}"`))[0].results
+  const iso = (ms: number) => new Date(ms).toISOString()
 
   test.beforeEach(({ isMobile }) => test.skip(isMobile, 'API only; one run is enough'))
   test.beforeAll(() => {
-    wrangler('--command "DELETE FROM scroll"')
+    wrangler('--command "DELETE FROM scroll_now; DELETE FROM scroll_binges"')
   })
 
   test('only the phone can report, and only a valid report is kept', async ({ request }) => {
@@ -1163,41 +1166,70 @@ test.describe('now scrolling (the phone\'s Brainrot app)', () => {
     expect(await read(request)).toBeNull()
   })
 
-  test("scrolling shows today's total; stopped keeps it with the time it ended", async ({ request }) => {
+  test("scrolling shows today's total and this binge; a stop keeps the binge as the last one", async ({ request }) => {
     const started = Date.now() - 60_000
     expect(await (await report(request, beat(started, 0, 30))).json()).toEqual({ status: 'ok' })
     await report(request, beat(started, 12, 42))
-    expect(await read(request)).toMatchObject({ scrolling: true, app: 'instagram', today: 42, minutes: 6, perReel: 11 })
+    expect(await read(request)).toMatchObject({ scrolling: true, app: 'instagram', today: 42, minutes: 6, perReel: 11, binge: { reels: 12, started: iso(started) } })
 
     const ended = Date.now()
-    await report(request, { ...beat(started, 14, 44), scrolling: false, ended, extra: 'ignored' })
-    expect(await read(request)).toEqual({ scrolling: false, app: 'instagram', today: 44, minutes: 6, perReel: 11, at: new Date(ended).toISOString() })
+    await report(request, { ...stop(started, 14, 44, ended), extra: 'ignored' })
+    expect(await read(request)).toEqual({
+      scrolling: false, app: 'instagram', today: 44, minutes: 6, perReel: 11, at: iso(ended), binge: { reels: 14, started: iso(started) },
+    })
+    expect(sql('SELECT COUNT(*) AS n FROM scroll_now')).toEqual([{ n: 0 }])
   })
 
-  test('an app that sends no day numbers still works: today is its sitting', async ({ request }) => {
+  test('a retried stop updates its binge, never adds a second one', async ({ request }) => {
+    const started = Date.now() - 30_000
+    await report(request, stop(started, 5, 49))
+    await report(request, stop(started, 6, 50)) // the same binge, sent again
+    expect(sql(`SELECT reels, today FROM scroll_binges WHERE started = ${started}`)).toEqual([{ reels: 6, today: 50 }])
+  })
+
+  test('an unchanged heartbeat does not write again until the row is 90 s old', async ({ request }) => {
     const started = Date.now()
-    await report(request, { app: 'instagram', scrolling: true, reels: 3, started })
-    expect(await read(request)).toMatchObject({ scrolling: true, today: 3, minutes: null, perReel: null })
-    wrangler(`--command "DELETE FROM scroll WHERE kind = 'now'"`) // its session is newer than the next test's
+    await report(request, beat(started, 2, 52))
+    const [{ at }] = sql('SELECT at FROM scroll_now')
+    await report(request, beat(started, 2, 52)) // nothing changed
+    expect(sql('SELECT at FROM scroll_now')).toEqual([{ at }])
+    wrangler('--command "UPDATE scroll_now SET at = at - 100000"') // the row is 100 s old
+    await report(request, beat(started, 2, 52))
+    expect(sql('SELECT at FROM scroll_now')[0].at).toBeGreaterThan(at)
+    wrangler('--command "DELETE FROM scroll_now"')
   })
 
-  test('a late heartbeat or stop from an older session never replaces a newer one', async ({ request }) => {
+  test('an app that sends no day numbers still works: today is its binge', async ({ request }) => {
+    await report(request, { app: 'instagram', scrolling: true, reels: 3, started: Date.now() })
+    expect(await read(request)).toMatchObject({ scrolling: true, today: 3, minutes: null, perReel: null })
+    wrangler('--command "DELETE FROM scroll_now"') // newer than the next test's binges
+  })
+
+  test('a late heartbeat or stop from an older binge never replaces a newer one', async ({ request }) => {
     const older = Date.now() - 120_000
     const newer = Date.now() - 10_000
-    await report(request, beat(newer, 3, 47))
+    await report(request, beat(newer, 3, 53))
     await report(request, beat(older, 99, 99)) // late beat
-    expect(await read(request)).toMatchObject({ scrolling: true, today: 47 })
-    await report(request, { ...beat(older, 99, 99), scrolling: false, ended: older + 1 }) // late stop
-    expect(await read(request)).toMatchObject({ scrolling: true, today: 47 })
-    // A session with no reels ends quietly: the last one with reels stays.
-    await report(request, { ...beat(newer, 0, 47), scrolling: false, ended: Date.now() })
-    expect(await read(request)).toMatchObject({ scrolling: false, today: 44 })
+    expect(await read(request)).toMatchObject({ scrolling: true, today: 53 })
+    await report(request, stop(older, 99, 99, older + 1)) // late stop: history only
+    expect(await read(request)).toMatchObject({ scrolling: true, today: 53 })
+    // A binge with no reels ends quietly: the last one with reels stays.
+    await report(request, stop(newer, 0, 53))
+    expect(await read(request)).toMatchObject({ scrolling: false, today: 50 })
   })
 
-  test('when the phone goes quiet, an open session stops showing as scrolling', async ({ request }) => {
-    await report(request, beat(Date.now(), 5, 49))
-    wrangler(`--command "UPDATE scroll SET at = at - 200000 WHERE kind = 'now'"`) // its last beat 3+ min ago
-    expect(await read(request)).toMatchObject({ scrolling: false, today: 44 })
+  test('when the phone goes quiet, an open binge stops showing as scrolling', async ({ request }) => {
+    wrangler('--command "DELETE FROM scroll_binges"') // no finished binge newer than this one
+    await report(request, beat(Date.now(), 5, 55))
+    wrangler('--command "UPDATE scroll_now SET at = at - 200000"') // its last beat 3+ min ago
+    expect(await read(request)).toMatchObject({ scrolling: false, today: 55, binge: { reels: 5 } })
+  })
+
+  test('binges older than 30 days go when a new one is kept', async ({ request }) => {
+    const old = Date.now() - 31 * 24 * 3600_000
+    wrangler(`--command "INSERT INTO scroll_binges (started, app, reels, today, ended) VALUES (${old}, 'instagram', 1, 1, ${old + 1})"`)
+    await report(request, stop(Date.now() - 5000, 2, 57))
+    expect(sql(`SELECT COUNT(*) AS n FROM scroll_binges WHERE started = ${old}`)).toEqual([{ n: 0 }])
   })
 })
 
@@ -1205,44 +1237,64 @@ test.describe('now scrolling card', () => {
   const at = Date.parse('2026-09-29T10:00:00Z') // 15:30 in India
   const iso = (ms: number) => new Date(ms).toISOString()
   const row = (page: Page) => page.locator('.row', { has: page.locator('img.brain') })
+  const scroll = (reply: object) => ({ app: 'instagram', minutes: 6, perReel: 11, at: iso(at), binge: { reels: 12, started: iso(at - 4 * 60_000) }, ...reply })
 
-  test("while scrolling: the brain squishes and shows today's total; hover shows the time per reel", async ({ page }) => {
-    await page.route('**/api/scroll', (r) => r.fulfill({ json: { scrolling: true, app: 'instagram', today: 36, minutes: 6, perReel: 11, at: iso(at) } }))
+  test("while scrolling: today's total; the binge floats in on hover or tap, with no layout shift", async ({ page, isMobile }) => {
+    await page.route('**/api/scroll', (r) => r.fulfill({ json: scroll({ scrolling: true, today: 36 }) }))
     await page.clock.setFixedTime(at + 20_000)
     await page.goto('/')
     await expect(row(page).locator('dt')).toHaveText('brain rotting')
     await expect(row(page).locator('dd')).toHaveText('36 reels today')
-    await expect(row(page)).toHaveAttribute('title', 'about 11 s per reel · 6 min in Reels today')
     await expect(row(page).locator('img')).toHaveAttribute('src', '/brain/2.webp') // 25+ reels today: stage 2
     await expect(row(page).locator('img')).toHaveClass(/live/)
     await expect.poll(() => row(page).locator('img').evaluate((i: HTMLImageElement) => i.naturalWidth)).toBe(44) // the sprite loaded
+    const binge = page.getByRole('tooltip')
+    await expect(binge).toHaveText('this binge: 12 reels in 4 min · about 11 s per reel')
+    await expect(binge).toHaveCSS('opacity', '0')
+    const card = page.locator('.card', { has: row(page) })
+    const height = (await card.boundingBox())!.height
+    if (isMobile) await row(page).tap()
+    else await row(page).hover()
+    await expect(binge).toHaveCSS('opacity', '1')
+    expect((await card.boundingBox())!.height).toBe(height) // it floats: nothing moves
+    await expect(row(page)).toHaveAttribute('aria-describedby', (await binge.getAttribute('id'))!)
   })
 
-  test("after: today's total and when, and the brain rests", async ({ page }) => {
-    await page.route('**/api/scroll', (r) => r.fulfill({ json: { scrolling: false, app: 'instagram', today: 1, minutes: 0, perReel: null, at: iso(at) } }))
+  test("after: today's total and when; the binge is the last one", async ({ page }) => {
+    await page.route('**/api/scroll', (r) => r.fulfill({ json: scroll({ scrolling: false, today: 1, minutes: 0, perReel: null, binge: { reels: 1, started: iso(at - 30_000) } }) }))
     await page.clock.setFixedTime(at + 2 * 3600_000)
     await page.goto('/')
     await expect(row(page).locator('dt')).toHaveText('last rot')
     await expect(row(page).locator('dd')).toHaveText('1 reel today · 2 hr. ago')
-    await expect(row(page)).not.toHaveAttribute('title', /./) // nothing to average from one reel
+    await expect(page.getByRole('tooltip')).toHaveText('last binge: 1 reel in 1 min') // nothing to average from one reel
     await expect(row(page).locator('img')).not.toHaveClass(/live/)
   })
 
   test('a quiet phone (3 min) is not "brain rotting", even from a cached answer', async ({ page }) => {
-    await page.route('**/api/scroll', (r) => r.fulfill({ json: { scrolling: true, app: 'instagram', today: 12, minutes: 2, perReel: 9, at: iso(at) } }))
+    await page.route('**/api/scroll', (r) => r.fulfill({ json: scroll({ scrolling: true, today: 12 }) }))
     await page.clock.setFixedTime(at + 4 * 60_000)
     await page.goto('/')
     await expect(row(page).locator('dt')).toHaveText('last rot')
     await expect(row(page).locator('dd')).toHaveText('12 reels today · 4 min. ago')
+    await expect(page.getByRole('tooltip')).toHaveText('last binge: 12 reels in 4 min · about 11 s per reel')
   })
 
   test("on a new day (India time) yesterday's reels are not today's", async ({ page }) => {
-    await page.route('**/api/scroll', (r) => r.fulfill({ json: { scrolling: false, app: 'instagram', today: 80, minutes: 15, perReel: 11, at: iso(at) } }))
+    await page.route('**/api/scroll', (r) => r.fulfill({ json: scroll({ scrolling: false, today: 80 }) }))
     await page.clock.setFixedTime(Date.parse('2026-09-30T01:00:00Z')) // 06:30 the next day in India
     await page.goto('/')
     await expect(row(page).locator('dd')).toHaveText('none today · 15 hr. ago')
     await expect(row(page).locator('img')).toHaveAttribute('src', '/brain/0.webp')
-    await expect(row(page)).not.toHaveAttribute('title', /./)
+    await expect(page.getByRole('tooltip')).toHaveText('last binge: 12 reels in 4 min') // yesterday's per-reel time is not today's
+  })
+
+  test('a binge with no reels yet shows no hover line, and the row takes no focus', async ({ page }) => {
+    await page.route('**/api/scroll', (r) => r.fulfill({ json: scroll({ scrolling: true, today: 5, binge: { reels: 0, started: iso(at) } }) }))
+    await page.clock.setFixedTime(at + 10_000)
+    await page.goto('/')
+    await expect(row(page).locator('dd')).toHaveText('5 reels today')
+    await expect(page.getByRole('tooltip')).toHaveCount(0)
+    await expect(row(page)).not.toHaveAttribute('tabindex', /./)
   })
 })
 

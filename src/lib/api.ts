@@ -19,7 +19,15 @@ export async function post<T>(url: string, body: unknown): Promise<T> {
 
 export type Track = { title: string; artist: string; at: string; until: string }
 export type Push = { repo: string; url: string; at: string }
-export type Scroll = { scrolling: boolean; app: string; today: number; minutes: number | null; perReel: number | null; at: string }
+export type Scroll = {
+  scrolling: boolean
+  app: string
+  today: number
+  minutes: number | null
+  perReel: number | null
+  at: string
+  binge: { reels: number; started: string }
+}
 export type Status = { content: string; face: string; timeAgo: string }
 export type Counters = { views: number; pats: number }
 // GET /api/log (worker/log.ts): every kind in log_kinds with its totals in IST. `last` is null for
