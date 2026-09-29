@@ -222,20 +222,22 @@ Instagram Reels (phone)
   → Brainrot counts each reel you land on (never reads captions, names or messages)
   → POST https://kichoow.com/api/scroll   (Bearer SCROBBLE_TOKEN; JSON: app, scrolling, reels, started, ended,
                                             and today so far: today, minutes, perReel)
-  → D1 table `scroll` → GET /api/scroll
+  → D1: `scroll_now` (one row, the heartbeat) and `scroll_binges` (one row per finished binge, 30 days)
+  → GET /api/scroll   (a 30 s copy in the data centre's cache; a POST clears it)
 ```
 
-| Row | Set by | Means |
+| Table | Set by | Means |
 |---|---|---|
-| `now` | "scrolling": when Reels opens, then every 30 s | scrolling now, while its heartbeats are under 3 min old |
-| `last` | "stopped": leaving Reels or Instagram, or the screen turning off | the newest session with at least one reel |
+| `scroll_now` | "scrolling": when Reels opens, then every 30 s (an unchanged beat writes only every 90 s) | scrolling now, while its heartbeats are under 3 min old |
+| `scroll_binges` | "stopped": leaving Reels or Instagram, or the screen turning off | each binge with at least one reel; a retried stop updates the same row |
 
 The card shows today's total: "brain rotting · 36 reels today" while you scroll, then "last rot ·
-36 reels today · 3 min. ago" ("none today" on a new day, India time). Hover shows the time per reel
-("about 11 s per reel · 6 min in Reels today"). The brain is the app's own (`public/brain/0-6.webp`,
-its 7 stages at 0, 10, 25, 50, 100, 175 and 250 reels today), and squishes while you scroll.
+36 reels today · 3 min. ago" ("none today" on a new day, India time). Hover or tap the row for the
+binge: "this binge: 12 reels in 4 min · about 11 s per reel" (a floating note, so the card never
+changes height). The brain is the app's own (`public/brain/0-6.webp`, its 7 stages at 0, 10, 25, 50,
+100, 175 and 250 reels today), and squishes while you scroll.
 
-Set up: apply `migrations/0008_scroll_today.sql` (as step 1 above), install the app from its GitHub
+Set up: apply `migrations/0009_scroll_binges.sql` (as step 1 above), install the app from its GitHub
 Actions build, turn on its accessibility service, and on its Today screen set **Your site** to
 `https://kichoow.com/api/scroll` with the same token as the music.
 

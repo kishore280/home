@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import useSWR from 'swr'
 import { fetcher, type Push, type Scroll, type Track } from '../lib/api'
 import { timeAgo } from '../lib/time'
@@ -31,6 +32,7 @@ const brain = (reels: number) => BRAIN_AT.findLastIndex((at) => reels >= at)
 const QUIET_MS = 3 * 60_000
 // The phone's numbers are for its day; on a new day (in the site's time zone) there are none yet.
 const dayOf = new Intl.DateTimeFormat('en-CA', { timeZone: site.timeZone || undefined })
+const minutes = (ms: number) => `${Math.max(1, Math.round(ms / 60_000))} min`
 
 // A line kept for a row whose data is still loading, so the card does not grow when it arrives
 // (web.dev "Optimize CLS": reserve space for late content). It is in the pre-rendered HTML.
@@ -46,6 +48,7 @@ export function RightNow() {
   const music = useSWR('/api/now-playing', fetcher<Track>, { refreshInterval: 30_000 })
   const github = useSWR(site.github ? '/api/github' : null, fetcher<Push>, { refreshInterval: 300_000 })
   const scroll = useSWR('/api/scroll', fetcher<Scroll>, { refreshInterval: 30_000 })
+  const bingeId = useId()
   // Still loading: no data yet and no error. A 204 or an error gives null or an error: row hidden.
   const musicPending = music.data === undefined && !music.error
   const githubPending = Boolean(site.github) && github.data === undefined && !github.error
@@ -60,9 +63,15 @@ export function RightNow() {
   const rotting = reels ? reels.scrolling && now - Date.parse(reels.at) < QUIET_MS : false
   const sameDay = reels ? dayOf.format(Date.parse(reels.at)) === dayOf.format(now) : false
   const todayReels = sameDay ? (reels?.today ?? 0) : 0
-  // On hover: how long a reel lasts today, from the app's own numbers.
-  const scrollHint =
-    sameDay && reels?.perReel != null ? `about ${reels.perReel} s per reel · ${reels.minutes ?? 0} min in Reels today` : undefined
+  // The binge, shown on hover or tap: this one while scrolling, else the last one.
+  const binge = reels?.binge.reels
+    ? [
+        `${rotting ? 'this binge' : 'last binge'}: ${reels.binge.reels} ${reels.binge.reels === 1 ? 'reel' : 'reels'} in ${minutes((rotting ? now : Date.parse(reels.at)) - Date.parse(reels.binge.started))}`,
+        sameDay && reels.perReel != null ? `about ${reels.perReel} s per reel` : null,
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : null
 
   return (
     <Card title="right now">
@@ -86,7 +95,7 @@ export function RightNow() {
         ) : null}
         {scrollPending ? pendingRow : null}
         {reels ? (
-          <div className="row" title={scrollHint}>
+          <div className="row brain-row" tabIndex={binge ? 0 : undefined} aria-describedby={binge ? bingeId : undefined}>
             <dt>
               <img className={`brain${rotting ? ' live' : ''}`} src={`/brain/${brain(todayReels)}.webp`} alt="" width={22} height={18} />
               {rotting ? 'brain rotting' : 'last rot'}
@@ -95,6 +104,11 @@ export function RightNow() {
               {todayReels ? `${todayReels} ${todayReels === 1 ? 'reel' : 'reels'} today` : 'none today'}
               {rotting ? null : <span className="muted"> · {timeAgo(reels.at, now)}</span>}
             </dd>
+            {binge ? (
+              <p id={bingeId} className="binge" role="tooltip">
+                {binge}
+              </p>
+            ) : null}
           </div>
         ) : null}
         {githubPending ? pendingRow : null}

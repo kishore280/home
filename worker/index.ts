@@ -27,7 +27,7 @@ export default {
       case '/api/photos':
         return photos(request, env, ctx)
       case '/api/scroll':
-        return scroll(request, env)
+        return scroll(request, env, ctx)
     }
     if (pathname.startsWith('/api/scrobble/1/')) return scrobble(request, env, pathname.slice('/api/scrobble/1/'.length))
     if (pathname.startsWith('/api/')) return fail('Not found.', 404)
