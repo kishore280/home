@@ -38,6 +38,8 @@ const test = base.extend<{ log: Log; press: (target: Locator) => Promise<void> }
       // does not load) would move the page while a test measures it. A test that needs photos adds its
       // own route, which runs first (Playwright runs the newest matching route first).
       await context.route('**/api/photos', (r) => r.fulfill({ json: { photos: [] } }))
+      // No "now scrolling" by default either: the API tests below fill the shared local D1.
+      await context.route('**/api/scroll', (r) => r.fulfill({ status: 204 }))
       context.on('request', (r) => {
         if (r.url().endsWith('/api/counters') && r.method() === 'POST') log.posts.push(r.postDataJSON().key)
       })
@@ -751,6 +753,7 @@ test.describe('speed', () => {
     const at = new Date().toISOString()
     await page.route('**/api/now-playing', (r) => r.fulfill({ json: { title: 'A long song title that fills the line', artist: 'Artist', at, until: at } }))
     await page.route('**/api/github', (r) => r.fulfill({ json: { repo: 'home', url: 'https://github.com/kishore280/home', at } }))
+    await page.route('**/api/scroll', (r) => r.fulfill({ json: { scrolling: true, app: 'instagram', reels: 12, started: at, at } }))
     await page.context().route('https://lh3.googleusercontent.com/**', (r) => r.fulfill({ contentType: 'image/png', body: pixel }))
     await page.context().route('**/api/photos', (r) => r.fulfill({ json: { photos: [photo(1, at), photo(2, at)] } }))
     const totals = { today: 2, month: 14, year: 90, total: 90, last: at }
@@ -766,6 +769,7 @@ test.describe('speed', () => {
     await expect(page.locator('.clock')).toBeVisible()
     await expect(page.locator('.row', { hasText: 'last played' })).toBeVisible()
     await expect(page.locator('.row', { hasText: 'building' })).toBeVisible()
+    await expect(page.locator('.row', { hasText: 'brain rotting' })).toBeVisible()
     await expect(page.locator('.row.pending')).toHaveCount(0)
     await expect(page.locator('.count')).toHaveCount(Object.keys(reply(totals)).length) // the logged kinds
     await expect(page.locator('.count.pending')).toHaveCount(0)
@@ -1126,6 +1130,107 @@ test.describe('now playing (ListenBrainz API)', () => {
     await expect(page.locator('.clock')).toBeVisible()
     await expect(page.locator('.row.pending')).toHaveCount(0)
     await expect(page.locator('.rows .row')).toHaveCount(1) // local time only
+  })
+})
+
+test.describe('now scrolling (the phone\'s Brainrot app)', () => {
+  // One shared table in the local D1: run in order.
+  test.describe.configure({ mode: 'serial' })
+  const api = 'http://127.0.0.1:8787/api/scroll'
+  const auth = { authorization: 'Bearer test-token-0123456789-abcdef' } // SCROBBLE_TOKEN in tests/test.env
+  const report = (request: APIRequestContext, data: object) => request.post(api, { data, headers: auth })
+  const read = async (request: APIRequestContext) => {
+    const r = await request.get(api)
+    return r.status() === 204 ? null : r.json()
+  }
+
+  test.beforeEach(({ isMobile }) => test.skip(isMobile, 'API only; one run is enough'))
+  test.beforeAll(() => {
+    wrangler('--command "DELETE FROM scroll"')
+  })
+
+  test('only the phone can report, and only a valid report is kept', async ({ request }) => {
+    const ok = { app: 'instagram', scrolling: true, reels: 0, started: Date.now() }
+    expect((await request.post(api, { data: ok })).status()).toBe(401)
+    expect((await request.post(api, { data: ok, headers: { authorization: 'Bearer wrong' } })).status()).toBe(401)
+    expect((await report(request, { ...ok, app: 'tiktok' })).status()).toBe(400)
+    expect((await report(request, { ...ok, reels: -1 })).status()).toBe(400)
+    expect((await report(request, { ...ok, scrolling: 'yes' })).status()).toBe(400)
+    expect((await report(request, { ...ok, started: Date.now() + 2 * 3600_000 })).status()).toBe(400)
+    expect((await report(request, { ...ok, scrolling: false, ended: ok.started - 1 })).status()).toBe(400)
+    expect((await request.put(api, { data: ok, headers: auth })).status()).toBe(405)
+    expect(await read(request)).toBeNull()
+  })
+
+  test('scrolling shows the running count; stopped keeps the total as the last session', async ({ request }) => {
+    const started = Date.now() - 60_000
+    expect(await (await report(request, { app: 'instagram', scrolling: true, reels: 0, started })).json()).toEqual({ status: 'ok' })
+    await report(request, { app: 'instagram', scrolling: true, reels: 12, started })
+    expect(await read(request)).toMatchObject({ scrolling: true, app: 'instagram', reels: 12, started: new Date(started).toISOString() })
+
+    const ended = Date.now()
+    await report(request, { app: 'instagram', scrolling: false, reels: 14, started, ended, extra: 'ignored' })
+    expect(await read(request)).toEqual({
+      scrolling: false, app: 'instagram', reels: 14, started: new Date(started).toISOString(), at: new Date(ended).toISOString(),
+    })
+  })
+
+  test('a late heartbeat or stop from an older session never replaces a newer one', async ({ request }) => {
+    const older = Date.now() - 120_000
+    const newer = Date.now() - 10_000
+    await report(request, { app: 'instagram', scrolling: true, reels: 3, started: newer })
+    await report(request, { app: 'instagram', scrolling: true, reels: 99, started: older }) // late beat
+    expect(await read(request)).toMatchObject({ scrolling: true, reels: 3 })
+    await report(request, { app: 'instagram', scrolling: false, reels: 99, started: older, ended: older + 1 }) // late stop
+    expect(await read(request)).toMatchObject({ scrolling: true, reels: 3 })
+    // A session with no reels ends quietly: the last one with reels stays.
+    await report(request, { app: 'instagram', scrolling: false, reels: 0, started: newer, ended: Date.now() })
+    expect(await read(request)).toMatchObject({ scrolling: false, reels: 14 })
+  })
+
+  test('when the phone goes quiet, an open session stops showing as scrolling', async ({ request }) => {
+    const started = Date.now()
+    await report(request, { app: 'instagram', scrolling: true, reels: 5, started })
+    wrangler(`--command "UPDATE scroll SET at = at - 200000 WHERE kind = 'now'"`) // its last beat 3+ min ago
+    expect(await read(request)).toMatchObject({ scrolling: false, reels: 14 })
+  })
+})
+
+test.describe('now scrolling card', () => {
+  test('the card: the brain squishes while scrolling, then shows the last session', async ({ page }) => {
+    const at = Date.parse('2026-09-29T10:00:00Z')
+    const iso = (ms: number) => new Date(ms).toISOString()
+    let reply = { scrolling: true, app: 'instagram', reels: 12, started: iso(at - 5 * 60_000), at: iso(at) }
+    await page.route('**/api/scroll', (r) => r.fulfill({ json: reply }))
+    await page.clock.setFixedTime(at + 20_000)
+    await page.goto('/')
+    const row = page.locator('.row', { has: page.locator('img.brain') })
+    await expect(row.locator('dt')).toHaveText('brain rotting')
+    await expect(row.locator('dd')).toHaveText('12 reels · instagram')
+    await expect(row.locator('img')).toHaveAttribute('src', '/brain/1.webp') // 10+ reels: stage 1
+    await expect(row.locator('img')).toHaveClass(/live/)
+    await expect.poll(() => row.locator('img').evaluate((i: HTMLImageElement) => i.naturalWidth)).toBe(44) // the sprite loaded
+
+    // Two hours after a finished session of 42 reels in 18 min.
+    reply = { scrolling: false, app: 'instagram', reels: 42, started: iso(at - 18 * 60_000), at: iso(at) }
+    await page.clock.setFixedTime(at + 2 * 3600_000)
+    await page.reload()
+    await expect(row.locator('dt')).toHaveText('last rot')
+    await expect(row.locator('dd')).toHaveText('42 reels in 18 min · 2 hr. ago')
+    await expect(row.locator('img')).toHaveAttribute('src', '/brain/2.webp') // 25+: stage 2
+    await expect(row.locator('img')).not.toHaveClass(/live/)
+  })
+
+  test('the card drops "brain rotting" when the phone has been quiet for 3 min, even from a cached answer', async ({ page }) => {
+    const at = Date.parse('2026-09-29T10:00:00Z')
+    await page.route('**/api/scroll', (r) =>
+      r.fulfill({ json: { scrolling: true, app: 'instagram', reels: 1, started: new Date(at - 60_000).toISOString(), at: new Date(at).toISOString() } }),
+    )
+    await page.clock.setFixedTime(at + 4 * 60_000)
+    await page.goto('/')
+    const row = page.locator('.row', { has: page.locator('img.brain') })
+    await expect(row.locator('dt')).toHaveText('last rot')
+    await expect(row.locator('dd')).toHaveText('1 reel in 1 min · 4 min. ago')
   })
 })
 
