@@ -803,39 +803,12 @@ h2 {
   animation: squish 1.2s ease-in-out infinite;
 }
 
-/* The binge line: hidden, it floats in under the row on hover, tap or keyboard focus. Absolute,
-   so the card never changes height (no layout shift). */
-.brain-row {
-  position: relative;
-}
-
+/* The binge line: hidden, shown on hover, tap or keyboard focus of its row, in the same place and
+   style as the buttons' hover label (below). */
 .binge {
-  position: absolute;
-  top: calc(100% - 4px);
-  right: 0;
-  z-index: 3;
-  max-width: 100%;
   margin: 0;
-  padding: 6px 10px;
-  border: 2px solid var(--line);
-  border-radius: 10px;
-  background: var(--card);
-  box-shadow: 0 3px 0 var(--line);
-  font: 600 13px/1.4 var(--body);
-  color: var(--muted);
-  opacity: 0;
-  translate: 0 -4px;
-  pointer-events: none;
-  transition:
-    opacity 0.2s,
-    translate 0.25s var(--spring);
 }
 
-.brain-row:hover .binge,
-.brain-row:focus-within .binge {
-  opacity: 1;
-  translate: 0 0;
-}
 
 @keyframes squish {
   50% {
@@ -1349,11 +1322,16 @@ html[data-log-clock='0'] .chai-clock.pending {
    where a tap already shows the copy toast. */
 .badge::after {
   content: attr(data-caption);
+}
+
+.badge::after,
+.binge {
   position: fixed;
   z-index: 60;
   left: 50%;
   bottom: calc(24px + env(safe-area-inset-bottom, 0px));
   translate: -50% 8px;
+  width: max-content;
   max-width: calc(100vw - 32px);
   padding: 12px 16px;
   font: 600 14px var(--body);
@@ -1376,7 +1354,9 @@ html[data-log-clock='0'] .chai-clock.pending {
 }
 
 .badge:hover::after,
-.badge:focus-visible::after {
+.badge:focus-visible::after,
+.brain-row:hover .binge,
+.brain-row:focus-within .binge {
   opacity: 1;
   translate: -50% 0;
 }
