@@ -112,8 +112,12 @@ Two things matter more than they look:
   changed or the last write is 90 seconds old. My own version keeps the live row and each finished
   binge in D1 (100,000 free writes a day): [worker/scroll.ts](https://github.com/kishore280/home/blob/main/worker/scroll.ts).
 
-Set it up like any Worker: `npm create cloudflare@latest`, a KV namespace bound as `SCROLL`, and
-a long random token as the **secret** `SCROLL_TOKEN` (never in the code or Git).
+To set it up:
+
+1. Make a Worker with `npm create cloudflare@latest` and put the code above in its main file.
+2. Add a KV namespace and bind it as `SCROLL`.
+3. Make a long random token and add it as the **secret** `SCROLL_TOKEN`. Never put it in the code
+   or Git.
 
 ## 3. Connect the phone
 
@@ -139,8 +143,8 @@ Open Reels. Within 30 seconds, `GET /scroll` says `"scrolling": true`.
 </script>
 ```
 
-`today` is from the phone's own day, so it goes back to 0 at your midnight. If you show it the next
-morning, check the date of `at` first, or it says yesterday's number.
+`today` is from the phone's own day, so it goes back to 0 at your midnight. The next morning, it
+still says yesterday's number until you scroll. Check the date of `at` before you show it.
 
 ## Privacy
 

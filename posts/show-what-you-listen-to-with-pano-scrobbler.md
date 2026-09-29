@@ -15,6 +15,9 @@ your music account.
 **You get:** "listening to Mirrors — Justin Timberlake" while a song plays, and "last played … 12
 min. ago" after.
 
+**Why not the Spotify API?** It works only for Spotify, and it needs a login flow and a refresh
+token on your server. The phone already knows what plays, in every app.
+
 ## How it works
 
 ```text
@@ -75,9 +78,10 @@ check them.
 A scrobbler needs only two calls from a ListenBrainz server:
 
 - `GET /1/validate-token`: Pano checks the token once, when you add the service.
-- `POST /1/submit-listens`: every song. The body has `listen_type` (`playing_now` when a song
-  starts, `single` when it counts as listened: half the song or 4 minutes) and the song in
-  `payload[0].track_metadata`.
+- `POST /1/submit-listens`: every song. The song is in `payload[0].track_metadata`, and
+  `listen_type` says when:
+  - `playing_now`: the song starts.
+  - `single`: the song counts as listened (half of it, or 4 minutes).
 
 This Cloudflare Worker is the whole server. Workers and KV are free for this.
 
@@ -128,8 +132,8 @@ export default {
 }
 ```
 
-"Playing now" and "last played" are two keys, as ListenBrainz keeps them: Pano sends the listen
-while the song still plays, so one key would say "stopped" too early.
+"Playing now" and "last played" are two keys, as in ListenBrainz. Pano sends the listen while the
+song still plays, so one key would say "stopped" too early.
 
 1. Make the Worker: `npm create cloudflare@latest`, then put the code above in its main file.
 2. Add a KV namespace called `MUSIC` and bind it to the Worker (the dashboard, or

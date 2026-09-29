@@ -54,7 +54,7 @@ kishore's personal site, live at **https://kichoow.com**. React 19 + TypeScript 
 ### Write a blog post
 
 1. Add `posts/<name>.md` (a-z, 0-9 and `-`; the name is the address `/blog/<name>`), with front matter: `title`, `description` (one or two sentences, for search and RSS), `date: 'YYYY-MM-DD'` in quotes, and `tags`. The README has an example.
-2. The post is kish's words: draft it only when asked, and let kish read it before it ships. Code in ``` fences gets colours (Shiki, Rosé Pine) and a copy button; name the language (```ts, ```sh).
+2. Follow `.claude/skills/blog-writing` (readable, no filler, every snippet run). The post is kish's words: draft it only when asked, and let kish read it before it ships. Code in ``` fences gets colours (Shiki, Rosé Pine) and a copy button; name the language (```ts, ```sh).
 3. `npm run build` checks the fields and makes the page, the list, the home card, its share card (`og/blog/<name>.png`), its Markdown copy (`/blog/<name>.md`), RSS, sitemap, llms.txt and llms-full.txt. Screenshot the post at 1280 px and 390 px wide.
 
 ### Other tips
@@ -68,6 +68,7 @@ kishore's personal site, live at **https://kichoow.com**. React 19 + TypeScript 
 
 | Skill | Use for |
 |---|---|
+| `.claude/skills/blog-writing` | A blog post or guide: the shape, short sentences, tested code, the checks before it ships |
 | `.claude/skills/add-log-kind` | A new thing to count (badminton, gym, …): the migration, the code, the tests |
 | `.claude/skills/react-best-practices` | React code and performance |
 | `.claude/skills/web-design-guidelines` | UI and accessibility review |
