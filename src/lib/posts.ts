@@ -9,6 +9,7 @@ export type Post = {
   updated?: string
   tags: string[]
   minutes: number
+  words: number
 }
 
 export const postPath = (slug: string) => `/blog/${slug}`

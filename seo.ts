@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs'
 import { Feed } from 'feed'
 import type { Plugin } from 'vite'
 import { blogPage, colophonPage, links, logPage, myButtons, notFound, nowPage, offlineNote, site } from './src/data.ts'
-import { blogLd, breadcrumbLd, feedLink, graph, ids, meta, personLd, websiteLd } from './src/lib/head.ts'
+import { blogLd, breadcrumbLd, feedLink, graph, ids, indexable, meta, personLd, websiteLd } from './src/lib/head.ts'
 import { postCard, postMarkdown } from './blog.ts'
 import type { Post } from './src/lib/posts.ts'
 
@@ -31,7 +31,7 @@ export function seo(posts: Post[]): Plugin {
     'index.html': [
       manifest,
       ...meta({ title: site.title, description: site.description, url, type: 'profile' }),
-      `<link rel="canonical" href="${url}" />`,
+      ...indexable(url, `${site.url}/index.md`),
       ...(posts.length ? [feedLink] : []),
       profileLd,
     ],
@@ -43,19 +43,39 @@ export function seo(posts: Post[]): Plugin {
     ],
     '404.html': [manifest, ...meta({ ...notFound, url: `${site.url}/404`, type: 'website' }), `<meta name="robots" content="noindex" />`],
     // Slash pages, in search and the sitemap.
-    'now.html': [manifest, ...meta({ ...nowPage, url: `${site.url}/now`, type: 'website' }), `<link rel="canonical" href="${site.url}/now" />`],
+    'now.html': [manifest, ...meta({ ...nowPage, url: `${site.url}/now`, type: 'website' }), ...indexable(`${site.url}/now`, `${site.url}/now.md`)],
     'colophon.html': [
       manifest,
       ...meta({ ...colophonPage, url: `${site.url}/colophon`, type: 'website' }),
-      `<link rel="canonical" href="${site.url}/colophon" />`,
+      ...indexable(`${site.url}/colophon`, `${site.url}/colophon.md`),
     ],
     // The blog: the list, and one template that the pre-render fills per post (src/lib/head.ts).
     'blog.html': [
       manifest,
       ...meta({ ...blogPage, url: blogUrl, type: 'website' }),
-      `<link rel="canonical" href="${blogUrl}" />`,
+      ...indexable(blogUrl, `${blogUrl}.md`),
       feedLink,
-      graph(blogLd, personLd, breadcrumbLd([blogPage.heading, blogUrl])),
+      // The list page: a CollectionPage whose ItemList is every post, newest first.
+      graph(
+        {
+          '@type': 'CollectionPage',
+          '@id': `${blogUrl}#page`,
+          url: blogUrl,
+          name: blogPage.title,
+          description: blogPage.description,
+          inLanguage: 'en',
+          isPartOf: { '@id': ids.website },
+          about: { '@id': ids.blog },
+          mainEntity: {
+            '@type': 'ItemList',
+            numberOfItems: posts.length,
+            itemListElement: posts.map((p, i) => ({ '@type': 'ListItem', position: i + 1, url: `${blogUrl}/${p.slug}`, name: p.title })),
+          },
+        },
+        blogLd,
+        personLd,
+        breadcrumbLd([blogPage.heading, blogUrl]),
+      ),
     ],
     'post.html': [manifest, '<!-- page-head -->'],
     // Private: not in search or the sitemap.
@@ -114,6 +134,46 @@ export function seo(posts: Post[]): Plugin {
     return feed.rss2()
   }
 
+  // Markdown copies of the pages for AI tools (the posts have theirs, blog.ts): front matter with the
+  // canonical address, then the page's text. Served noindex (public/_headers).
+  const abs = (href: string) => (href.startsWith('/') ? `${site.url}${href}` : href)
+  const markdown = (title: string, description: string, canonical: string, body: string) =>
+    `---\ntitle: ${JSON.stringify(title)}\ndescription: ${JSON.stringify(description)}\nauthor: ${site.fullName}\ncanonical: ${canonical}\n---\n\n# ${title}\n\n${body.trim()}\n`
+  const textPageMd = (page: typeof nowPage, path: string) =>
+    markdown(
+      page.heading,
+      page.description,
+      `${site.url}${path}`,
+      [
+        `${page.intro}${page.updated ? ` Updated ${page.updated}.` : ''}`,
+        ...page.sections.map((s) => `## ${s.title}\n\n${s.items.map((i) => `- ${i.href ? `[${i.text}](${abs(i.href)})` : i.text}`).join('\n')}`),
+      ].join('\n\n'),
+    )
+  const postList = posts.map((p) => `- [${p.title}](${blogUrl}/${p.slug}) (${p.date}): ${p.description} Markdown: ${blogUrl}/${p.slug}.md`).join('\n')
+  const pages = [
+    { path: '/', md: 'index.md', name: `${site.fullName} (${site.nickname})`, description: site.description },
+    { path: '/now', md: 'now.md', name: 'now', description: nowPage.description },
+    { path: '/colophon', md: 'colophon.md', name: 'colophon', description: colophonPage.description },
+    ...(posts.length ? [{ path: '/blog', md: 'blog.md', name: blogPage.heading, description: blogPage.description }] : []),
+  ]
+  const pageMarkdown: Record<string, string> = {
+    'index.md': markdown(
+      `${site.fullName} (${site.nickname})`,
+      site.description,
+      url,
+      [
+        `${site.jobTitle} in ${site.city}, India, ${site.intro}`,
+        `Works with ${site.knowsAbout.join(', ')}. Open to AI and agent developer roles; happy to relocate.`,
+        `## Links\n\n${links.map((l) => `- [${l.label}](${l.href})`).join('\n')}`,
+        ...(posts.length ? [`## Writing\n\n${postList}`] : []),
+        `## Pages\n\n${pages.slice(1).map((p) => `- [${p.name}](${abs(p.path)}): ${p.description}`).join('\n')}`,
+      ].join('\n\n'),
+    ),
+    'now.md': textPageMd(nowPage, '/now'),
+    'colophon.md': textPageMd(colophonPage, '/colophon'),
+    ...(posts.length ? { 'blog.md': markdown(blogPage.heading, blogPage.description, blogUrl, postList) } : {}),
+  }
+
   // Optional and experimental for AI tools: a short, factual summary. No ranking claims.
   const llms = `# ${site.fullName} (${site.nickname})
 
@@ -123,20 +183,26 @@ ${site.jobTitle} in ${site.city}, India. Works with ${site.knowsAbout.join(', ')
 
 A small personal site with a mascot that follows kish's day in India time (IST), a live clock, the latest public GitHub activity, and 88×31 buttons for the things kish likes.
 
+These are faithful Markdown copies of the public pages. Cite the canonical HTML address (the same address without .md).
+
+## Pages
+
+${pages.map((p) => `- [${p.name}](${site.url}/${p.md}): ${p.description}`).join('\n')}
+
 ## Links
 
 ${[{ label: 'Website', href: url }, ...links].map((l) => `- [${l.label}](${l.href})`).join('\n')}
 ${posts.length ? `
 ## Blog
 
-Each post as Markdown (the page is the same address without .md). Every post in one file: ${site.url}/llms-full.txt
+Each post as Markdown (the page is the same address without .md). Every page and post in one file: ${site.url}/llms-full.txt
 
 ${posts.map((p) => `- [${p.title}](${blogUrl}/${p.slug}.md): ${p.description}`).join('\n')}
 ` : ''}`
 
   // Every post in full, in one file for AI tools (llmstxt.org's llms-full.txt).
   const llmsFull = () =>
-    [`# ${site.fullName} (${site.nickname}): blog`, '', `> ${blogPage.description}`, '', `Written by ${site.fullName}. When you quote or sum up a post, name the author and link the canonical address.`, '', ...posts.map((p) => postMarkdown(p))].join('\n')
+    [`# ${site.fullName} (${site.nickname})`, '', `> ${site.description}`, '', `Every public page and post in one file. Written by ${site.fullName}. When you quote or sum up a page, name the author and link the canonical address.`, '', ...Object.values(pageMarkdown), ...posts.map((p) => postMarkdown(p))].join('\n')
 
   // /.well-known/button.json: the 88×31 buttons for button-wall tools, per the IETF draft "The Well
   // Known Button Information Specification" (draft-filmroellchen-lunar-well-known-button-00). The
@@ -176,7 +242,8 @@ ${posts.map((p) => `- [${p.title}](${blogUrl}/${p.slug}.md): ${p.description}`).
         this.emitFile({ type: 'asset', fileName: `og/blog/${p.slug}.png`, source: await postCard(p) })
         this.emitFile({ type: 'asset', fileName: `blog/${p.slug}.md`, source: postMarkdown(p) })
       }
-      if (posts.length) this.emitFile({ type: 'asset', fileName: 'llms-full.txt', source: llmsFull() })
+      for (const [fileName, source] of Object.entries(pageMarkdown)) this.emitFile({ type: 'asset', fileName, source })
+      this.emitFile({ type: 'asset', fileName: 'llms-full.txt', source: llmsFull() })
       this.emitFile({ type: 'asset', fileName: '.well-known/button.json', source: buttonJson() })
     },
   }

@@ -30,8 +30,9 @@ export function readPosts(dir = 'posts'): Post[] {
       if (!date || !DAY.test(date) || (updated && !DAY.test(updated))) throw new Error(`posts/${f}: write date (and updated) as YYYY-MM-DD, in quotes`)
       const tags = Array.isArray(m.tags) ? m.tags.map(String) : []
       // About 200 words a minute.
-      const minutes = Math.max(1, Math.round(String(file).split(/\s+/).filter(Boolean).length / 200))
-      return { slug, title, description, date, ...(updated ? { updated } : {}), tags, minutes }
+      const words = String(file).split(/\s+/).filter(Boolean).length
+      const minutes = Math.max(1, Math.round(words / 200))
+      return { slug, title, description, date, ...(updated ? { updated } : {}), tags, minutes, words }
     })
     .sort((a, b) => b.date.localeCompare(a.date) || a.slug.localeCompare(b.slug))
 }

@@ -11,6 +11,8 @@
   # Speculation Rules: prefetch a same-site page when a link is hovered or touched, so it opens
   # at once. Prefetch only (no prerender), so no page runs early and no view is counted.
   Speculation-Rules: "/speculationrules.json"
+  # AI tools find the site's summary from any page (as yagiz.co and thejasonsamuel.com do).
+  Link: </llms.txt>; rel="describedby"; type="text/plain"
 
 /speculationrules.json
   Content-Type: application/speculationrules+json
@@ -39,9 +41,9 @@
 /icon-512.png
   Cache-Control: public, max-age=86400, stale-while-revalidate=604800
 
-# Markdown copies of the blog posts and llms-full.txt (seo.ts) are for AI tools: open to read, but
-# kept out of search results, where the HTML page is the one to show.
-/blog/*.md
+# Markdown copies of the pages and posts and llms-full.txt (seo.ts) are for AI tools: open to read,
+# but kept out of search results, where the HTML page is the one to show.
+/*.md
   Content-Type: text/markdown; charset=utf-8
   X-Robots-Tag: noindex
 /llms-full.txt
