@@ -79,7 +79,9 @@ export default function App() {
               hi, i’m <span className="p-name">{site.name}</span>
             </h1>
             <data className="u-url u-uid" value={`${site.url}/`} />
-            <data className="p-nickname" value={site.title} />
+            <data className="p-nickname" value={site.nickname} />
+            <data className="p-job-title" value={site.jobTitle} />
+            <data className="p-locality" value={site.city} />
             <data className="u-photo" value={`${site.url}/icon-512.png`} />
             {site.intro ? <p className="intro p-note">{site.intro}</p> : null}
             {site.about.map((p) => (
