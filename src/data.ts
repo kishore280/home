@@ -19,7 +19,7 @@ export const site = {
   // One sentence under "hi, i'm …".
   intro: 'hands-on with AI agents development.',
   // A few lines about you. Each string is one paragraph.
-  about: ['software engineer in Chennai · open to AI and agent developer roles, happy to relocate.'],
+  about: [] as string[],
   // IANA time zone for the live clock.
   timeZone: 'Asia/Kolkata',
   email: '',
