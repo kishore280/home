@@ -7,7 +7,7 @@ import { Feed } from 'feed'
 import type { Plugin } from 'vite'
 import { blogPage, colophonPage, links, logPage, myButtons, notFound, nowPage, offlineNote, site } from './src/data.ts'
 import { feedLink, ldJson, meta } from './src/lib/head.ts'
-import { postCard } from './blog.ts'
+import { postCard, postMarkdown } from './blog.ts'
 import type { Post } from './src/lib/posts.ts'
 
 export function seo(buildDate: string, posts: Post[]): Plugin {
@@ -132,8 +132,14 @@ ${[{ label: 'Website', href: url }, ...links].map((l) => `- [${l.label}](${l.hre
 ${posts.length ? `
 ## Blog
 
-${posts.map((p) => `- [${p.title}](${blogUrl}/${p.slug}): ${p.description}`).join('\n')}
+Each post as Markdown (the page is the same address without .md). Every post in one file: ${site.url}/llms-full.txt
+
+${posts.map((p) => `- [${p.title}](${blogUrl}/${p.slug}.md): ${p.description}`).join('\n')}
 ` : ''}`
+
+  // Every post in full, in one file for AI tools (llmstxt.org's llms-full.txt).
+  const llmsFull = () =>
+    [`# ${site.fullName} (${site.nickname}): blog`, '', `> ${blogPage.description}`, '', `Written by ${site.fullName}. When you quote or sum up a post, name the author and link the canonical address.`, '', ...posts.map((p) => postMarkdown(p))].join('\n')
 
   // /.well-known/button.json: the 88×31 buttons for button-wall tools, per the IETF draft "The Well
   // Known Button Information Specification" (draft-filmroellchen-lunar-well-known-button-00). The
@@ -169,7 +175,11 @@ ${posts.map((p) => `- [${p.title}](${blogUrl}/${p.slug}): ${p.description}`).joi
       this.emitFile({ type: 'asset', fileName: 'sitemap.xml', source: sitemap })
       this.emitFile({ type: 'asset', fileName: 'llms.txt', source: llms })
       if (posts.length) this.emitFile({ type: 'asset', fileName: 'blog/rss.xml', source: rss() })
-      for (const p of posts) this.emitFile({ type: 'asset', fileName: `og/blog/${p.slug}.png`, source: await postCard(p) })
+      for (const p of posts) {
+        this.emitFile({ type: 'asset', fileName: `og/blog/${p.slug}.png`, source: await postCard(p) })
+        this.emitFile({ type: 'asset', fileName: `blog/${p.slug}.md`, source: postMarkdown(p) })
+      }
+      if (posts.length) this.emitFile({ type: 'asset', fileName: 'llms-full.txt', source: llmsFull() })
       this.emitFile({ type: 'asset', fileName: '.well-known/button.json', source: buttonJson() })
     },
   }

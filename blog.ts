@@ -7,6 +7,7 @@ import { createElement, type CSSProperties, type ReactNode } from 'react'
 import satori from 'satori'
 import { readSync } from 'to-vfile'
 import { matter } from 'vfile-matter'
+import { site } from './src/data.ts'
 import { postDate, type Post } from './src/lib/posts.ts'
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/
@@ -94,4 +95,21 @@ export async function postCard(post: Post): Promise<Buffer> {
     { width: 1200, height: 630, fonts },
   )
   return new Resvg(svg).render().asPng()
+}
+
+// A post as Markdown for AI tools (blog/<slug>.md and llms-full.txt, seo.ts), as llmstxt.org and
+// yagiz.co do: the facts in YAML front matter, then the text as kish wrote it.
+export function postMarkdown(post: Post, dir = 'posts'): string {
+  const file = readSync(`${dir}/${post.slug}.md`)
+  matter(file, { strip: true })
+  const url = `${site.url}/blog/${post.slug}`
+  const yaml = [
+    `title: ${JSON.stringify(post.title)}`,
+    `description: ${JSON.stringify(post.description)}`,
+    `date: ${post.date}`,
+    ...(post.updated ? [`updated: ${post.updated}`] : []),
+    `author: ${site.fullName}`,
+    `canonical: ${url}`,
+  ]
+  return `---\n${yaml.join('\n')}\n---\n\n# ${post.title}\n\n${String(file).trim()}\n`
 }

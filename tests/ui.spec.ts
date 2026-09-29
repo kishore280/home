@@ -796,6 +796,21 @@ test.describe('blog', () => {
     expect(rss.headers()['content-type']).toContain('xml')
     expect(await rss.text()).toContain(`<link>https://kichoow.com${post}</link>`)
     expect(await (await request.get('http://127.0.0.1:8787/sitemap.xml')).text()).toContain(`<loc>https://kichoow.com${post}</loc>`)
+    // For AI tools: a Markdown copy (front matter with the canonical address), kept out of search,
+    // and every post in llms-full.txt; llms.txt points to both.
+    expect(html).toContain(`<link rel="alternate" type="text/markdown" href="https://kichoow.com${post}.md">`)
+    const md = await request.get(`http://127.0.0.1:8787${post}.md`)
+    expect(md.headers()['content-type']).toBe('text/markdown; charset=utf-8')
+    expect(md.headers()['x-robots-tag']).toBe('noindex')
+    const text = await md.text()
+    expect(text).toMatch(new RegExp(`^---\\n[\\s\\S]*canonical: https://kichoow\\.com${post}\\n---\\n\\n# ${ld.headline}\\n`))
+    expect(text).toContain('`AGENTS.md`') // the Markdown as written, not HTML
+    const full = await request.get('http://127.0.0.1:8787/llms-full.txt')
+    expect(full.headers()['x-robots-tag']).toBe('noindex')
+    expect(await full.text()).toContain(text)
+    const llms = await (await request.get('http://127.0.0.1:8787/llms.txt')).text()
+    expect(llms).toContain(`(https://kichoow.com${post}.md)`)
+    expect(llms).toContain('https://kichoow.com/llms-full.txt')
     expect((await request.get('http://127.0.0.1:8787/post')).status()).toBe(404)
     expect((await request.get('http://127.0.0.1:8787/blog/nope')).status()).toBe(404)
   })

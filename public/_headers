@@ -38,3 +38,11 @@
   Cache-Control: no-cache
 /icon-512.png
   Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+# Markdown copies of the blog posts and llms-full.txt (seo.ts) are for AI tools: open to read, but
+# kept out of search results, where the HTML page is the one to show.
+/blog/*.md
+  Content-Type: text/markdown; charset=utf-8
+  X-Robots-Tag: noindex
+/llms-full.txt
+  X-Robots-Tag: noindex

@@ -40,6 +40,7 @@ export function postHead(post: Post) {
     `<meta property="article:published_time" content="${post.date}" />`,
     ...(post.updated ? [`<meta property="article:modified_time" content="${post.updated}" />`] : []),
     `<link rel="canonical" href="${url}" />`,
+    `<link rel="alternate" type="text/markdown" href="${url}.md" />`,
     feedLink,
     ldJson({
       '@context': 'https://schema.org',

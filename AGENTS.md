@@ -55,7 +55,7 @@ kishore's personal site, live at **https://kichoow.com**. React 19 + TypeScript 
 
 1. Add `posts/<name>.md` (a-z, 0-9 and `-`; the name is the address `/blog/<name>`), with front matter: `title`, `description` (one or two sentences, for search and RSS), `date: 'YYYY-MM-DD'` in quotes, and `tags`. The README has an example.
 2. The post is kish's words: draft it only when asked, and let kish read it before it ships.
-3. `npm run build` checks the fields and makes the page, the list, the home card, RSS, sitemap and llms.txt. Screenshot the post at 1280 px and 390 px wide.
+3. `npm run build` checks the fields and makes the page, the list, the home card, its share card (`og/blog/<name>.png`), its Markdown copy (`/blog/<name>.md`), RSS, sitemap, llms.txt and llms-full.txt. Screenshot the post at 1280 px and 390 px wide.
 
 ### Other tips
 
