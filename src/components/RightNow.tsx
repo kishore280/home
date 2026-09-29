@@ -29,7 +29,8 @@ const BRAIN_AT = [0, 10, 25, 50, 100, 175, 250]
 const brain = (reels: number) => BRAIN_AT.findLastIndex((at) => reels >= at)
 // The phone reports every 30 s while it scrolls; with no report for 3 min, the session is over.
 const QUIET_MS = 3 * 60_000
-const minutes = (from: string, to: string) => `${Math.max(1, Math.round((Date.parse(to) - Date.parse(from)) / 60_000))} min`
+// The phone's numbers are for its day; on a new day (in the site's time zone) there are none yet.
+const dayOf = new Intl.DateTimeFormat('en-CA', { timeZone: site.timeZone || undefined })
 
 // A line kept for a row whose data is still loading, so the card does not grow when it arrives
 // (web.dev "Optimize CLS": reserve space for late content). It is in the pre-rendered HTML.
@@ -57,6 +58,11 @@ export function RightNow() {
   // The data only arrives in the browser, so `now` here is the visitor's clock (pre-render safe).
   const playing = track ? now < Date.parse(track.until) : false
   const rotting = reels ? reels.scrolling && now - Date.parse(reels.at) < QUIET_MS : false
+  const sameDay = reels ? dayOf.format(Date.parse(reels.at)) === dayOf.format(now) : false
+  const todayReels = sameDay ? (reels?.today ?? 0) : 0
+  // On hover: how long a reel lasts today, from the app's own numbers.
+  const scrollHint =
+    sameDay && reels?.perReel != null ? `about ${reels.perReel} s per reel · ${reels.minutes ?? 0} min in Reels today` : undefined
 
   return (
     <Card title="right now">
@@ -80,21 +86,14 @@ export function RightNow() {
         ) : null}
         {scrollPending ? pendingRow : null}
         {reels ? (
-          <div className="row">
+          <div className="row" title={scrollHint}>
             <dt>
-              <img className={`brain${rotting ? ' live' : ''}`} src={`/brain/${brain(reels.reels)}.webp`} alt="" width={22} height={18} />
+              <img className={`brain${rotting ? ' live' : ''}`} src={`/brain/${brain(todayReels)}.webp`} alt="" width={22} height={18} />
               {rotting ? 'brain rotting' : 'last rot'}
             </dt>
-            <dd key={reels.started} className="swap-in">
-              {reels.reels} {reels.reels === 1 ? 'reel' : 'reels'}
-              {rotting ? (
-                <span className="muted"> · {reels.app}</span>
-              ) : (
-                <>
-                  {' '}in {minutes(reels.started, reels.at)}
-                  <span className="muted"> · {timeAgo(reels.at, now)}</span>
-                </>
-              )}
+            <dd key={todayReels} className="swap-in">
+              {todayReels ? `${todayReels} ${todayReels === 1 ? 'reel' : 'reels'} today` : 'none today'}
+              {rotting ? null : <span className="muted"> · {timeAgo(reels.at, now)}</span>}
             </dd>
           </div>
         ) : null}

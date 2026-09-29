@@ -220,20 +220,22 @@ swipe through with an accessibility service) tells the site while you scroll:
 ```
 Instagram Reels (phone)
   → Brainrot counts each reel you land on (never reads captions, names or messages)
-  → POST https://kichoow.com/api/scroll   (Bearer SCROBBLE_TOKEN; JSON: app, scrolling, reels, started, ended)
+  → POST https://kichoow.com/api/scroll   (Bearer SCROBBLE_TOKEN; JSON: app, scrolling, reels, started, ended,
+                                            and today so far: today, minutes, perReel)
   → D1 table `scroll` → GET /api/scroll
 ```
 
 | Row | Set by | Means |
 |---|---|---|
-| `now` | "scrolling": when Reels opens, then every 30 s with the running count | scrolling now, while its heartbeats are under 3 min old |
+| `now` | "scrolling": when Reels opens, then every 30 s | scrolling now, while its heartbeats are under 3 min old |
 | `last` | "stopped": leaving Reels or Instagram, or the screen turning off | the newest session with at least one reel |
 
-The card shows "brain rotting · 12 reels · instagram" while you scroll, then "last rot · 42 reels in
-18 min · 2 hr. ago", with the app's own brain (`public/brain/0-6.webp`, its 7 stages at 0, 10, 25,
-50, 100, 175 and 250 reels), which squishes while you scroll.
+The card shows today's total: "brain rotting · 36 reels today" while you scroll, then "last rot ·
+36 reels today · 3 min. ago" ("none today" on a new day, India time). Hover shows the time per reel
+("about 11 s per reel · 6 min in Reels today"). The brain is the app's own (`public/brain/0-6.webp`,
+its 7 stages at 0, 10, 25, 50, 100, 175 and 250 reels today), and squishes while you scroll.
 
-Set up: apply `migrations/0007_scroll.sql` (as step 1 above), install the app from its GitHub
+Set up: apply `migrations/0008_scroll_today.sql` (as step 1 above), install the app from its GitHub
 Actions build, turn on its accessibility service, and on its Today screen set **Your site** to
 `https://kichoow.com/api/scroll` with the same token as the music.
 

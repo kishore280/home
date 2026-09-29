@@ -753,7 +753,7 @@ test.describe('speed', () => {
     const at = new Date().toISOString()
     await page.route('**/api/now-playing', (r) => r.fulfill({ json: { title: 'A long song title that fills the line', artist: 'Artist', at, until: at } }))
     await page.route('**/api/github', (r) => r.fulfill({ json: { repo: 'home', url: 'https://github.com/kishore280/home', at } }))
-    await page.route('**/api/scroll', (r) => r.fulfill({ json: { scrolling: true, app: 'instagram', reels: 12, started: at, at } }))
+    await page.route('**/api/scroll', (r) => r.fulfill({ json: { scrolling: true, app: 'instagram', today: 12, minutes: 2, perReel: 9, at } }))
     await page.context().route('https://lh3.googleusercontent.com/**', (r) => r.fulfill({ contentType: 'image/png', body: pixel }))
     await page.context().route('**/api/photos', (r) => r.fulfill({ json: { photos: [photo(1, at), photo(2, at)] } }))
     const totals = { today: 2, month: 14, year: 90, total: 90, last: at }
@@ -1143,6 +1143,7 @@ test.describe('now scrolling (the phone\'s Brainrot app)', () => {
     const r = await request.get(api)
     return r.status() === 204 ? null : r.json()
   }
+  const beat = (started: number, reels: number, today: number, extra: object = {}) => ({ app: 'instagram', scrolling: true, reels, today, minutes: 6, perReel: 11, started, ...extra })
 
   test.beforeEach(({ isMobile }) => test.skip(isMobile, 'API only; one run is enough'))
   test.beforeAll(() => {
@@ -1150,7 +1151,7 @@ test.describe('now scrolling (the phone\'s Brainrot app)', () => {
   })
 
   test('only the phone can report, and only a valid report is kept', async ({ request }) => {
-    const ok = { app: 'instagram', scrolling: true, reels: 0, started: Date.now() }
+    const ok = beat(Date.now(), 0, 0)
     expect((await request.post(api, { data: ok })).status()).toBe(401)
     expect((await request.post(api, { data: ok, headers: { authorization: 'Bearer wrong' } })).status()).toBe(401)
     expect((await report(request, { ...ok, app: 'tiktok' })).status()).toBe(400)
@@ -1162,75 +1163,86 @@ test.describe('now scrolling (the phone\'s Brainrot app)', () => {
     expect(await read(request)).toBeNull()
   })
 
-  test('scrolling shows the running count; stopped keeps the total as the last session', async ({ request }) => {
+  test("scrolling shows today's total; stopped keeps it with the time it ended", async ({ request }) => {
     const started = Date.now() - 60_000
-    expect(await (await report(request, { app: 'instagram', scrolling: true, reels: 0, started })).json()).toEqual({ status: 'ok' })
-    await report(request, { app: 'instagram', scrolling: true, reels: 12, started })
-    expect(await read(request)).toMatchObject({ scrolling: true, app: 'instagram', reels: 12, started: new Date(started).toISOString() })
+    expect(await (await report(request, beat(started, 0, 30))).json()).toEqual({ status: 'ok' })
+    await report(request, beat(started, 12, 42))
+    expect(await read(request)).toMatchObject({ scrolling: true, app: 'instagram', today: 42, minutes: 6, perReel: 11 })
 
     const ended = Date.now()
-    await report(request, { app: 'instagram', scrolling: false, reels: 14, started, ended, extra: 'ignored' })
-    expect(await read(request)).toEqual({
-      scrolling: false, app: 'instagram', reels: 14, started: new Date(started).toISOString(), at: new Date(ended).toISOString(),
-    })
+    await report(request, { ...beat(started, 14, 44), scrolling: false, ended, extra: 'ignored' })
+    expect(await read(request)).toEqual({ scrolling: false, app: 'instagram', today: 44, minutes: 6, perReel: 11, at: new Date(ended).toISOString() })
+  })
+
+  test('an app that sends no day numbers still works: today is its sitting', async ({ request }) => {
+    const started = Date.now()
+    await report(request, { app: 'instagram', scrolling: true, reels: 3, started })
+    expect(await read(request)).toMatchObject({ scrolling: true, today: 3, minutes: null, perReel: null })
+    wrangler(`--command "DELETE FROM scroll WHERE kind = 'now'"`) // its session is newer than the next test's
   })
 
   test('a late heartbeat or stop from an older session never replaces a newer one', async ({ request }) => {
     const older = Date.now() - 120_000
     const newer = Date.now() - 10_000
-    await report(request, { app: 'instagram', scrolling: true, reels: 3, started: newer })
-    await report(request, { app: 'instagram', scrolling: true, reels: 99, started: older }) // late beat
-    expect(await read(request)).toMatchObject({ scrolling: true, reels: 3 })
-    await report(request, { app: 'instagram', scrolling: false, reels: 99, started: older, ended: older + 1 }) // late stop
-    expect(await read(request)).toMatchObject({ scrolling: true, reels: 3 })
+    await report(request, beat(newer, 3, 47))
+    await report(request, beat(older, 99, 99)) // late beat
+    expect(await read(request)).toMatchObject({ scrolling: true, today: 47 })
+    await report(request, { ...beat(older, 99, 99), scrolling: false, ended: older + 1 }) // late stop
+    expect(await read(request)).toMatchObject({ scrolling: true, today: 47 })
     // A session with no reels ends quietly: the last one with reels stays.
-    await report(request, { app: 'instagram', scrolling: false, reels: 0, started: newer, ended: Date.now() })
-    expect(await read(request)).toMatchObject({ scrolling: false, reels: 14 })
+    await report(request, { ...beat(newer, 0, 47), scrolling: false, ended: Date.now() })
+    expect(await read(request)).toMatchObject({ scrolling: false, today: 44 })
   })
 
   test('when the phone goes quiet, an open session stops showing as scrolling', async ({ request }) => {
-    const started = Date.now()
-    await report(request, { app: 'instagram', scrolling: true, reels: 5, started })
+    await report(request, beat(Date.now(), 5, 49))
     wrangler(`--command "UPDATE scroll SET at = at - 200000 WHERE kind = 'now'"`) // its last beat 3+ min ago
-    expect(await read(request)).toMatchObject({ scrolling: false, reels: 14 })
+    expect(await read(request)).toMatchObject({ scrolling: false, today: 44 })
   })
 })
 
 test.describe('now scrolling card', () => {
-  test('the card: the brain squishes while scrolling, then shows the last session', async ({ page }) => {
-    const at = Date.parse('2026-09-29T10:00:00Z')
-    const iso = (ms: number) => new Date(ms).toISOString()
-    let reply = { scrolling: true, app: 'instagram', reels: 12, started: iso(at - 5 * 60_000), at: iso(at) }
-    await page.route('**/api/scroll', (r) => r.fulfill({ json: reply }))
+  const at = Date.parse('2026-09-29T10:00:00Z') // 15:30 in India
+  const iso = (ms: number) => new Date(ms).toISOString()
+  const row = (page: Page) => page.locator('.row', { has: page.locator('img.brain') })
+
+  test("while scrolling: the brain squishes and shows today's total; hover shows the time per reel", async ({ page }) => {
+    await page.route('**/api/scroll', (r) => r.fulfill({ json: { scrolling: true, app: 'instagram', today: 36, minutes: 6, perReel: 11, at: iso(at) } }))
     await page.clock.setFixedTime(at + 20_000)
     await page.goto('/')
-    const row = page.locator('.row', { has: page.locator('img.brain') })
-    await expect(row.locator('dt')).toHaveText('brain rotting')
-    await expect(row.locator('dd')).toHaveText('12 reels · instagram')
-    await expect(row.locator('img')).toHaveAttribute('src', '/brain/1.webp') // 10+ reels: stage 1
-    await expect(row.locator('img')).toHaveClass(/live/)
-    await expect.poll(() => row.locator('img').evaluate((i: HTMLImageElement) => i.naturalWidth)).toBe(44) // the sprite loaded
-
-    // Two hours after a finished session of 42 reels in 18 min.
-    reply = { scrolling: false, app: 'instagram', reels: 42, started: iso(at - 18 * 60_000), at: iso(at) }
-    await page.clock.setFixedTime(at + 2 * 3600_000)
-    await page.reload()
-    await expect(row.locator('dt')).toHaveText('last rot')
-    await expect(row.locator('dd')).toHaveText('42 reels in 18 min · 2 hr. ago')
-    await expect(row.locator('img')).toHaveAttribute('src', '/brain/2.webp') // 25+: stage 2
-    await expect(row.locator('img')).not.toHaveClass(/live/)
+    await expect(row(page).locator('dt')).toHaveText('brain rotting')
+    await expect(row(page).locator('dd')).toHaveText('36 reels today')
+    await expect(row(page)).toHaveAttribute('title', 'about 11 s per reel · 6 min in Reels today')
+    await expect(row(page).locator('img')).toHaveAttribute('src', '/brain/2.webp') // 25+ reels today: stage 2
+    await expect(row(page).locator('img')).toHaveClass(/live/)
+    await expect.poll(() => row(page).locator('img').evaluate((i: HTMLImageElement) => i.naturalWidth)).toBe(44) // the sprite loaded
   })
 
-  test('the card drops "brain rotting" when the phone has been quiet for 3 min, even from a cached answer', async ({ page }) => {
-    const at = Date.parse('2026-09-29T10:00:00Z')
-    await page.route('**/api/scroll', (r) =>
-      r.fulfill({ json: { scrolling: true, app: 'instagram', reels: 1, started: new Date(at - 60_000).toISOString(), at: new Date(at).toISOString() } }),
-    )
+  test("after: today's total and when, and the brain rests", async ({ page }) => {
+    await page.route('**/api/scroll', (r) => r.fulfill({ json: { scrolling: false, app: 'instagram', today: 1, minutes: 0, perReel: null, at: iso(at) } }))
+    await page.clock.setFixedTime(at + 2 * 3600_000)
+    await page.goto('/')
+    await expect(row(page).locator('dt')).toHaveText('last rot')
+    await expect(row(page).locator('dd')).toHaveText('1 reel today · 2 hr. ago')
+    await expect(row(page)).not.toHaveAttribute('title', /./) // nothing to average from one reel
+    await expect(row(page).locator('img')).not.toHaveClass(/live/)
+  })
+
+  test('a quiet phone (3 min) is not "brain rotting", even from a cached answer', async ({ page }) => {
+    await page.route('**/api/scroll', (r) => r.fulfill({ json: { scrolling: true, app: 'instagram', today: 12, minutes: 2, perReel: 9, at: iso(at) } }))
     await page.clock.setFixedTime(at + 4 * 60_000)
     await page.goto('/')
-    const row = page.locator('.row', { has: page.locator('img.brain') })
-    await expect(row.locator('dt')).toHaveText('last rot')
-    await expect(row.locator('dd')).toHaveText('1 reel in 1 min · 4 min. ago')
+    await expect(row(page).locator('dt')).toHaveText('last rot')
+    await expect(row(page).locator('dd')).toHaveText('12 reels today · 4 min. ago')
+  })
+
+  test("on a new day (India time) yesterday's reels are not today's", async ({ page }) => {
+    await page.route('**/api/scroll', (r) => r.fulfill({ json: { scrolling: false, app: 'instagram', today: 80, minutes: 15, perReel: 11, at: iso(at) } }))
+    await page.clock.setFixedTime(Date.parse('2026-09-30T01:00:00Z')) // 06:30 the next day in India
+    await page.goto('/')
+    await expect(row(page).locator('dd')).toHaveText('none today · 15 hr. ago')
+    await expect(row(page).locator('img')).toHaveAttribute('src', '/brain/0.webp')
+    await expect(row(page)).not.toHaveAttribute('title', /./)
   })
 })
 
