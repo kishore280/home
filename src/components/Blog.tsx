@@ -34,8 +34,8 @@ function CodeBlock(props: ComponentProps<'pre'>) {
 // an h-entry (microformats2), so IndieWeb readers find its title, date, author and text.
 export function PostPage({ post, Body }: { post: Post; Body: MDXContent }) {
   return (
-    <main className="blog-page" id="main">
-      <article className="post h-entry">
+    <main className="blog-main" id="main">
+      <article className="blog-page post h-entry">
         <p className="post-meta small">
           <a href="/blog">
             <span aria-hidden="true">←</span> {blogPage.heading}
@@ -56,7 +56,7 @@ export function PostPage({ post, Body }: { post: Post; Body: MDXContent }) {
               ))}
             </ul>
           ) : null}
-          <p className="small">
+          <p className="post-by small">
             written by{' '}
             <a className="p-author h-card" href="/">
               kish
@@ -75,26 +75,28 @@ export function PostPage({ post, Body }: { post: Post; Body: MDXContent }) {
 export function BlogIndex() {
   const years = [...new Set(posts.map((p) => p.date.slice(0, 4)))]
   return (
-    <main className="blog-page" id="main">
-      <h1>{blogPage.heading}</h1>
-      {years.map((y) => (
-        <section key={y} aria-labelledby={`y${y}`}>
-          <h2 id={`y${y}`}>{y}</h2>
-          <ul className="post-list">
-            {posts
-              .filter((p) => p.date.startsWith(y))
-              .map((p) => (
-                <li key={p.slug}>
-                  <time dateTime={p.date}>{postDate(p.date)}</time>
-                  <a href={postPath(p.slug)}>{p.title}</a>
-                </li>
-              ))}
-          </ul>
-        </section>
-      ))}
-      <p className="small">
-        <a href="/blog/rss.xml">RSS feed</a>
-      </p>
+    <main className="blog-main" id="main">
+      <div className="blog-page">
+        <h1>{blogPage.heading}</h1>
+        {years.map((y) => (
+          <section key={y} aria-labelledby={`y${y}`}>
+            <h2 id={`y${y}`}>{y}</h2>
+            <ul className="post-list">
+              {posts
+                .filter((p) => p.date.startsWith(y))
+                .map((p) => (
+                  <li key={p.slug}>
+                    <time dateTime={p.date}>{postDate(p.date)}</time>
+                    <a href={postPath(p.slug)}>{p.title}</a>
+                  </li>
+                ))}
+            </ul>
+          </section>
+        ))}
+        <p className="small">
+          <a href="/blog/rss.xml">RSS feed</a>
+        </p>
+      </div>
       <BackHome />
     </main>
   )
