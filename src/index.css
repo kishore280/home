@@ -1581,11 +1581,33 @@ kbd {
   padding: 1px 5px;
   border-radius: 5px;
 }
+.code {
+  position: relative;
+  /* A grid item; without this, a long line would widen the page instead of scrolling the code. */
+  min-width: 0;
+}
+/* Room for the copy button, so it never covers the code. */
+.code pre {
+  padding-right: 76px;
+}
+/* Shiki sets the colours and the background (Rosé Pine), for light and dark. */
 .prose pre {
   overflow-x: auto;
-  padding: 12px 14px;
+  padding: 14px 16px;
   background: var(--chip);
   border-radius: 10px;
+}
+.copy {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 4px 10px;
+  border: 2px solid var(--line);
+  border-radius: 99px;
+  background: var(--card);
+  color: var(--accent-text);
+  font: 700 12px var(--body);
+  cursor: pointer;
 }
 .prose pre code {
   padding: 0;

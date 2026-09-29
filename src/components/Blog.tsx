@@ -1,10 +1,34 @@
 import type { MDXContent } from 'mdx/types'
+import { useRef, useState, type ComponentProps } from 'react'
 import { blogPage } from '../data'
 import { posts } from '../lib/post-list'
 import { postDate, postPath, type Post } from '../lib/posts'
 import { BackHome } from './BackHome'
 import { Card } from './Card'
 import { chaiIcon } from './ChaiIcon'
+
+// A code block in a post (MDX's `pre`), with a button that copies its text.
+function CodeBlock(props: ComponentProps<'pre'>) {
+  const pre = useRef<HTMLPreElement>(null)
+  const [copied, setCopied] = useState(false)
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(pre.current?.innerText ?? '')
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch {
+      // No clipboard (an old browser, or permission refused): the text can still be selected.
+    }
+  }
+  return (
+    <div className="code">
+      <pre ref={pre} {...props} />
+      <button type="button" className="copy" onClick={copy} data-umami-event="Code copy">
+        {copied ? 'copied' : 'copy'}
+      </button>
+    </div>
+  )
+}
 
 // The blog: a plain reading page, no card around the text (the "B" look kish picked). Each post is
 // an h-entry (microformats2), so IndieWeb readers find its title, date, author and text.
@@ -20,7 +44,7 @@ export function PostPage({ post, Body }: { post: Post; Body: MDXContent }) {
         </p>
         <h1 className="p-name">{post.title}</h1>
         <div className="prose e-content">
-          <Body />
+          <Body components={{ pre: CodeBlock }} />
         </div>
         <footer className="post-foot">
           {post.tags.length ? (

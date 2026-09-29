@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import mdx from '@mdx-js/rollup'
 import react from '@vitejs/plugin-react'
+import rehypeShiki from '@shikijs/rehype'
 import remarkFrontmatter from 'remark-frontmatter'
 import { FontaineTransform } from 'fontaine'
 import { defineConfig, type Plugin } from 'vite'
@@ -30,10 +31,18 @@ export default defineConfig({
     // Android and Linux.
     FontaineTransform.vite({ fallbacks: ['Helvetica Neue', 'Arial', 'Segoe UI', 'Roboto', 'Noto Sans', 'DejaVu Sans'] }),
     // Blog posts (posts/*.md) become React components; the front matter is only read, not shown
-    // (MDX docs: "Vite" and "Frontmatter"). MDX runs before the React plugin.
-    { enforce: 'pre', ...mdx({ remarkPlugins: [remarkFrontmatter] }) },
+    // (MDX docs: "Vite" and "Frontmatter"). MDX runs before the React plugin. Code is coloured at
+    // build time by Shiki (Rosé Pine Dawn / Moon); light-dark() follows the page's color-scheme,
+    // so the site's theme switch works with no extra CSS (Shiki docs: "Dual themes").
+    {
+      enforce: 'pre',
+      ...mdx({
+        remarkPlugins: [remarkFrontmatter],
+        rehypePlugins: [[rehypeShiki, { themes: { light: 'rose-pine-dawn', dark: 'rose-pine-moon' }, defaultColor: 'light-dark()' }]],
+      }),
+    },
     react({ include: /\.(md|tsx?)$/ }),
-    seo(buildDate, posts),
+    seo(posts),
     // Content-Security-Policy as a <meta> tag; the plugin adds the hash of the inline theme script.
     csp({
       override: true,

@@ -1,0 +1,15 @@
+# lychee, the dead link checker (.github/workflows/links.yml): the links in the posts, the site's
+# content (src/data.ts) and the README. https://lychee.cli.rs/guides/config/
+
+# LinkedIn answers 999 to every bot; the local test server and the site's own API need a running
+# Worker; example.com is an example.
+exclude = [
+  '^https?://(localhost|127\.0\.0\.1)',
+  '^https://(www\.)?linkedin\.com/',
+  '^https://kichoow\.com/api/',
+  '^https://(www\.)?example\.com',
+]
+# Too many requests is a busy server, not a dead link.
+accept = ["200..=299", "429"]
+max_retries = 3
+timeout = 20

@@ -54,7 +54,7 @@ kishore's personal site, live at **https://kichoow.com**. React 19 + TypeScript 
 ### Write a blog post
 
 1. Add `posts/<name>.md` (a-z, 0-9 and `-`; the name is the address `/blog/<name>`), with front matter: `title`, `description` (one or two sentences, for search and RSS), `date: 'YYYY-MM-DD'` in quotes, and `tags`. The README has an example.
-2. The post is kish's words: draft it only when asked, and let kish read it before it ships.
+2. The post is kish's words: draft it only when asked, and let kish read it before it ships. Code in ``` fences gets colours (Shiki, Rosé Pine) and a copy button; name the language (```ts, ```sh).
 3. `npm run build` checks the fields and makes the page, the list, the home card, its share card (`og/blog/<name>.png`), its Markdown copy (`/blog/<name>.md`), RSS, sitemap, llms.txt and llms-full.txt. Screenshot the post at 1280 px and 390 px wide.
 
 ### Other tips
@@ -108,6 +108,8 @@ Before you push, all of these must pass:
 - **No layout shift.** Anything that loads late keeps its exact place while it loads, and never collapses (web.dev "Optimize CLS"). The layout shift test runs with two data shapes (every kind logged, and only chai as live); add a shape when you add a data-driven part. Check a change with Lighthouse on a local `wrangler dev` whose D1 holds live-like data: `CHROME_PATH=/opt/pw-browsers/chromium npx lighthouse@12 http://127.0.0.1:<port>/ --only-categories=performance` (mobile profile by default). Use real-user data where it exists: Cloudflare Web Analytics shows Core Web Vitals from visitors.
 - **JavaScript budget.** The home page loads at most 410 KB of JavaScript (before compression); a test enforces it. Raise it only with a reason in the PR.
 - **D1 rows.** Say how many rows a new request reads and writes, and cache what many visitors ask for (Workers Cache API).
+
+**Dead links:** `.github/workflows/links.yml` runs lychee every day, and on a pull request that changes `posts/`, `src/data.ts` or the README. Fix a dead link; add a site that blocks bots to `exclude` in `lychee.toml`, with the reason.
 
 When you add or change something a visitor can see or tap, **add a test** in `tests/ui.spec.ts`. Use web-first assertions (`toBeVisible`, `toBeFocused`, `toHaveCount`, `expect.poll`), not fixed waits; the only fixed wait is `settle()`, for "nothing happened" checks. A failed test leaves a trace and a report in `.context/` (ignored by Git).
 

@@ -84,7 +84,7 @@ logs check-ins); the Worker stores it in D1 and the counts card updates within s
 - **On the home page:** the counts card has the **chai clock** (chai per hour of the day in IST, for
   all time: `log_hours`, `migrations/0005_log_hours.sql`, kept by three more triggers). Its wedges are
   d3-shape `arc()`, sized with d3-scale `scaleRadial` so the area follows the count
-  ([D3 docs](https://d3js.org/d3-scale/radial)). The **my days** card is a grid of the last
+  ([D3 docs](https://d3js.org/d3-scale/linear#scaleRadial)). The **my days** card is a grid of the last
   year, 12 weeks on request (no number tiles). The default **all** view puts every kind in one grid, like GitHub's
   contribution graph: a day is darker for more different things done. A tap on a day (or the ‹ ›
   buttons) says what it had; the chips show one kind alone. The grid is
@@ -273,7 +273,7 @@ Each push to `main` then builds and deploys. From the command line: `npx wrangle
 ## SEO and share cards
 
 - `npm run build` pre-renders the page into `dist/index.html` (`src/entry-server.tsx`, `scripts/prerender.mjs`), so search engines and AI crawlers see the content without running JavaScript. It also inlines the stylesheet ([Beasties](https://github.com/danielroe/beasties)) and preloads the two Latin fonts, so the first paint needs no extra request. Parts that depend on the visitor's clock (mascot mode, local time, counts) render in the browser only (`src/lib/client.ts`).
-- `seo.ts` (a Vite plugin) builds the title, description, canonical, Open Graph / Twitter tags, JSON-LD (`ProfilePage` + `Person`), `robots.txt`, `sitemap.xml` and `llms.txt` from `src/data.ts`. Set `site.url` there to the public address.
+- `seo.ts` (a Vite plugin) builds the title, description, canonical, Open Graph / Twitter tags, JSON-LD, `robots.txt`, `sitemap.xml` and `llms.txt` from `src/data.ts`. The JSON-LD is one linked graph (`src/lib/head.ts`): `Person`, `WebSite` (its `name`, "kish", is the site name Google shows), `Blog`, each `BlogPosting` and a `BreadcrumbList`, joined by `@id`. The sitemap's dates are when each page changed (`updated` in `src/data.ts`, a post's date), never the build time. Set `site.url` there to the public address.
 - `public/og.png` (1200×630) is the share card; `public/apple-touch-icon.png`, `public/icon-512.png` and `public/manifest.webmanifest` are the app icons.
 - **Moving 88×31 buttons:** each `public/button*.svg` animates itself with a little CSS inside the SVG (steam, waves, a bird, the road, sparkles, a blinking cursor; the runner is a 4-frame sprite: contact, passing, then the other leg). It stops with reduced motion. `data-loop` on the `<svg>` is the time after which every animation repeats, and `data-frame` a sprite's frame time.
 - **Blinkies (150×20) and stamps (99×56)**, in their own card below the buttons: the same idea, in the other classic small-web sizes. Their sources are `scripts/og/stamps/*.svg`, with plain `<text>`; an SVG shown as an image cannot load a font, so `npm run og` turns each `<text>` into a `<path>` of Pixelify Sans Bold ([opentype.js](https://opentype.js.org), glyph by glyph) and writes `public/<name>.svg` and a looping `public/<name>.gif`. The list is `myStamps` in `src/data.ts`.
@@ -330,6 +330,10 @@ Each item follows a documented method; the source is in the code comment.
 - [Beasties](https://github.com/danielroe/beasties): inlines the CSS at pre-render
 - [vite-plugin-csp-guard](https://github.com/tsotimus/vite-plugin-csp-guard): the Content-Security-Policy
 - [MDX](https://mdxjs.com) (`@mdx-js/rollup`, `remark-frontmatter`, `vfile-matter`) and [feed](https://github.com/jpmonette/feed): the blog and its RSS feed
+- [Shiki](https://shiki.style) (`@shikijs/rehype`): code in posts, coloured at build time (Rosé Pine Dawn / Moon)
+- [satori](https://github.com/vercel/satori) and [resvg-js](https://github.com/thx/resvg-js): each post's share card
+- [fontaine](https://github.com/unjs/fontaine): fallback fonts sized like the web fonts, so nothing moves when they load
+- [lychee](https://lychee.cli.rs): the daily dead link check (`.github/workflows/links.yml`, `lychee.toml`)
 - [Nunito](https://fonts.google.com/specimen/Nunito) and [Pixelify Sans](https://fonts.google.com/specimen/Pixelify+Sans), through Fontsource
 
 ## Agent skills

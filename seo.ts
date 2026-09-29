@@ -6,33 +6,24 @@ import { readFileSync } from 'node:fs'
 import { Feed } from 'feed'
 import type { Plugin } from 'vite'
 import { blogPage, colophonPage, links, logPage, myButtons, notFound, nowPage, offlineNote, site } from './src/data.ts'
-import { feedLink, ldJson, meta } from './src/lib/head.ts'
+import { blogLd, breadcrumbLd, feedLink, graph, ids, meta, personLd, websiteLd } from './src/lib/head.ts'
 import { postCard, postMarkdown } from './blog.ts'
 import type { Post } from './src/lib/posts.ts'
 
-export function seo(buildDate: string, posts: Post[]): Plugin {
+export function seo(posts: Post[]): Plugin {
   const url = `${site.url}/`
   const blogUrl = `${site.url}/blog`
+  // The sitemap's dates are when each page's content changed, never the build time (Google trusts a
+  // lastmod only when it is true). The home page shows the newest of /now, /colophon and the posts.
+  const dayOf = (s?: string) => (s ? s.slice(0, 10) : '')
+  const homeDate = [nowPage.updated, colophonPage.updated, posts[0]?.date].map(dayOf).sort().at(-1)!
 
-  // ProfilePage + Person: who the site is about, and where else they are.
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'ProfilePage',
-    url,
-    dateModified: buildDate,
-    mainEntity: {
-      '@type': 'Person',
-      name: site.fullName,
-      alternateName: [site.name, site.nickname],
-      description: site.description,
-      jobTitle: site.jobTitle,
-      knowsAbout: site.knowsAbout,
-      homeLocation: { '@type': 'Place', address: { '@type': 'PostalAddress', addressLocality: site.city, addressCountry: site.country } },
-      image: `${site.url}/icon-512.png`,
-      url,
-      sameAs: links.map((l) => l.href),
-    },
-  }
+  // ProfilePage: the home page is about the person (src/lib/head.ts has the linked graph).
+  const profileLd = graph(
+    { '@type': 'ProfilePage', '@id': `${url}#page`, url, dateModified: homeDate, mainEntity: { '@id': ids.person }, isPartOf: { '@id': ids.website } },
+    personLd,
+    websiteLd,
+  )
 
   // The site's app manifest; /log has its own (an installable "kish log" app with shortcuts).
   const manifest = `<link rel="manifest" href="/manifest.webmanifest" />`
@@ -42,7 +33,7 @@ export function seo(buildDate: string, posts: Post[]): Plugin {
       ...meta({ title: site.title, description: site.description, url, type: 'profile' }),
       `<link rel="canonical" href="${url}" />`,
       ...(posts.length ? [feedLink] : []),
-      ldJson(jsonLd),
+      profileLd,
     ],
     // A secret page with a short note: shareable, but kept out of search and the sitemap.
     'offline.html': [
@@ -59,7 +50,13 @@ export function seo(buildDate: string, posts: Post[]): Plugin {
       `<link rel="canonical" href="${site.url}/colophon" />`,
     ],
     // The blog: the list, and one template that the pre-render fills per post (src/lib/head.ts).
-    'blog.html': [manifest, ...meta({ ...blogPage, url: blogUrl, type: 'website' }), `<link rel="canonical" href="${blogUrl}" />`, feedLink],
+    'blog.html': [
+      manifest,
+      ...meta({ ...blogPage, url: blogUrl, type: 'website' }),
+      `<link rel="canonical" href="${blogUrl}" />`,
+      feedLink,
+      graph(blogLd, personLd, breadcrumbLd([blogPage.heading, blogUrl])),
+    ],
     'post.html': [manifest, '<!-- page-head -->'],
     // Private: not in search or the sitemap.
     'log.html': [
@@ -75,15 +72,15 @@ export function seo(buildDate: string, posts: Post[]): Plugin {
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>${url}</loc>
-    <lastmod>${buildDate.slice(0, 10)}</lastmod>
+    <lastmod>${homeDate}</lastmod>
   </url>
   <url>
     <loc>${site.url}/now</loc>
-    <lastmod>${nowPage.updated ?? buildDate.slice(0, 10)}</lastmod>
+    <lastmod>${dayOf(nowPage.updated) || homeDate}</lastmod>
   </url>
   <url>
     <loc>${site.url}/colophon</loc>
-    <lastmod>${buildDate.slice(0, 10)}</lastmod>
+    <lastmod>${dayOf(colophonPage.updated) || homeDate}</lastmod>
   </url>${posts.length ? `
   <url>
     <loc>${blogUrl}</loc>

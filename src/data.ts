@@ -129,12 +129,14 @@ export const blogPage = {
   heading: 'writing',
 }
 
-// /colophon: how this site is made. Keep it true when the stack changes.
+// /colophon: how this site is made. Keep it true when the stack changes, and update the date with it
+// (the sitemap uses it).
 export const colophonPage: TextPage = {
   title: 'colophon · kish',
   description: 'How kichoow.com is made: React, Cloudflare Workers, hand-drawn SVG and free tiers.',
   heading: 'colophon',
   intro: 'How this site is made.',
+  updated: '2026-09-29',
   sections: [
     {
       title: 'code',

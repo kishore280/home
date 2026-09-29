@@ -107,6 +107,13 @@ async function mascotReady(page: Page) {
   await expect(page.locator('.mascot .small')).toContainText(/time|sleeping/)
 }
 
+// The JSON-LD graph of a served page (src/lib/head.ts): its nodes, by @type.
+function jsonLd(html: string) {
+  const ld = JSON.parse(/<script type="application\/ld\+json">(.+?)<\/script>/.exec(html)?.[1] ?? '{}')
+  const nodes: Record<string, unknown>[] = ld['@graph'] ?? []
+  return (type: string) => nodes.find((n) => n['@type'] === type) as Record<string, any> | undefined
+}
+
 async function openMenu(page: Page, press: (t: Locator) => Promise<void>) {
   await expect(page.locator('[data-sonner-toast]')).toHaveCount(0, { timeout: 15_000 })
   await press(page.locator('.link-button'))
@@ -357,7 +364,13 @@ test.describe('home page', () => {
     await expect(page).toHaveURL('/')
     // Both are in the sitemap, with a canonical address each.
     const sitemap = await (await request.get('http://127.0.0.1:8787/sitemap.xml')).text()
-    for (const path of ['/now', '/colophon']) expect(sitemap).toContain(`https://kichoow.com${path}<`)
+    for (const path of ['/now', '/colophon']) {
+      expect(sitemap).toContain(`https://kichoow.com${path}<`)
+      // Its date is the page's own "Updated" date, not the build time.
+      const lastmod = new RegExp(`<loc>https://kichoow\\.com${path}</loc>\\s*<lastmod>([\\d-]+)</lastmod>`).exec(sitemap)?.[1]
+      await page.goto(path)
+      await expect(page.locator('.text-page time')).toHaveAttribute('datetime', lastmod!)
+    }
   })
 
   test('IndieWeb tools read an h-card from the served HTML: name, address, photo and the rel="me" profiles', async ({ page, request }) => {
@@ -375,9 +388,13 @@ test.describe('home page', () => {
     })
     expect(card?.properties.url).toEqual(['https://kichoow.com/', ...(rels.me ?? [])])
     // Search engines read the same facts from the JSON-LD Person.
-    const ld = JSON.parse(/<script type="application\/ld\+json">(.+?)<\/script>/.exec(html)?.[1] ?? '{}')
-    expect(ld.mainEntity).toMatchObject({
-      '@type': 'Person',
+    // One linked graph: the page is about the Person, on the WebSite (named "kish" for Google).
+    const node = jsonLd(html)
+    expect(node('ProfilePage')).toMatchObject({ mainEntity: { '@id': 'https://kichoow.com/#person' }, isPartOf: { '@id': 'https://kichoow.com/#website' } })
+    expect(node('WebSite')).toMatchObject({ '@id': 'https://kichoow.com/#website', name: 'kish', alternateName: 'Kishore M', publisher: { '@id': 'https://kichoow.com/#person' } })
+    expect(node('ProfilePage')?.dateModified).toMatch(/^\d{4}-\d{2}-\d{2}$/) // a real change date, not the build time
+    expect(node('Person')).toMatchObject({
+      '@id': 'https://kichoow.com/#person',
       name: 'Kishore M',
       jobTitle: 'Software engineer',
       homeLocation: { address: { addressLocality: 'Chennai', addressCountry: 'IN' } },
@@ -740,7 +757,7 @@ test.describe('offline page', () => {
 })
 
 test.describe('blog', () => {
-  test('the home card lists the newest posts; /blog lists them all by year; each opens its post', async ({ page }) => {
+  test('the home card lists the newest posts; /blog lists them all by year; each opens its post', async ({ page, press }) => {
     const errors: string[] = []
     page.on('pageerror', (e) => errors.push(e.message))
     page.on('console', (m) => m.type() === 'error' && /hydrat|did not match/i.test(m.text()) && errors.push(m.text()))
@@ -765,6 +782,12 @@ test.describe('blog', () => {
     await expect(page.locator('.post-meta')).toContainText(/min read/)
     await expect(page.locator('.post-foot')).toContainText('written by kish with')
     await expect(page.locator('.post-foot .chai-icon')).toBeVisible()
+    // Code is coloured at build time (Shiki, Rosé Pine: Dawn in light, Moon in dark), and a button copies it.
+    const code = page.locator('.prose .code').first()
+    await expect(code.locator('pre.shiki')).toHaveClass(/rose-pine-dawn rose-pine-moon/)
+    await press(code.getByRole('button', { name: 'copy' }))
+    await expect(code.getByRole('button', { name: 'copied' })).toBeVisible()
+    expect(await page.evaluate(() => window.__copies)).toEqual([await code.locator('pre').innerText()])
     await page.getByRole('link', { name: 'writing', exact: false }).first().click()
     await expect(page).toHaveURL('/blog')
     expect(errors).toEqual([])
@@ -773,8 +796,11 @@ test.describe('blog', () => {
   test('a post is for search engines, feed readers and IndieWeb tools: BlogPosting, canonical, RSS, h-entry, sitemap', async ({ request }) => {
     const post = '/blog/building-this-site-with-coding-agents'
     const html = await (await request.get(`http://127.0.0.1:8787${post}`)).text()
-    const ld = JSON.parse(/<script type="application\/ld\+json">(.+?)<\/script>/.exec(html)?.[1] ?? '{}')
-    expect(ld).toMatchObject({ '@type': 'BlogPosting', author: { name: 'Kishore M' }, url: `https://kichoow.com${post}` })
+    const node = jsonLd(html)
+    const ld = node('BlogPosting')!
+    expect(ld).toMatchObject({ author: { '@id': 'https://kichoow.com/#person' }, isPartOf: { '@id': 'https://kichoow.com/blog#blog' }, url: `https://kichoow.com${post}` })
+    expect(node('Person')).toMatchObject({ '@id': 'https://kichoow.com/#person', name: 'Kishore M' })
+    expect(node('BreadcrumbList')?.itemListElement.map((i: { item: string }) => i.item)).toEqual(['https://kichoow.com/', 'https://kichoow.com/blog', `https://kichoow.com${post}`])
     expect(ld.datePublished).toMatch(/^\d{4}-\d{2}-\d{2}$/)
     expect(html).toContain(`<link rel="canonical" href="https://kichoow.com${post}">`)
     expect(html).toContain('application/rss+xml')
