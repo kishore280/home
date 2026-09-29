@@ -60,6 +60,7 @@ kishore's personal site, live at **https://kichoow.com**. React 19 + TypeScript 
 ### Other tips
 
 - A new git worktree has no `node_modules`: run `npm ci` in it first (the session hook installs only the main checkout).
+- Fonts do not move when they load: fontaine (`vite.config.ts`) makes local fallback fonts sized like Nunito and Pixelify Sans; their names are in `--body` and `--display`. A Linux test machine needs Noto Sans (`fonts-noto-core`; the session hook installs it), or the layout shift test can fail now and then.
 - The tests reuse a server already on port 8787 (`reuseExistingServer`). Stop any other `wrangler dev` first, or the tests check that one.
 - Only the 88×31 buttons go in `/.well-known/button.json`: the draft is for 88×31 buttons, not blinkies or stamps.
 

@@ -16,8 +16,8 @@
   --face: #3a3150;
   --accent-light: #c9b6f5;
   --accent-deep: #7d62c9;
-  --body: 'Nunito Variable', ui-rounded, system-ui, sans-serif;
-  --display: 'Pixelify Sans Variable', 'Nunito Variable', system-ui, sans-serif;
+  --body: 'Nunito Variable', 'Nunito Variable fallback', ui-rounded, system-ui, sans-serif;
+  --display: 'Pixelify Sans Variable', 'Pixelify Sans Variable fallback', 'Nunito Variable', system-ui, sans-serif;
   --radius: 16px;
   color-scheme: light;
 }

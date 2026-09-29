@@ -43,6 +43,7 @@
     "@vitejs/plugin-react": "^6.1.1",
     "beasties": "^0.5.4",
     "feed": "^6.0.0",
+    "fontaine": "^1.0.0",
     "gifenc": "^1.0.3",
     "microformats-parser": "^2.0.6",
     "opentype.js": "^2.0.0",

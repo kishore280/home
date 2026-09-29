@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import mdx from '@mdx-js/rollup'
 import react from '@vitejs/plugin-react'
 import remarkFrontmatter from 'remark-frontmatter'
+import { FontaineTransform } from 'fontaine'
 import { defineConfig, type Plugin } from 'vite'
 import csp from 'vite-plugin-csp-guard'
 import { readPosts } from './blog.ts'
@@ -23,6 +24,11 @@ const sharedHead = (): Plugin => ({
 export default defineConfig({
   plugins: [
     sharedHead(),
+    // A local fallback font sized like each web font (metrics read from the Fontsource files), so
+    // nothing moves when the web font arrives (web.dev "Optimize CLS": font-display and size-adjust).
+    // The names go in --body and --display in src/index.css. The list covers macOS, Windows,
+    // Android and Linux.
+    FontaineTransform.vite({ fallbacks: ['Helvetica Neue', 'Arial', 'Segoe UI', 'Roboto', 'Noto Sans', 'DejaVu Sans'] }),
     // Blog posts (posts/*.md) become React components; the front matter is only read, not shown
     // (MDX docs: "Vite" and "Frontmatter"). MDX runs before the React plugin.
     { enforce: 'pre', ...mdx({ remarkPlugins: [remarkFrontmatter] }) },
