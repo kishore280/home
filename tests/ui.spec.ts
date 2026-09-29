@@ -316,7 +316,7 @@ test.describe('home page', () => {
 
   test('button-wall tools find the buttons in /.well-known/button.json (IETF draft 00), with a GIF and its SHA-256 each', async ({ page }) => {
     await page.goto('/')
-    await expect(page).toHaveTitle('kish')
+    await expect(page).toHaveTitle('Kishore M · AI agents developer in Chennai')
     const info = await page.evaluate(async () => {
       const r = await fetch('/.well-known/button.json')
       const json = await r.json()
@@ -370,8 +370,19 @@ test.describe('home page', () => {
       uid: ['https://kichoow.com/'],
       photo: ['https://kichoow.com/icon-512.png'],
       note: ['hands-on with AI agents development.'],
+      'job-title': ['Software engineer'],
+      locality: ['Chennai'],
     })
     expect(card?.properties.url).toEqual(['https://kichoow.com/', ...(rels.me ?? [])])
+    // Search engines read the same facts from the JSON-LD Person.
+    const ld = JSON.parse(/<script type="application\/ld\+json">(.+?)<\/script>/.exec(html)?.[1] ?? '{}')
+    expect(ld.mainEntity).toMatchObject({
+      '@type': 'Person',
+      name: 'Kishore M',
+      jobTitle: 'Software engineer',
+      homeLocation: { address: { addressLocality: 'Chennai', addressCountry: 'IN' } },
+      sameAs: rels.me,
+    })
     // The <data> tags draw nothing: the heading still reads as before.
     await page.goto('/')
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('hi, i’m kishore')

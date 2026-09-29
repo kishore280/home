@@ -21,8 +21,13 @@ export function seo(buildDate: string): Plugin {
     dateModified: buildDate,
     mainEntity: {
       '@type': 'Person',
-      name: 'Kishore',
-      alternateName: 'kish',
+      name: site.fullName,
+      alternateName: [site.name, site.nickname],
+      description: site.description,
+      jobTitle: site.jobTitle,
+      knowsAbout: site.knowsAbout,
+      homeLocation: { '@type': 'Place', address: { '@type': 'PostalAddress', addressLocality: site.city, addressCountry: site.country } },
+      image: `${site.url}/icon-512.png`,
       url,
       sameAs: links.map((l) => l.href),
     },
@@ -33,7 +38,7 @@ export function seo(buildDate: string): Plugin {
     `<title>${esc(p.title)}</title>`,
     `<meta name="description" content="${esc(p.description)}" />`,
     `<meta property="og:type" content="${p.type}" />`,
-    `<meta property="og:site_name" content="${esc(site.title)}" />`,
+    `<meta property="og:site_name" content="${esc(site.nickname)}" />`,
     `<meta property="og:title" content="${esc(p.title)}" />`,
     `<meta property="og:description" content="${esc(p.description)}" />`,
     `<meta property="og:url" content="${p.url}" />`,
@@ -98,9 +103,11 @@ export function seo(buildDate: string): Plugin {
 `
 
   // Optional and experimental for AI tools: a short, factual summary. No ranking claims.
-  const llms = `# ${site.title}
+  const llms = `# ${site.fullName} (${site.nickname})
 
 > ${site.description}
+
+${site.jobTitle} in ${site.city}, India. Works with ${site.knowsAbout.join(', ')}. Open to AI and agent developer roles; happy to relocate.
 
 A small personal site with a mascot that follows kish's day in India time (IST), a live clock, the latest public GitHub activity, and 88×31 buttons for the things kish likes.
 

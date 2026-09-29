@@ -2,16 +2,24 @@
 
 export const site = {
   name: 'kishore',
+  // The short name on the page and in page titles ("now · kish").
+  nickname: 'kish',
+  // Who the site is about, for search engines (JSON-LD Person) and IndieWeb tools (h-card).
+  fullName: 'Kishore M',
+  jobTitle: 'Software engineer',
+  city: 'Chennai',
+  country: 'IN',
+  knowsAbout: ['AI agents', 'RAG', 'LLM applications', 'TypeScript', 'React', 'Cloudflare Workers'],
   // The public address of the site, no trailing slash. Used for canonical, sitemap and share cards.
   url: 'https://kichoow.com',
-  // Search results and share cards. Only real facts about kish.
-  title: 'kish',
+  // Search results and share cards. Only real facts about kish: what a recruiter searches for first.
+  title: 'Kishore M · AI agents developer in Chennai',
   description:
-    'Kishore’s corner of the internet: code and AI agents, badminton, beach runs, chai, parotta and a Himalayan, from beach-side South India.',
+    'Kishore M, a software engineer in Chennai who builds AI agents and RAG apps. Open to AI and agent developer roles, happy to relocate. Also: chai and beach runs.',
   // One sentence under "hi, i'm …".
   intro: 'hands-on with AI agents development.',
   // A few lines about you. Each string is one paragraph.
-  about: [] as string[],
+  about: ['software engineer in Chennai · open to AI and agent developer roles, happy to relocate.'],
   // IANA time zone for the live clock.
   timeZone: 'Asia/Kolkata',
   email: '',
