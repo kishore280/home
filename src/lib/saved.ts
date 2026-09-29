@@ -10,7 +10,9 @@ import { load, save } from './storage'
 // The saved answer is used only after hydration (useIsClient), so the first render still matches
 // the pre-rendered HTML. The key is also read by the head script in src/head.html, which sizes the
 // loading lines before the first paint.
-export const savedKey = (key: string) => `swr ${key}`
+// A `v` in the URL (a version that only makes a fresh request, as in YearHeatmap) is left out, so
+// each new version shows the last answer until its own arrives.
+export const savedKey = (key: string) => `swr ${key.replace(/[?&]v=[^&]*/, '')}`
 
 function parse<T>(text: string | null): T | undefined {
   try {

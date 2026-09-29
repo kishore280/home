@@ -190,7 +190,7 @@ async function summary(env: Env): Promise<Response> {
 // The heatmap windows: 12 weeks (the default view) or the year.
 const RANGES = new Set([84, 365])
 
-// GET /api/log/days?range=84: the day totals of every kind for the last 84 (or 365) days in IST,
+// GET /api/log/days?range=84&v=<newest entry>: the day totals of every kind for the last 84 (or 365) days in IST,
 // as [day, kind, count], in no order (no ORDER BY, so SQLite needs no sort; the page sorts). One primary-key range read per kind: at most 4 x 84 rows.
 // The answer is kept for 60 s in the data centre's cache (Workers Cache API), so most visits read
 // no rows at all. https://developers.cloudflare.com/workers/runtime-apis/cache/
@@ -203,8 +203,10 @@ export async function days(request: Request, env: Env, ctx: ExecutionContext): P
   const old = url.searchParams.get('kind')
   const range = old ? 365 : Number(url.searchParams.get('range') ?? 84)
   if (!RANGES.has(range)) return fail('range is 84 or 365.')
-  // One cache key per range, whatever else is in the URL.
-  const key = new Request(`${url.origin}${url.pathname}?range=${range}${old ? `&kind=${encodeURIComponent(old)}` : ''}`)
+  // One cache key per range and version (the page's time of the newest entry, so a new entry is
+  // never answered from an older copy), whatever else is in the URL.
+  const v = url.searchParams.get('v')?.slice(0, 40) ?? ''
+  const key = new Request(`${url.origin}${url.pathname}?range=${range}&v=${encodeURIComponent(v)}${old ? `&kind=${encodeURIComponent(old)}` : ''}`)
   const cached = await caches.default.match(key)
   if (cached) return cached
   const now = Date.now()

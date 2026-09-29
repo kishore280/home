@@ -1047,7 +1047,7 @@ test.describe('photos (shared Google Photos album)', () => {
     const body = await res.json()
     expect(Object.keys(body)).toEqual(['photos'])
     // Real Google: the album may be unreachable from here, then the list is empty (the card hides).
-    expect(body.photos.length).toBeLessThanOrEqual(6)
+    expect(body.photos.length).toBeLessThanOrEqual(60) // SHOWN in worker/photos.ts: the viewer swipes up to 60
     for (const p of body.photos) expect(p.url).toMatch(/^https:\/\/lh3\.googleusercontent\.com\//)
     const added = body.photos.map((p: { added: string }) => p.added)
     expect(added).toEqual([...added].sort().reverse()) // newest first
@@ -1383,6 +1383,32 @@ test.describe('counts card', () => {
     await expect(card.locator('.heat rect[data-date]')).toHaveCount(84)
     await expect(card).toContainText('last 12 weeks')
     expect(ranges).toEqual(['365', '84'])
+  })
+
+  test('my days: a chai logged while the page is open shows in the grid at the next minute, like the counts', async ({ page, context }) => {
+    let logged = false
+    const earlier = new Date(Date.parse(at) - 3600_000).toISOString()
+    await context.route('**/api/log', (r) =>
+      r.fulfill({ json: logReply({ chai: { today: logged ? 1 : 0, month: 1, year: 1, total: 1, last: logged ? at : earlier } }) }),
+    )
+    const asked: string[] = []
+    await context.route('**/api/log/days?**', (r) => {
+      asked.push(new URL(r.request().url()).searchParams.get('v')!)
+      return r.fulfill({ json: daysReply(365, logged ? { [daysAgo(1)]: { chai: 1 }, [istToday()]: { chai: 1 } } : { [daysAgo(1)]: { chai: 1 } }) })
+    })
+    await page.clock.install()
+    await page.goto('/')
+    const note = page.locator('#year .heat-day')
+    await expect(note).toContainText('(today): nothing logged')
+    // A chai from the phone; the counts ask again a minute later and see the newer entry.
+    // (runFor, not fastForward: SWR sets its next timer only after each answer.)
+    logged = true
+    await page.clock.runFor(61_000)
+    await expect(page.locator('#counts')).toContainText('1 today')
+    await expect(note).toContainText('(today): 1 chai')
+    await expect(page.locator(`#year rect[data-date="${istToday()}"]`)).toHaveAttribute('data-level', '1')
+    // The new entry's time is in the URL, so no cached copy from before it can answer.
+    expect(asked).toEqual([earlier, at])
   })
 
   test('a day row of a kind the counts do not show (the two answers from different moments) breaks nothing', async ({ page, context }) => {

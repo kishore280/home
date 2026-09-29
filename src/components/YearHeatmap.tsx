@@ -74,8 +74,11 @@ export function YearHeatmap() {
   const [range, setRange] = useState<number>(365)
   const [picked, setPicked] = useState<string | null>(null)
   const kind = kinds.find((k) => k.kind === choice)
-  // No timer: day totals change slowly; SWR reloads when the visitor comes back to the tab.
-  const { data } = useSaved<LogDays>(kinds.length ? `/api/log/days?range=${range}` : null)
+  // No timer of its own: the URL carries the time of the newest entry, so when /api/log (every
+  // minute) shows a new one, the day totals are asked for again, past every cached copy (a
+  // versioned cache key). SWR also reloads when the visitor comes back to the tab.
+  const newest = kinds.reduce((a, k) => (k.last! > a ? k.last! : a), '')
+  const { data } = useSaved<LogDays>(kinds.length ? `/api/log/days?range=${range}&v=${encodeURIComponent(newest)}` : null)
   const calendar = useRef<HTMLElement>(null)
   const client = useIsClient()
 
