@@ -12,8 +12,9 @@ export const site = {
   knowsAbout: ['AI agents', 'RAG', 'LLM applications', 'TypeScript', 'React', 'Cloudflare Workers'],
   // The public address of the site, no trailing slash. Used for canonical, sitemap and share cards.
   url: 'https://kichoow.com',
-  // Search results and share cards. Only real facts about kish: what a recruiter searches for first.
-  title: 'Kishore M · AI agents developer in Chennai',
+  // The browser tab and share cards: "kish". Search engines get the full name, job and city from the
+  // description and the JSON-LD Person (seo.ts).
+  title: 'kish',
   description:
     'Kishore M, a software engineer in Chennai who builds AI agents and RAG apps. Open to AI and agent developer roles, happy to relocate. Also: chai and beach runs.',
   // One sentence under "hi, i'm …".
@@ -123,7 +124,7 @@ export const nowPage: TextPage = {
 
 // /blog: the list of posts (the posts themselves are posts/*.md; how to write one: AGENTS.md).
 export const blogPage = {
-  title: 'writing · Kishore M',
+  title: 'writing · kish',
   description: 'Posts by Kishore M on building AI agents, RAG apps and this site with coding agents.',
   heading: 'writing',
 }

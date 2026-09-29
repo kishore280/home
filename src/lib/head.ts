@@ -34,7 +34,7 @@ export const feedLink = `<link rel="alternate" type="application/rss+xml" title=
 export function postHead(post: Post) {
   const url = `${site.url}/blog/${post.slug}`
   return [
-    ...meta({ title: `${post.title} · ${site.fullName}`, description: post.description, url, type: 'article' }),
+    ...meta({ title: `${post.title} · ${site.nickname}`, description: post.description, url, type: 'article' }),
     `<meta property="article:published_time" content="${post.date}" />`,
     ...(post.updated ? [`<meta property="article:modified_time" content="${post.updated}" />`] : []),
     `<link rel="canonical" href="${url}" />`,

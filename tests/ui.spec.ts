@@ -316,7 +316,7 @@ test.describe('home page', () => {
 
   test('button-wall tools find the buttons in /.well-known/button.json (IETF draft 00), with a GIF and its SHA-256 each', async ({ page }) => {
     await page.goto('/')
-    await expect(page).toHaveTitle('Kishore M · AI agents developer in Chennai')
+    await expect(page).toHaveTitle('kish')
     const info = await page.evaluate(async () => {
       const r = await fetch('/.well-known/button.json')
       const json = await r.json()
@@ -754,14 +754,14 @@ test.describe('blog', () => {
     const title = await first.textContent()
     await card.getByRole('link', { name: 'all posts →' }).click()
     await expect(page).toHaveURL('/blog')
-    await expect(page).toHaveTitle('writing · Kishore M')
+    await expect(page).toHaveTitle('writing · kish')
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('writing')
     await expect(page.getByRole('heading', { level: 2 }).first()).toHaveText(/^\d{4}$/)
     await expect(page.getByRole('link', { name: 'RSS feed' })).toHaveAttribute('href', '/blog/rss.xml')
     await page.getByRole('link', { name: title! }).click()
     await expect(page).toHaveURL(/\/blog\/[a-z0-9-]+$/)
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(title!)
-    await expect(page).toHaveTitle(`${title} · Kishore M`)
+    await expect(page).toHaveTitle(`${title} · kish`)
     await expect(page.locator('.post-meta')).toContainText(/min read/)
     await expect(page.locator('.post-foot')).toContainText('written by kish with')
     await expect(page.locator('.post-foot .chai-icon')).toBeVisible()
