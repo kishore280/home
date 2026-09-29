@@ -3,54 +3,27 @@
 // from src/data.ts so they never drift from the page. Follows .claude/skills/seo-mastery.
 import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
+import { Feed } from 'feed'
 import type { Plugin } from 'vite'
-import { colophonPage, links, logPage, myButtons, notFound, nowPage, offlineNote, site } from './src/data.ts'
+import { blogPage, colophonPage, links, logPage, myButtons, notFound, nowPage, offlineNote, site } from './src/data.ts'
+import { blogLd, breadcrumbLd, feedLink, graph, ids, meta, personLd, websiteLd } from './src/lib/head.ts'
+import { postCard, postMarkdown } from './blog.ts'
+import type { Post } from './src/lib/posts.ts'
 
-const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')
-
-export function seo(buildDate: string): Plugin {
+export function seo(posts: Post[]): Plugin {
   const url = `${site.url}/`
-  const image = `${site.url}/og.png`
-  const imageAlt = 'kish’s lavender mascot next to a row of 88×31 buttons: beach, running, badminton, parotta, Himalayan, chai and coding'
+  const blogUrl = `${site.url}/blog`
+  // The sitemap's dates are when each page's content changed, never the build time (Google trusts a
+  // lastmod only when it is true). The home page shows the newest of /now, /colophon and the posts.
+  const dayOf = (s?: string) => (s ? s.slice(0, 10) : '')
+  const homeDate = [nowPage.updated, colophonPage.updated, posts[0]?.date].map(dayOf).sort().at(-1)!
 
-  // ProfilePage + Person: who the site is about, and where else they are.
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'ProfilePage',
-    url,
-    dateModified: buildDate,
-    mainEntity: {
-      '@type': 'Person',
-      name: site.fullName,
-      alternateName: [site.name, site.nickname],
-      description: site.description,
-      jobTitle: site.jobTitle,
-      knowsAbout: site.knowsAbout,
-      homeLocation: { '@type': 'Place', address: { '@type': 'PostalAddress', addressLocality: site.city, addressCountry: site.country } },
-      image: `${site.url}/icon-512.png`,
-      url,
-      sameAs: links.map((l) => l.href),
-    },
-  }
-
-  // Title, description and share-card tags for one page.
-  const meta = (p: { title: string; description: string; url: string; type: string }) => [
-    `<title>${esc(p.title)}</title>`,
-    `<meta name="description" content="${esc(p.description)}" />`,
-    `<meta property="og:type" content="${p.type}" />`,
-    `<meta property="og:site_name" content="${esc(site.nickname)}" />`,
-    `<meta property="og:title" content="${esc(p.title)}" />`,
-    `<meta property="og:description" content="${esc(p.description)}" />`,
-    `<meta property="og:url" content="${p.url}" />`,
-    `<meta property="og:image" content="${image}" />`,
-    `<meta property="og:image:width" content="1200" />`,
-    `<meta property="og:image:height" content="630" />`,
-    `<meta property="og:image:alt" content="${esc(imageAlt)}" />`,
-    `<meta name="twitter:card" content="summary_large_image" />`,
-    `<meta name="twitter:title" content="${esc(p.title)}" />`,
-    `<meta name="twitter:description" content="${esc(p.description)}" />`,
-    `<meta name="twitter:image" content="${image}" />`,
-  ]
+  // ProfilePage: the home page is about the person (src/lib/head.ts has the linked graph).
+  const profileLd = graph(
+    { '@type': 'ProfilePage', '@id': `${url}#page`, url, dateModified: homeDate, mainEntity: { '@id': ids.person }, isPartOf: { '@id': ids.website } },
+    personLd,
+    websiteLd,
+  )
 
   // The site's app manifest; /log has its own (an installable "kish log" app with shortcuts).
   const manifest = `<link rel="manifest" href="/manifest.webmanifest" />`
@@ -59,7 +32,8 @@ export function seo(buildDate: string): Plugin {
       manifest,
       ...meta({ title: site.title, description: site.description, url, type: 'profile' }),
       `<link rel="canonical" href="${url}" />`,
-      `<script type="application/ld+json">${JSON.stringify(jsonLd).replace(/</g, '\\u003c')}</script>`,
+      ...(posts.length ? [feedLink] : []),
+      profileLd,
     ],
     // A secret page with a short note: shareable, but kept out of search and the sitemap.
     'offline.html': [
@@ -75,6 +49,15 @@ export function seo(buildDate: string): Plugin {
       ...meta({ ...colophonPage, url: `${site.url}/colophon`, type: 'website' }),
       `<link rel="canonical" href="${site.url}/colophon" />`,
     ],
+    // The blog: the list, and one template that the pre-render fills per post (src/lib/head.ts).
+    'blog.html': [
+      manifest,
+      ...meta({ ...blogPage, url: blogUrl, type: 'website' }),
+      `<link rel="canonical" href="${blogUrl}" />`,
+      feedLink,
+      graph(blogLd, personLd, breadcrumbLd([blogPage.heading, blogUrl])),
+    ],
+    'post.html': [manifest, '<!-- page-head -->'],
     // Private: not in search or the sitemap.
     'log.html': [
       `<link rel="manifest" href="/log.webmanifest" />`,
@@ -89,18 +72,47 @@ export function seo(buildDate: string): Plugin {
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>${url}</loc>
-    <lastmod>${buildDate.slice(0, 10)}</lastmod>
+    <lastmod>${homeDate}</lastmod>
   </url>
   <url>
     <loc>${site.url}/now</loc>
-    <lastmod>${nowPage.updated ?? buildDate.slice(0, 10)}</lastmod>
+    <lastmod>${dayOf(nowPage.updated) || homeDate}</lastmod>
   </url>
   <url>
     <loc>${site.url}/colophon</loc>
-    <lastmod>${buildDate.slice(0, 10)}</lastmod>
-  </url>
+    <lastmod>${dayOf(colophonPage.updated) || homeDate}</lastmod>
+  </url>${posts.length ? `
+  <url>
+    <loc>${blogUrl}</loc>
+    <lastmod>${posts[0].date}</lastmod>
+  </url>` : ''}${posts
+    .map(
+      (p) => `
+  <url>
+    <loc>${blogUrl}/${p.slug}</loc>
+    <lastmod>${p.updated ?? p.date}</lastmod>
+  </url>`,
+    )
+    .join('')}
 </urlset>
 `
+
+  // The blog's RSS feed (the feed library), newest first: title, summary and link of each post.
+  const rss = () => {
+    const feed = new Feed({
+      title: `${site.nickname}’s blog`,
+      description: blogPage.description,
+      id: blogUrl,
+      link: blogUrl,
+      language: 'en',
+      feedLinks: { rss: `${blogUrl}/rss.xml` },
+      author: { name: site.fullName, link: url },
+      updated: posts[0] ? new Date(posts[0].updated ?? posts[0].date) : undefined,
+    })
+    for (const p of posts)
+      feed.addItem({ title: p.title, id: `${blogUrl}/${p.slug}`, link: `${blogUrl}/${p.slug}`, description: p.description, date: new Date(p.date), category: p.tags.map((name) => ({ name })) })
+    return feed.rss2()
+  }
 
   // Optional and experimental for AI tools: a short, factual summary. No ranking claims.
   const llms = `# ${site.fullName} (${site.nickname})
@@ -114,7 +126,17 @@ A small personal site with a mascot that follows kish's day in India time (IST),
 ## Links
 
 ${[{ label: 'Website', href: url }, ...links].map((l) => `- [${l.label}](${l.href})`).join('\n')}
-`
+${posts.length ? `
+## Blog
+
+Each post as Markdown (the page is the same address without .md). Every post in one file: ${site.url}/llms-full.txt
+
+${posts.map((p) => `- [${p.title}](${blogUrl}/${p.slug}.md): ${p.description}`).join('\n')}
+` : ''}`
+
+  // Every post in full, in one file for AI tools (llmstxt.org's llms-full.txt).
+  const llmsFull = () =>
+    [`# ${site.fullName} (${site.nickname}): blog`, '', `> ${blogPage.description}`, '', `Written by ${site.fullName}. When you quote or sum up a post, name the author and link the canonical address.`, '', ...posts.map((p) => postMarkdown(p))].join('\n')
 
   // /.well-known/button.json: the 88×31 buttons for button-wall tools, per the IETF draft "The Well
   // Known Button Information Specification" (draft-filmroellchen-lunar-well-known-button-00). The
@@ -145,10 +167,16 @@ ${[{ label: 'Website', href: url }, ...links].map((l) => `- [${l.label}](${l.hre
       if (!page) throw new Error(`seo: no head for ${ctx.filename}`)
       return html.replace('<!-- seo -->', page.join('\n    '))
     },
-    generateBundle() {
+    async generateBundle() {
       this.emitFile({ type: 'asset', fileName: 'robots.txt', source: robots })
       this.emitFile({ type: 'asset', fileName: 'sitemap.xml', source: sitemap })
       this.emitFile({ type: 'asset', fileName: 'llms.txt', source: llms })
+      if (posts.length) this.emitFile({ type: 'asset', fileName: 'blog/rss.xml', source: rss() })
+      for (const p of posts) {
+        this.emitFile({ type: 'asset', fileName: `og/blog/${p.slug}.png`, source: await postCard(p) })
+        this.emitFile({ type: 'asset', fileName: `blog/${p.slug}.md`, source: postMarkdown(p) })
+      }
+      if (posts.length) this.emitFile({ type: 'asset', fileName: 'llms-full.txt', source: llmsFull() })
       this.emitFile({ type: 'asset', fileName: '.well-known/button.json', source: buttonJson() })
     },
   }

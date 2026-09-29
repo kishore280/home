@@ -2,7 +2,7 @@
 // Parts that depend on the visitor's clock are left for the client (see src/lib/client.ts).
 // Then Beasties inlines the (small) stylesheet, so the first paint needs no extra request.
 import Beasties from 'beasties'
-import { readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 
 const { pages } = await import('../dist-server/entry-server.js')
 const marker = '<div id="root"></div>'
@@ -42,15 +42,20 @@ console.log(`Counts loading lines: ${shape.trim() || 'all (live log not reached)
 // Read every built page first: a page can start from another one (offline-now.html from offline.html).
 const built = Object.fromEntries(Object.entries(pages).map(([page, { from = page }]) => [page, readFileSync(new URL(`../dist/${from}`, import.meta.url), 'utf8')]))
 
-for (const [page, { render }] of Object.entries(pages)) {
+for (const [page, { render, head }] of Object.entries(pages)) {
   const file = new URL(`../dist/${page}`, import.meta.url)
   const html = built[page]
   if (!html.includes(marker)) throw new Error(`prerender: ${marker} not found in the page for dist/${page}`)
+  if (head && !html.includes('<!-- page-head -->')) throw new Error(`prerender: <!-- page-head --> not found for dist/${page}`)
+  mkdirSync(new URL('.', file), { recursive: true })
   const rendered = html
+    .replace('<!-- page-head -->', head ?? '')
     .replace(/<html([^>]*)>/, (_, attrs) => `<html${attrs}${shape}>`)
     .replace(/<meta charset[^>]*>/, (m) => m + fonts)
     .replace(marker, `<div id="root">${render()}</div>`)
   writeFileSync(file, await beasties.process(rendered))
   console.log(`Pre-rendered dist/${page}`)
 }
+// A template that is not a page itself (post.html) is not served.
+for (const { from } of Object.values(pages)) if (from && !pages[from]) rmSync(new URL(`../dist/${from}`, import.meta.url), { force: true })
 rmSync(new URL('../dist-server', import.meta.url), { recursive: true, force: true })

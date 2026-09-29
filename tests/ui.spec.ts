@@ -107,6 +107,13 @@ async function mascotReady(page: Page) {
   await expect(page.locator('.mascot .small')).toContainText(/time|sleeping/)
 }
 
+// The JSON-LD graph of a served page (src/lib/head.ts): its nodes, by @type.
+function jsonLd(html: string) {
+  const ld = JSON.parse(/<script type="application\/ld\+json">(.+?)<\/script>/.exec(html)?.[1] ?? '{}')
+  const nodes: Record<string, unknown>[] = ld['@graph'] ?? []
+  return (type: string) => nodes.find((n) => n['@type'] === type) as Record<string, any> | undefined
+}
+
 async function openMenu(page: Page, press: (t: Locator) => Promise<void>) {
   await expect(page.locator('[data-sonner-toast]')).toHaveCount(0, { timeout: 15_000 })
   await press(page.locator('.link-button'))
@@ -316,7 +323,7 @@ test.describe('home page', () => {
 
   test('button-wall tools find the buttons in /.well-known/button.json (IETF draft 00), with a GIF and its SHA-256 each', async ({ page }) => {
     await page.goto('/')
-    await expect(page).toHaveTitle('Kishore M · AI agents developer in Chennai')
+    await expect(page).toHaveTitle('kish')
     const info = await page.evaluate(async () => {
       const r = await fetch('/.well-known/button.json')
       const json = await r.json()
@@ -357,7 +364,13 @@ test.describe('home page', () => {
     await expect(page).toHaveURL('/')
     // Both are in the sitemap, with a canonical address each.
     const sitemap = await (await request.get('http://127.0.0.1:8787/sitemap.xml')).text()
-    for (const path of ['/now', '/colophon']) expect(sitemap).toContain(`https://kichoow.com${path}<`)
+    for (const path of ['/now', '/colophon']) {
+      expect(sitemap).toContain(`https://kichoow.com${path}<`)
+      // Its date is the page's own "Updated" date, not the build time.
+      const lastmod = new RegExp(`<loc>https://kichoow\\.com${path}</loc>\\s*<lastmod>([\\d-]+)</lastmod>`).exec(sitemap)?.[1]
+      await page.goto(path)
+      await expect(page.locator('.text-page time')).toHaveAttribute('datetime', lastmod!)
+    }
   })
 
   test('IndieWeb tools read an h-card from the served HTML: name, address, photo and the rel="me" profiles', async ({ page, request }) => {
@@ -375,9 +388,13 @@ test.describe('home page', () => {
     })
     expect(card?.properties.url).toEqual(['https://kichoow.com/', ...(rels.me ?? [])])
     // Search engines read the same facts from the JSON-LD Person.
-    const ld = JSON.parse(/<script type="application\/ld\+json">(.+?)<\/script>/.exec(html)?.[1] ?? '{}')
-    expect(ld.mainEntity).toMatchObject({
-      '@type': 'Person',
+    // One linked graph: the page is about the Person, on the WebSite (named "kish" for Google).
+    const node = jsonLd(html)
+    expect(node('ProfilePage')).toMatchObject({ mainEntity: { '@id': 'https://kichoow.com/#person' }, isPartOf: { '@id': 'https://kichoow.com/#website' } })
+    expect(node('WebSite')).toMatchObject({ '@id': 'https://kichoow.com/#website', name: 'kish', alternateName: 'Kishore M', publisher: { '@id': 'https://kichoow.com/#person' } })
+    expect(node('ProfilePage')?.dateModified).toMatch(/^\d{4}-\d{2}-\d{2}$/) // a real change date, not the build time
+    expect(node('Person')).toMatchObject({
+      '@id': 'https://kichoow.com/#person',
       name: 'Kishore M',
       jobTitle: 'Software engineer',
       homeLocation: { address: { addressLocality: 'Chennai', addressCountry: 'IN' } },
@@ -739,6 +756,92 @@ test.describe('offline page', () => {
   })
 })
 
+test.describe('blog', () => {
+  test('the home card lists the newest posts; /blog lists them all by year; each opens its post', async ({ page, press }) => {
+    const errors: string[] = []
+    page.on('pageerror', (e) => errors.push(e.message))
+    page.on('console', (m) => m.type() === 'error' && /hydrat|did not match/i.test(m.text()) && errors.push(m.text()))
+    await page.goto('/')
+    const card = page.locator('.card', { has: page.getByRole('heading', { name: 'writing' }) })
+    const first = card.locator('.post-rows a').first()
+    await expect(first).toBeVisible()
+    expect(await card.locator('.post-rows li').count()).toBeLessThanOrEqual(3)
+    await expect(card.locator('.post-rows time').first()).toHaveAttribute('datetime', /^\d{4}-\d{2}-\d{2}$/)
+    await expect(page.getByRole('navigation', { name: 'More about kish' }).getByRole('link', { name: 'blog' })).toHaveAttribute('href', '/blog')
+    const title = await first.textContent()
+    await card.getByRole('link', { name: 'all posts →' }).click()
+    await expect(page).toHaveURL('/blog')
+    await expect(page).toHaveTitle('writing · kish')
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('writing')
+    await expect(page.getByRole('heading', { level: 2 }).first()).toHaveText(/^\d{4}$/)
+    await expect(page.getByRole('link', { name: 'RSS feed' })).toHaveAttribute('href', '/blog/rss.xml')
+    await page.getByRole('link', { name: title! }).click()
+    await expect(page).toHaveURL(/\/blog\/[a-z0-9-]+$/)
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(title!)
+    await expect(page).toHaveTitle(`${title} · kish`)
+    await expect(page.locator('.post-meta')).toContainText(/min read/)
+    await expect(page.locator('.post-foot')).toContainText('written by kish with')
+    await expect(page.locator('.post-foot .chai-icon')).toBeVisible()
+    // Code is coloured at build time (Shiki, Rosé Pine: Dawn in light, Moon in dark), and a button copies it.
+    const code = page.locator('.prose .code').first()
+    await expect(code.locator('pre.shiki')).toHaveClass(/rose-pine-dawn rose-pine-moon/)
+    await press(code.getByRole('button', { name: 'copy' }))
+    await expect(code.getByRole('button', { name: 'copied' })).toBeVisible()
+    expect(await page.evaluate(() => window.__copies)).toEqual([await code.locator('pre').innerText()])
+    await page.getByRole('link', { name: 'writing', exact: false }).first().click()
+    await expect(page).toHaveURL('/blog')
+    expect(errors).toEqual([])
+  })
+
+  test('a post is for search engines, feed readers and IndieWeb tools: BlogPosting, canonical, RSS, h-entry, sitemap', async ({ request }) => {
+    const post = '/blog/show-what-you-listen-to-with-pano-scrobbler'
+    const html = await (await request.get(`http://127.0.0.1:8787${post}`)).text()
+    const node = jsonLd(html)
+    const ld = node('BlogPosting')!
+    expect(ld).toMatchObject({ author: { '@id': 'https://kichoow.com/#person' }, isPartOf: { '@id': 'https://kichoow.com/blog#blog' }, url: `https://kichoow.com${post}` })
+    expect(node('Person')).toMatchObject({ '@id': 'https://kichoow.com/#person', name: 'Kishore M' })
+    expect(node('BreadcrumbList')?.itemListElement.map((i: { item: string }) => i.item)).toEqual(['https://kichoow.com/', 'https://kichoow.com/blog', `https://kichoow.com${post}`])
+    expect(ld.datePublished).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    expect(html).toContain(`<link rel="canonical" href="https://kichoow.com${post}">`)
+    expect(html).toContain('application/rss+xml')
+    // Its own share card: a 1200×630 PNG drawn at build time (blog.ts).
+    const card = `/og/blog/show-what-you-listen-to-with-pano-scrobbler.png`
+    expect(html).toContain(`<meta property="og:image" content="https://kichoow.com${card}">`)
+    expect(ld.image).toBe(`https://kichoow.com${card}`)
+    const png = Buffer.from(await (await request.get(`http://127.0.0.1:8787${card}`)).body())
+    expect(png.subarray(1, 4).toString()).toBe('PNG')
+    expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([1200, 630])
+    // The text is in the served HTML (pre-rendered), not only after JavaScript.
+    const { items } = mf2(html, { baseUrl: 'https://kichoow.com/' })
+    const entry = items.find((i) => i.type?.includes('h-entry'))
+    expect(entry?.properties.name).toEqual([ld.headline])
+    expect(entry?.properties.published).toEqual([ld.datePublished])
+    expect(JSON.stringify(entry?.properties.content)).toContain('Pano Scrobbler')
+    // The feed and the sitemap list it; the template page and an unknown post are not pages.
+    const rss = await request.get('http://127.0.0.1:8787/blog/rss.xml')
+    expect(rss.headers()['content-type']).toContain('xml')
+    expect(await rss.text()).toContain(`<link>https://kichoow.com${post}</link>`)
+    expect(await (await request.get('http://127.0.0.1:8787/sitemap.xml')).text()).toContain(`<loc>https://kichoow.com${post}</loc>`)
+    // For AI tools: a Markdown copy (front matter with the canonical address), kept out of search,
+    // and every post in llms-full.txt; llms.txt points to both.
+    expect(html).toContain(`<link rel="alternate" type="text/markdown" href="https://kichoow.com${post}.md">`)
+    const md = await request.get(`http://127.0.0.1:8787${post}.md`)
+    expect(md.headers()['content-type']).toBe('text/markdown; charset=utf-8')
+    expect(md.headers()['x-robots-tag']).toBe('noindex')
+    const text = await md.text()
+    expect(text).toMatch(new RegExp(`^---\\n[\\s\\S]*canonical: https://kichoow\\.com${post}\\n---\\n\\n# ${ld.headline}\\n`))
+    expect(text).toContain('`GET /1/validate-token`') // the Markdown as written, not HTML
+    const full = await request.get('http://127.0.0.1:8787/llms-full.txt')
+    expect(full.headers()['x-robots-tag']).toBe('noindex')
+    expect(await full.text()).toContain(text)
+    const llms = await (await request.get('http://127.0.0.1:8787/llms.txt')).text()
+    expect(llms).toContain(`(https://kichoow.com${post}.md)`)
+    expect(llms).toContain('https://kichoow.com/llms-full.txt')
+    expect((await request.get('http://127.0.0.1:8787/post')).status()).toBe(404)
+    expect((await request.get('http://127.0.0.1:8787/blog/nope')).status()).toBe(404)
+  })
+})
+
 test.describe('speed', () => {
   // Two data shapes: every kind logged, and the live one (only chai logged). The loading places must
   // match both, or the main column jumps on phones (Lighthouse found 0.3 with only chai).
@@ -794,8 +897,9 @@ test.describe('speed', () => {
   })
 
   // A performance budget, kept in the tests so a change that adds weight fails here and has to
-  // say why (web.dev "Performance budgets 101"). 400 KB is just above today's 387 KB of JavaScript
-  // (before compression) that the home page loads, the lazy chunks included. The heatmap library's
+  // say why (web.dev "Performance budgets 101"). 410 KB is just above today's 403 KB of JavaScript
+  // (before compression) that the home page loads, the lazy chunks included. Raised from 400 KB for
+  // the blog's "writing" card (about 4 KB, 2026-09-29). The heatmap library's
   // tooltip chunk (Floating UI) must never load: the squares use an SVG <title>.
   test('the home page stays within its JavaScript budget', async ({ page }) => {
     await page.goto('/')
@@ -807,7 +911,7 @@ test.describe('speed', () => {
         .map((e) => ({ name: e.name, bytes: e.decodedBodySize })),
     )
     const total = scripts.reduce((sum, e) => sum + e.bytes, 0)
-    expect(total, scripts.map((e) => `${e.name.split('/').pop()} ${e.bytes}`).join(', ')).toBeLessThan(400_000)
+    expect(total, scripts.map((e) => `${e.name.split('/').pop()} ${e.bytes}`).join(', ')).toBeLessThan(410_000)
     expect(scripts.filter((e) => e.name.includes('/assets/Tooltip'))).toEqual([])
   })
 
@@ -1510,7 +1614,7 @@ test.describe('404 and layout', () => {
   })
 
   for (const width of [320, 375]) {
-    for (const path of ['/', '/offline', '/nope', '/log', '/now', '/colophon']) {
+    for (const path of ['/', '/offline', '/nope', '/log', '/now', '/colophon', '/blog', '/blog/show-what-you-listen-to-with-pano-scrobbler']) {
       test(`${width} px wide, ${path}: no sideways scroll`, async ({ page, isMobile }) => {
         test.skip(isMobile, 'the width is set here')
         await page.setViewportSize({ width, height: 800 })
@@ -1551,6 +1655,8 @@ test.describe('accessibility (axe-core)', () => {
     ['404', '/nope', 'dark'],
     ['/now', '/now', 'light'],
     ['/colophon', '/colophon', 'dark'],
+    ['/blog', '/blog', 'light'],
+    ['a blog post', '/blog/show-what-you-listen-to-with-pano-scrobbler', 'dark'],
     ['/log, token form', '/log', 'light'],
     [
       '/log, buttons',

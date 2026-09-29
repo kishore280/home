@@ -12,8 +12,9 @@ export const site = {
   knowsAbout: ['AI agents', 'RAG', 'LLM applications', 'TypeScript', 'React', 'Cloudflare Workers'],
   // The public address of the site, no trailing slash. Used for canonical, sitemap and share cards.
   url: 'https://kichoow.com',
-  // Search results and share cards. Only real facts about kish: what a recruiter searches for first.
-  title: 'Kishore M · AI agents developer in Chennai',
+  // The browser tab and share cards: "kish". Search engines get the full name, job and city from the
+  // description and the JSON-LD Person (seo.ts).
+  title: 'kish',
   description:
     'Kishore M, a software engineer in Chennai who builds AI agents and RAG apps. Open to AI and agent developer roles, happy to relocate. Also: chai and beach runs.',
   // One sentence under "hi, i'm …".
@@ -121,12 +122,21 @@ export const nowPage: TextPage = {
   ],
 }
 
-// /colophon: how this site is made. Keep it true when the stack changes.
+// /blog: the list of posts (the posts themselves are posts/*.md; how to write one: AGENTS.md).
+export const blogPage = {
+  title: 'writing · kish',
+  description: 'Posts by Kishore M on building AI agents, RAG apps and this site with coding agents.',
+  heading: 'writing',
+}
+
+// /colophon: how this site is made. Keep it true when the stack changes, and update the date with it
+// (the sitemap uses it).
 export const colophonPage: TextPage = {
   title: 'colophon · kish',
   description: 'How kichoow.com is made: React, Cloudflare Workers, hand-drawn SVG and free tiers.',
   heading: 'colophon',
   intro: 'How this site is made.',
+  updated: '2026-09-29',
   sections: [
     {
       title: 'code',
@@ -134,6 +144,7 @@ export const colophonPage: TextPage = {
         { text: 'React 19, TypeScript 7 and Vite, pre-rendered to plain HTML', href: 'https://react.dev' },
         { text: 'built with coding agents (Claude Code), with the rules in AGENTS.md', href: 'https://github.com/kishore280/home' },
         { text: '⌘K menu: cmdk; photo viewer: Yet Another React Lightbox; my days: react-activity-calendar' },
+        { text: 'the blog: Markdown files, turned into pages by MDX at build time, with an RSS feed', href: '/blog' },
       ],
     },
     {

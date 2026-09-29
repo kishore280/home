@@ -1,0 +1,36 @@
+# Dead links: every day, and on a pull request that changes them, lychee checks the links in the
+# blog posts, the site's content (src/data.ts) and the README (settings: lychee.toml). A failed
+# daily run sends GitHub's usual failed-workflow email. Free on GitHub Actions.
+name: links
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+  pull_request:
+    paths: ['posts/**', 'src/data.ts', 'README.md', 'lychee.toml', '.github/workflows/links.yml']
+permissions:
+  contents: read
+concurrency:
+  group: links-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  links:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      # The posts: a link like /blog is a page of the live site.
+      - uses: lycheeverse/lychee-action@v2
+        with:
+          args: --config lychee.toml --no-progress --base-url https://kichoow.com/ posts
+          fail: true
+        env:
+          # github.com links: the workflow's own token avoids GitHub's rate limit for anonymous requests.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # The content and the README: a relative link is a file in the repo.
+      - uses: lycheeverse/lychee-action@v2
+        with:
+          args: --config lychee.toml --no-progress src/data.ts README.md
+          fail: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

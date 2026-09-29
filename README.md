@@ -84,7 +84,7 @@ logs check-ins); the Worker stores it in D1 and the counts card updates within s
 - **On the home page:** the counts card has the **chai clock** (chai per hour of the day in IST, for
   all time: `log_hours`, `migrations/0005_log_hours.sql`, kept by three more triggers). Its wedges are
   d3-shape `arc()`, sized with d3-scale `scaleRadial` so the area follows the count
-  ([D3 docs](https://d3js.org/d3-scale/radial)). The **my days** card is a grid of the last
+  ([D3 docs](https://d3js.org/d3-scale/linear#scaleRadial)). The **my days** card is a grid of the last
   year, 12 weeks on request (no number tiles). The default **all** view puts every kind in one grid, like GitHub's
   contribution graph: a day is darker for more different things done. A tap on a day (or the ‹ ›
   buttons) says what it had; the chips show one kind alone. The grid is
@@ -241,6 +241,23 @@ Set up: apply `migrations/0009_scroll_binges.sql` (as step 1 above), install the
 Actions build, turn on its accessibility service, and on its Today screen set **Your site** to
 `https://kichoow.com/api/scroll` with the same token as the music.
 
+## Blog (/blog)
+
+Each post is one Markdown file in `posts/`, named for its address (`posts/my-post.md` → `/blog/my-post`):
+
+```md
+---
+title: How I build this site with coding agents
+description: One or two sentences for search results and the RSS feed.
+date: '2026-09-29'
+tags: [agents, cloudflare]
+---
+
+The text, in Markdown.
+```
+
+`npm run build` does the rest: [MDX](https://mdxjs.com) turns the text into the page, pre-rendered to `dist/blog/<name>.html`, with its own title, description, canonical and JSON-LD `BlogPosting`. The post also goes in `/blog` (by year), the "writing" card on the home page (the newest three), `/blog/rss.xml` ([feed](https://github.com/jpmonette/feed)), `sitemap.xml` and `llms.txt`. Each post gets its own share card, `og/blog/<name>.png` ([satori](https://github.com/vercel/satori) and [resvg](https://github.com/thx/resvg-js), no browser), and, for AI tools, a Markdown copy at `/blog/<name>.md` plus every post in `/llms-full.txt` ([llmstxt.org](https://llmstxt.org)); these two are `noindex` (`public/_headers`), so search shows the HTML page. A post with a missing field, or a date not written as `'YYYY-MM-DD'`, stops the build (`blog.ts`). Add `updated: 'YYYY-MM-DD'` when you change a post. No posts: no card and no link.
+
 ## Deploy (Cloudflare Workers)
 
 The Worker in `worker/` answers `/api/*` and serves the built site from `dist/`.
@@ -256,7 +273,7 @@ Each push to `main` then builds and deploys. From the command line: `npx wrangle
 ## SEO and share cards
 
 - `npm run build` pre-renders the page into `dist/index.html` (`src/entry-server.tsx`, `scripts/prerender.mjs`), so search engines and AI crawlers see the content without running JavaScript. It also inlines the stylesheet ([Beasties](https://github.com/danielroe/beasties)) and preloads the two Latin fonts, so the first paint needs no extra request. Parts that depend on the visitor's clock (mascot mode, local time, counts) render in the browser only (`src/lib/client.ts`).
-- `seo.ts` (a Vite plugin) builds the title, description, canonical, Open Graph / Twitter tags, JSON-LD (`ProfilePage` + `Person`), `robots.txt`, `sitemap.xml` and `llms.txt` from `src/data.ts`. Set `site.url` there to the public address.
+- `seo.ts` (a Vite plugin) builds the title, description, canonical, Open Graph / Twitter tags, JSON-LD, `robots.txt`, `sitemap.xml` and `llms.txt` from `src/data.ts`. The JSON-LD is one linked graph (`src/lib/head.ts`): `Person`, `WebSite` (its `name`, "kish", is the site name Google shows), `Blog`, each `BlogPosting` and a `BreadcrumbList`, joined by `@id`. The sitemap's dates are when each page changed (`updated` in `src/data.ts`, a post's date), never the build time. Set `site.url` there to the public address.
 - `public/og.png` (1200×630) is the share card; `public/apple-touch-icon.png`, `public/icon-512.png` and `public/manifest.webmanifest` are the app icons.
 - **Moving 88×31 buttons:** each `public/button*.svg` animates itself with a little CSS inside the SVG (steam, waves, a bird, the road, sparkles, a blinking cursor; the runner is a 4-frame sprite: contact, passing, then the other leg). It stops with reduced motion. `data-loop` on the `<svg>` is the time after which every animation repeats, and `data-frame` a sprite's frame time.
 - **Blinkies (150×20) and stamps (99×56)**, in their own card below the buttons: the same idea, in the other classic small-web sizes. Their sources are `scripts/og/stamps/*.svg`, with plain `<text>`; an SVG shown as an image cannot load a font, so `npm run og` turns each `<text>` into a `<path>` of Pixelify Sans Bold ([opentype.js](https://opentype.js.org), glyph by glyph) and writes `public/<name>.svg` and a looping `public/<name>.gif`. The list is `myStamps` in `src/data.ts`.
@@ -285,7 +302,7 @@ Each item follows a documented method; the source is in the code comment.
 
 - **Prefetch on hover or touch:** the `Speculation-Rules` header (`public/_headers`) points to `public/speculationrules.json` (prefetch, `moderate`, not `/api/*`), the same rules as Cloudflare Speed Brain, which does not run on Worker routes.
 - **No layout shift:** space is kept for everything that arrives after the first paint: stats, clock, mascot line, and a placeholder line for each late "right now" row ([web.dev: Optimize CLS](https://web.dev/articles/optimize-cls)). A test keeps it below 0.001.
-- **The menu and toasts open at once:** `lazyPreload()` (`src/lib/lazy.tsx`) instead of `React.lazy`, which React 19 holds for 300 ms ([facebook/react#31819](https://github.com/facebook/react/issues/31819); the fix Outline uses). Their code loads when the browser is idle; a failed load shows nothing instead of a blank page.
+- **The menu and toasts open at once:** `lazyPreload()` (`src/lib/lazy.tsx`) instead of `React.lazy`, which React 19 holds for 300 ms ([react/react#31819](https://github.com/react/react/issues/31819); the fix Outline uses). Their code loads when the browser is idle; a failed load shows nothing instead of a blank page.
 - **No flash between pages:** a menu item that opens a page leaves the menu open, and Chrome keeps it on screen until the next page paints ([Paint Holding](https://developer.chrome.com/blog/paint-holding)).
 - **Analytics never slows a click:** Umami sends with `fetch` `keepalive`, so nothing waits for it.
 
@@ -312,6 +329,11 @@ Each item follows a documented method; the source is in the code comment.
 - [Workbox](https://developer.chrome.com/docs/workbox): the service worker
 - [Beasties](https://github.com/danielroe/beasties): inlines the CSS at pre-render
 - [vite-plugin-csp-guard](https://github.com/tsotimus/vite-plugin-csp-guard): the Content-Security-Policy
+- [MDX](https://mdxjs.com) (`@mdx-js/rollup`, `remark-frontmatter`, `vfile-matter`) and [feed](https://github.com/jpmonette/feed): the blog and its RSS feed
+- [Shiki](https://shiki.style) (`@shikijs/rehype`): code in posts, coloured at build time (Rosé Pine Dawn / Moon)
+- [satori](https://github.com/vercel/satori) and [resvg-js](https://github.com/thx/resvg-js): each post's share card
+- [fontaine](https://github.com/unjs/fontaine): fallback fonts sized like the web fonts, so nothing moves when they load
+- [lychee](https://lychee.cli.rs): the daily dead link check (`.github/workflows/links.yml`, `lychee.toml`)
 - [Nunito](https://fonts.google.com/specimen/Nunito) and [Pixelify Sans](https://fonts.google.com/specimen/Pixelify+Sans), through Fontsource
 
 ## Agent skills
