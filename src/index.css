@@ -793,6 +793,22 @@ h2 {
   animation: none;
 }
 
+/* "brain rotting" (RightNow.tsx): the Brainrot app's brain, squishing while the phone scrolls. */
+.brain {
+  width: 22px;
+  height: auto;
+}
+
+.brain.live {
+  animation: squish 1.2s ease-in-out infinite;
+}
+
+@keyframes squish {
+  50% {
+    transform: scale(1.12, 0.9);
+  }
+}
+
 @keyframes eq {
   50% {
     transform: scaleY(1);

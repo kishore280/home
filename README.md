@@ -17,6 +17,7 @@ Coding agents: read [AGENTS.md](AGENTS.md) for the rules, commands, tests and ho
 | Status | [status.cafe](https://status.cafe) | `statusCafe` in `src/data.ts` |
 | Stats: updated, views | Build date + D1 | D1 binding |
 | Right now: music | Your phone's scrobbler → D1 | `SCROBBLE_TOKEN` (below) |
+| Right now: brain rotting (Instagram Reels) | The phone's Brainrot app → D1 | `SCROBBLE_TOKEN` (below) |
 | Right now: building | Latest public GitHub push | `github` in `src/data.ts` |
 | Right now: local time | Browser | `timeZone` in `src/data.ts` |
 | Counts: parotta, chai, beach days | The `/log` page → D1 | `SCROBBLE_TOKEN` (below) |
@@ -210,6 +211,31 @@ scrobbler needs. Storage follows the ListenBrainz server: at most two rows, no h
 6. Play a song: within about 30 s, kichoow.com shows "listening".
 
 To cut off an old token, set a new one in both places. A leaked token can only post songs to the card.
+
+## Now scrolling (Instagram Reels)
+
+The phone's [Brainrot](https://github.com/kishore280/brainRot) app (a fork that counts the Reels you
+swipe through with an accessibility service) tells the site while you scroll:
+
+```
+Instagram Reels (phone)
+  → Brainrot counts each reel you land on (never reads captions, names or messages)
+  → POST https://kichoow.com/api/scroll   (Bearer SCROBBLE_TOKEN; JSON: app, scrolling, reels, started, ended)
+  → D1 table `scroll` → GET /api/scroll
+```
+
+| Row | Set by | Means |
+|---|---|---|
+| `now` | "scrolling": when Reels opens, then every 30 s with the running count | scrolling now, while its heartbeats are under 3 min old |
+| `last` | "stopped": leaving Reels or Instagram, or the screen turning off | the newest session with at least one reel |
+
+The card shows "brain rotting · 12 reels · instagram" while you scroll, then "last rot · 42 reels in
+18 min · 2 hr. ago", with the app's own brain (`public/brain/0-6.webp`, its 7 stages at 0, 10, 25,
+50, 100, 175 and 250 reels), which squishes while you scroll.
+
+Set up: apply `migrations/0007_scroll.sql` (as step 1 above), install the app from its GitHub
+Actions build, turn on its accessibility service, and on its Today screen set **Your site** to
+`https://kichoow.com/api/scroll` with the same token as the music.
 
 ## Deploy (Cloudflare Workers)
 
