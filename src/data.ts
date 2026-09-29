@@ -152,6 +152,7 @@ export const colophonPage: TextPage = {
         { text: 'my days: day totals from the D1 database, cached at the edge for a minute' },
         { text: 'photos and videos: straight from a shared Google Photos album, cached for an hour' },
         { text: 'GitHub: the repo I pushed to last, from the GitHub API' },
+        { text: 'brain rot: Reels counted by my fork of Brainrot; the app and its brains are by ayush78490', href: 'https://github.com/ayush78490/brainRot' },
       ],
     },
     {
