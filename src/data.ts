@@ -121,6 +121,13 @@ export const nowPage: TextPage = {
   ],
 }
 
+// /blog: the list of posts (the posts themselves are posts/*.md; how to write one: AGENTS.md).
+export const blogPage = {
+  title: 'writing · Kishore M',
+  description: 'Posts by Kishore M on building AI agents, RAG apps and this site with coding agents.',
+  heading: 'writing',
+}
+
 // /colophon: how this site is made. Keep it true when the stack changes.
 export const colophonPage: TextPage = {
   title: 'colophon · kish',
@@ -134,6 +141,7 @@ export const colophonPage: TextPage = {
         { text: 'React 19, TypeScript 7 and Vite, pre-rendered to plain HTML', href: 'https://react.dev' },
         { text: 'built with coding agents (Claude Code), with the rules in AGENTS.md', href: 'https://github.com/kishore280/home' },
         { text: '⌘K menu: cmdk; photo viewer: Yet Another React Lightbox; my days: react-activity-calendar' },
+        { text: 'the blog: Markdown files, turned into pages by MDX at build time, with an RSS feed', href: '/blog' },
       ],
     },
     {

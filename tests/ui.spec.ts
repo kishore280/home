@@ -739,6 +739,61 @@ test.describe('offline page', () => {
   })
 })
 
+test.describe('blog', () => {
+  test('the home card lists the newest posts; /blog lists them all by year; each opens its post', async ({ page }) => {
+    const errors: string[] = []
+    page.on('pageerror', (e) => errors.push(e.message))
+    page.on('console', (m) => m.type() === 'error' && /hydrat|did not match/i.test(m.text()) && errors.push(m.text()))
+    await page.goto('/')
+    const card = page.locator('.card', { has: page.getByRole('heading', { name: 'writing' }) })
+    const first = card.locator('.post-rows a').first()
+    await expect(first).toBeVisible()
+    expect(await card.locator('.post-rows li').count()).toBeLessThanOrEqual(3)
+    await expect(card.locator('.post-rows time').first()).toHaveAttribute('datetime', /^\d{4}-\d{2}-\d{2}$/)
+    await expect(page.getByRole('navigation', { name: 'More about kish' }).getByRole('link', { name: 'blog' })).toHaveAttribute('href', '/blog')
+    const title = await first.textContent()
+    await card.getByRole('link', { name: 'all posts →' }).click()
+    await expect(page).toHaveURL('/blog')
+    await expect(page).toHaveTitle('writing · Kishore M')
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('writing')
+    await expect(page.getByRole('heading', { level: 2 }).first()).toHaveText(/^\d{4}$/)
+    await expect(page.getByRole('link', { name: 'RSS feed' })).toHaveAttribute('href', '/blog/rss.xml')
+    await page.getByRole('link', { name: title! }).click()
+    await expect(page).toHaveURL(/\/blog\/[a-z0-9-]+$/)
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(title!)
+    await expect(page).toHaveTitle(`${title} · Kishore M`)
+    await expect(page.locator('.post-meta')).toContainText(/min read/)
+    await expect(page.locator('.post-foot')).toContainText('written by kish with')
+    await expect(page.locator('.post-foot .chai-icon')).toBeVisible()
+    await page.getByRole('link', { name: 'writing', exact: false }).first().click()
+    await expect(page).toHaveURL('/blog')
+    expect(errors).toEqual([])
+  })
+
+  test('a post is for search engines, feed readers and IndieWeb tools: BlogPosting, canonical, RSS, h-entry, sitemap', async ({ request }) => {
+    const post = '/blog/building-this-site-with-coding-agents'
+    const html = await (await request.get(`http://127.0.0.1:8787${post}`)).text()
+    const ld = JSON.parse(/<script type="application\/ld\+json">(.+?)<\/script>/.exec(html)?.[1] ?? '{}')
+    expect(ld).toMatchObject({ '@type': 'BlogPosting', author: { name: 'Kishore M' }, url: `https://kichoow.com${post}` })
+    expect(ld.datePublished).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    expect(html).toContain(`<link rel="canonical" href="https://kichoow.com${post}">`)
+    expect(html).toContain('application/rss+xml')
+    // The text is in the served HTML (pre-rendered), not only after JavaScript.
+    const { items } = mf2(html, { baseUrl: 'https://kichoow.com/' })
+    const entry = items.find((i) => i.type?.includes('h-entry'))
+    expect(entry?.properties.name).toEqual([ld.headline])
+    expect(entry?.properties.published).toEqual([ld.datePublished])
+    expect(JSON.stringify(entry?.properties.content)).toContain('AGENTS.md')
+    // The feed and the sitemap list it; the template page and an unknown post are not pages.
+    const rss = await request.get('http://127.0.0.1:8787/blog/rss.xml')
+    expect(rss.headers()['content-type']).toContain('xml')
+    expect(await rss.text()).toContain(`<link>https://kichoow.com${post}</link>`)
+    expect(await (await request.get('http://127.0.0.1:8787/sitemap.xml')).text()).toContain(`<loc>https://kichoow.com${post}</loc>`)
+    expect((await request.get('http://127.0.0.1:8787/post')).status()).toBe(404)
+    expect((await request.get('http://127.0.0.1:8787/blog/nope')).status()).toBe(404)
+  })
+})
+
 test.describe('speed', () => {
   // Two data shapes: every kind logged, and the live one (only chai logged). The loading places must
   // match both, or the main column jumps on phones (Lighthouse found 0.3 with only chai).
@@ -794,8 +849,9 @@ test.describe('speed', () => {
   })
 
   // A performance budget, kept in the tests so a change that adds weight fails here and has to
-  // say why (web.dev "Performance budgets 101"). 400 KB is just above today's 387 KB of JavaScript
-  // (before compression) that the home page loads, the lazy chunks included. The heatmap library's
+  // say why (web.dev "Performance budgets 101"). 410 KB is just above today's 403 KB of JavaScript
+  // (before compression) that the home page loads, the lazy chunks included. Raised from 400 KB for
+  // the blog's "writing" card (about 4 KB, 2026-09-29). The heatmap library's
   // tooltip chunk (Floating UI) must never load: the squares use an SVG <title>.
   test('the home page stays within its JavaScript budget', async ({ page }) => {
     await page.goto('/')
@@ -807,7 +863,7 @@ test.describe('speed', () => {
         .map((e) => ({ name: e.name, bytes: e.decodedBodySize })),
     )
     const total = scripts.reduce((sum, e) => sum + e.bytes, 0)
-    expect(total, scripts.map((e) => `${e.name.split('/').pop()} ${e.bytes}`).join(', ')).toBeLessThan(400_000)
+    expect(total, scripts.map((e) => `${e.name.split('/').pop()} ${e.bytes}`).join(', ')).toBeLessThan(410_000)
     expect(scripts.filter((e) => e.name.includes('/assets/Tooltip'))).toEqual([])
   })
 
@@ -1510,7 +1566,7 @@ test.describe('404 and layout', () => {
   })
 
   for (const width of [320, 375]) {
-    for (const path of ['/', '/offline', '/nope', '/log', '/now', '/colophon']) {
+    for (const path of ['/', '/offline', '/nope', '/log', '/now', '/colophon', '/blog', '/blog/building-this-site-with-coding-agents']) {
       test(`${width} px wide, ${path}: no sideways scroll`, async ({ page, isMobile }) => {
         test.skip(isMobile, 'the width is set here')
         await page.setViewportSize({ width, height: 800 })
@@ -1551,6 +1607,8 @@ test.describe('accessibility (axe-core)', () => {
     ['404', '/nope', 'dark'],
     ['/now', '/now', 'light'],
     ['/colophon', '/colophon', 'dark'],
+    ['/blog', '/blog', 'light'],
+    ['a blog post', '/blog/building-this-site-with-coding-agents', 'dark'],
     ['/log, token form', '/log', 'light'],
     [
       '/log, buttons',

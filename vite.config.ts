@@ -1,10 +1,14 @@
 import { readFileSync } from 'node:fs'
+import mdx from '@mdx-js/rollup'
 import react from '@vitejs/plugin-react'
+import remarkFrontmatter from 'remark-frontmatter'
 import { defineConfig, type Plugin } from 'vite'
 import csp from 'vite-plugin-csp-guard'
+import { readPosts } from './blog.ts'
 import { seo } from './seo.ts'
 
 const buildDate = new Date().toISOString()
+const posts = readPosts()
 
 // Every page gets the same icons, theme script and analytics from src/head.html.
 const sharedHead = (): Plugin => ({
@@ -19,8 +23,11 @@ const sharedHead = (): Plugin => ({
 export default defineConfig({
   plugins: [
     sharedHead(),
-    react(),
-    seo(buildDate),
+    // Blog posts (posts/*.md) become React components; the front matter is only read, not shown
+    // (MDX docs: "Vite" and "Frontmatter"). MDX runs before the React plugin.
+    { enforce: 'pre', ...mdx({ remarkPlugins: [remarkFrontmatter] }) },
+    react({ include: /\.(md|tsx?)$/ }),
+    seo(buildDate, posts),
     // Content-Security-Policy as a <meta> tag; the plugin adds the hash of the inline theme script.
     csp({
       override: true,
@@ -44,11 +51,14 @@ export default defineConfig({
     }),
   ],
   build: {
-    // The home page, /offline, the 404 page and the private /log page.
-    rollupOptions: { input: ['index.html', 'offline.html', '404.html', 'log.html', 'now.html', 'colophon.html'] },
+    // The home page, /offline, the 404 page, the private /log page, the slash pages and the blog
+    // (post.html is the template the pre-render copies for each post).
+    rollupOptions: { input: ['index.html', 'offline.html', '404.html', 'log.html', 'now.html', 'colophon.html', 'blog.html', 'post.html'] },
   },
   define: {
     // Shown as "updated" in the stats card.
     __BUILD_DATE__: JSON.stringify(buildDate),
+    // The blog's list (blog.ts), for the home card, /blog and each post page.
+    __POSTS__: JSON.stringify(posts),
   },
 })

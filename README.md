@@ -241,6 +241,23 @@ Set up: apply `migrations/0009_scroll_binges.sql` (as step 1 above), install the
 Actions build, turn on its accessibility service, and on its Today screen set **Your site** to
 `https://kichoow.com/api/scroll` with the same token as the music.
 
+## Blog (/blog)
+
+Each post is one Markdown file in `posts/`, named for its address (`posts/my-post.md` → `/blog/my-post`):
+
+```md
+---
+title: How I build this site with coding agents
+description: One or two sentences for search results and the RSS feed.
+date: '2026-09-29'
+tags: [agents, cloudflare]
+---
+
+The text, in Markdown.
+```
+
+`npm run build` does the rest: [MDX](https://mdxjs.com) turns the text into the page, pre-rendered to `dist/blog/<name>.html`, with its own title, description, canonical and JSON-LD `BlogPosting`. The post also goes in `/blog` (by year), the "writing" card on the home page (the newest three), `/blog/rss.xml` ([feed](https://github.com/jpmonette/feed)), `sitemap.xml` and `llms.txt`. A post with a missing field, or a date not written as `'YYYY-MM-DD'`, stops the build (`blog.ts`). Add `updated: 'YYYY-MM-DD'` when you change a post. No posts: no card and no link.
+
 ## Deploy (Cloudflare Workers)
 
 The Worker in `worker/` answers `/api/*` and serves the built site from `dist/`.
@@ -312,6 +329,7 @@ Each item follows a documented method; the source is in the code comment.
 - [Workbox](https://developer.chrome.com/docs/workbox): the service worker
 - [Beasties](https://github.com/danielroe/beasties): inlines the CSS at pre-render
 - [vite-plugin-csp-guard](https://github.com/tsotimus/vite-plugin-csp-guard): the Content-Security-Policy
+- [MDX](https://mdxjs.com) (`@mdx-js/rollup`, `remark-frontmatter`, `vfile-matter`) and [feed](https://github.com/jpmonette/feed): the blog and its RSS feed
 - [Nunito](https://fonts.google.com/specimen/Nunito) and [Pixelify Sans](https://fonts.google.com/specimen/Pixelify+Sans), through Fontsource
 
 ## Agent skills

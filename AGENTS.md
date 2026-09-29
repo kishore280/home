@@ -9,9 +9,10 @@ kishore's personal site, live at **https://kichoow.com**. React 19 + TypeScript 
 | Path | What |
 |---|---|
 | `src/data.ts` | **All content** (text, links, buttons, offline note, 404 text). Change content here only. |
-| `src/` | The React app. Pages: `index.html` → `main.tsx` (home), `offline.html` → `offline.tsx`, `404.html` → `notfound.tsx`, `log.html` → `log.tsx` (private logging page), `now.html` → `now.tsx` and `colophon.html` → `colophon.tsx` (slash pages: short lists from `src/data.ts`, drawn by `TextPage.tsx`). All start through `mount()` in `src/lib/mount.tsx`. |
+| `src/` | The React app. Pages: `index.html` → `main.tsx` (home), `offline.html` → `offline.tsx`, `404.html` → `notfound.tsx`, `log.html` → `log.tsx` (private logging page), `now.html` → `now.tsx` and `colophon.html` → `colophon.tsx` (slash pages: short lists from `src/data.ts`, drawn by `TextPage.tsx`), `blog.html` → `blog.tsx` (/blog) and `post.html` → `post.tsx` (the template for each post, `components/Blog.tsx`). All start through `mount()` in `src/lib/mount.tsx`. |
 | `src/head.html` | Head tags shared by every page (icons, theme script, Umami). |
 | `worker/` | The Worker: `/api/counters` (D1), `/api/github`, `/api/now-playing` (D1), `/api/scrobble/` (ListenBrainz-compatible, the phone sends songs), `/api/log` (chai, parotta, beach days from the `/log` page; `/api/log/days?range=84|365` feeds the "my days" card, edge-cached 60 s), `/api/photos` (the newest photos and videos of the shared Google Photos album in `site.photosAlbum`, edge-cached 1 h), `/api/scroll` ("now scrolling" from the phone's Brainrot app, github.com/kishore280/brainRot: a heartbeat every 30 s with today's total, time in Reels and per reel; D1 `scroll_now` for the live beat, `scroll_binges` for 30 days of finished binges; edge-cached 30 s). Everything else is a static file. |
+| `posts/` | **The blog**: one Markdown file per post (see "Write a blog post" below). `blog.ts` reads their front matter at build time. |
 | `seo.ts` | Vite plugin: title, meta, Open Graph, JSON-LD, robots.txt, sitemap.xml, llms.txt and `/.well-known/button.json` (the 88×31 buttons for button-wall tools), all from `src/data.ts`. |
 | `scripts/prerender.mjs` | Pre-renders every page into `dist/`, inlines the CSS (Beasties), preloads the fonts. |
 | `scripts/sw.mjs` | Makes the service worker (Workbox) after the pre-render. |
@@ -49,6 +50,12 @@ kishore's personal site, live at **https://kichoow.com**. React 19 + TypeScript 
 3. Run `npm run og`: it turns the `<text>` into Pixelify Sans paths and writes `public/<name>.svg` and `.gif`. It also remakes the share card, the icons and every button GIF; commit only those that look different (a re-encode can change the bytes and not the pixels).
 4. Update the item count and the stamp's index in the "blinkies and stamps" test in `tests/ui.spec.ts`.
 5. Screenshot the card for kish: `npm run build`, `npx vite preview`, then a Playwright screenshot of the `.card` that has the heading "blinkies & stamps", at 1280 px and 390 px wide.
+
+### Write a blog post
+
+1. Add `posts/<name>.md` (a-z, 0-9 and `-`; the name is the address `/blog/<name>`), with front matter: `title`, `description` (one or two sentences, for search and RSS), `date: 'YYYY-MM-DD'` in quotes, and `tags`. The README has an example.
+2. The post is kish's words: draft it only when asked, and let kish read it before it ships.
+3. `npm run build` checks the fields and makes the page, the list, the home card, RSS, sitemap and llms.txt. Screenshot the post at 1280 px and 390 px wide.
 
 ### Other tips
 
@@ -98,7 +105,7 @@ Before you push, all of these must pass:
 
 **Speed (what a performance engineer checks):**
 - **No layout shift.** Anything that loads late keeps its exact place while it loads, and never collapses (web.dev "Optimize CLS"). The layout shift test runs with two data shapes (every kind logged, and only chai as live); add a shape when you add a data-driven part. Check a change with Lighthouse on a local `wrangler dev` whose D1 holds live-like data: `CHROME_PATH=/opt/pw-browsers/chromium npx lighthouse@12 http://127.0.0.1:<port>/ --only-categories=performance` (mobile profile by default). Use real-user data where it exists: Cloudflare Web Analytics shows Core Web Vitals from visitors.
-- **JavaScript budget.** The home page loads at most 400 KB of JavaScript (before compression); a test enforces it. Raise it only with a reason in the PR.
+- **JavaScript budget.** The home page loads at most 410 KB of JavaScript (before compression); a test enforces it. Raise it only with a reason in the PR.
 - **D1 rows.** Say how many rows a new request reads and writes, and cache what many visitors ask for (Workers Cache API).
 
 When you add or change something a visitor can see or tap, **add a test** in `tests/ui.spec.ts`. Use web-first assertions (`toBeVisible`, `toBeFocused`, `toHaveCount`, `expect.poll`), not fixed waits; the only fixed wait is `settle()`, for "nothing happened" checks. A failed test leaves a trace and a report in `.context/` (ignored by Git).

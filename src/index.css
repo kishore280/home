@@ -1511,6 +1511,139 @@ kbd {
   margin: 4px 0;
 }
 
+/* The blog (/blog and each post): a plain reading page, no card around the text, about 65
+   characters a line. */
+.blog-page {
+  max-width: 680px;
+  margin: min(8vh, 64px) auto 0;
+  padding: 24px clamp(16px, 4vw, 32px);
+  display: grid;
+  gap: 16px;
+  background: color-mix(in srgb, var(--card) 88%, transparent);
+  border-radius: var(--radius);
+}
+.blog-page h1 {
+  color: var(--accent-text);
+  margin: 0;
+}
+.post-list,
+.post-rows,
+.tags {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.post-list li {
+  display: flex;
+  gap: 14px;
+  align-items: baseline;
+  padding: 3px 0;
+}
+.post-list time,
+.post-rows time {
+  flex: none;
+  min-width: 3.6em;
+  font-size: 13px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.post-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 6px;
+}
+.prose {
+  display: grid;
+  gap: 14px;
+  font-size: 17px;
+  line-height: 1.7;
+  min-width: 0;
+}
+.prose > * {
+  margin: 0;
+}
+.prose h2 {
+  margin: 12px 0 0;
+  font-size: 18px;
+  letter-spacing: 0.02em;
+  line-height: 1.3;
+}
+.prose ul,
+.prose ol {
+  padding-left: 22px;
+}
+.prose li + li {
+  margin-top: 4px;
+}
+.prose code {
+  font: 0.9em ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: var(--chip);
+  padding: 1px 5px;
+  border-radius: 5px;
+}
+.prose pre {
+  overflow-x: auto;
+  padding: 12px 14px;
+  background: var(--chip);
+  border-radius: 10px;
+}
+.prose pre code {
+  padding: 0;
+  background: none;
+}
+.prose blockquote {
+  padding-left: 14px;
+  border-left: 3px solid var(--accent);
+  color: var(--muted);
+}
+.prose img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 10px;
+}
+.post-foot {
+  display: grid;
+  justify-content: start;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--line);
+}
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.tags li {
+  padding: 2px 10px;
+  border-radius: 99px;
+  background: var(--chip);
+  color: var(--accent-text);
+  font: 700 12px var(--body);
+}
+/* The home card: date, title, minutes; the title takes the room between. */
+.post-rows li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: baseline;
+  padding: 9px 0;
+  border-top: 1px dashed var(--line);
+}
+.post-rows li:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+.post-rows a {
+  font-weight: 700;
+  text-decoration: none;
+}
+.post-rows a:hover {
+  text-decoration: underline;
+}
+.post-all {
+  margin-top: 10px;
+}
+
 /* The footer's slash-page links, beside the ⌘K button, in its small muted style. */
 .slash-links {
   display: inline-flex;

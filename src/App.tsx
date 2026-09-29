@@ -9,6 +9,8 @@ import { YearHeatmap } from './components/YearHeatmap'
 import { Counts } from './components/Counts'
 import { Buttons, Stamps } from './components/Buttons'
 import { Photos } from './components/Photos'
+import { Writing } from './components/Blog'
+import { posts } from './lib/posts'
 import type { MenuItem } from './components/CommandMenu'
 import { useCounters } from './hooks/useCounters'
 import { shortDate } from './lib/time'
@@ -60,6 +62,7 @@ export default function App() {
     // Only when the photos card is on the page (it hides with no photos). The hash jump is the
     // browser's own: it scrolls to the card and moves the Tab start there.
     ...(menuOpen && document.getElementById('photos') ? [{ group: 'Go', label: 'Photos', run: () => void (location.hash = 'photos') }] : []),
+    ...(posts.length ? [{ group: 'Go', label: 'Blog', href: '/blog' }] : []),
     { group: 'Go', label: 'Now', href: '/now' },
     { group: 'Go', label: 'Colophon', href: '/colophon' },
     { group: 'Secret', label: 'Offline only', href: '/offline' },
@@ -113,6 +116,7 @@ export default function App() {
 
         <main className="main" id="main" tabIndex={-1}>
           <RightNow />
+          <Writing />
           <YearHeatmap />
 
           {updates.length > 0 ? (
@@ -146,6 +150,7 @@ export default function App() {
             </button>
             {/* Slash pages, where the IndieWeb looks for them: the footer. */}
             <nav className="slash-links" aria-label="More about kish">
+              {posts.length ? <a href="/blog">blog</a> : null}
               <a href="/now">now</a>
               <a href="/colophon">colophon</a>
             </nav>
