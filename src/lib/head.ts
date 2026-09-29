@@ -4,12 +4,12 @@ import { site } from '../data.ts'
 import type { Post } from './posts.ts'
 
 export const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')
-const image = `${site.url}/og.png`
-const imageAlt = 'kish’s lavender mascot next to a row of 88×31 buttons: beach, running, badminton, parotta, Himalayan, chai and coding'
+const siteImage = `${site.url}/og.png`
+const siteImageAlt = 'kish’s lavender mascot next to a row of 88×31 buttons: beach, running, badminton, parotta, Himalayan, chai and coding'
 export const ldJson = (data: object) => `<script type="application/ld+json">${JSON.stringify(data).replace(/</g, '\\u003c')}</script>`
 
 // Title, description and share-card tags for one page.
-export const meta = (p: { title: string; description: string; url: string; type: string }) => [
+export const meta = ({ image = siteImage, imageAlt = siteImageAlt, ...p }: { title: string; description: string; url: string; type: string; image?: string; imageAlt?: string }) => [
   `<title>${esc(p.title)}</title>`,
   `<meta name="description" content="${esc(p.description)}" />`,
   `<meta property="og:type" content="${p.type}" />`,
@@ -33,8 +33,10 @@ export const feedLink = `<link rel="alternate" type="application/rss+xml" title=
 // A post's own tags, put in place of <!-- page-head --> by the pre-render.
 export function postHead(post: Post) {
   const url = `${site.url}/blog/${post.slug}`
+  // Its own share card (blog.ts, postCard).
+  const image = `${site.url}/og/blog/${post.slug}.png`
   return [
-    ...meta({ title: `${post.title} · ${site.nickname}`, description: post.description, url, type: 'article' }),
+    ...meta({ title: `${post.title} · ${site.nickname}`, description: post.description, url, type: 'article', image, imageAlt: `${post.title}, by kish` }),
     `<meta property="article:published_time" content="${post.date}" />`,
     ...(post.updated ? [`<meta property="article:modified_time" content="${post.updated}" />`] : []),
     `<link rel="canonical" href="${url}" />`,

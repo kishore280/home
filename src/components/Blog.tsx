@@ -1,6 +1,7 @@
 import type { MDXContent } from 'mdx/types'
 import { blogPage } from '../data'
-import { postDate, postPath, posts, type Post } from '../lib/posts'
+import { posts } from '../lib/post-list'
+import { postDate, postPath, type Post } from '../lib/posts'
 import { BackHome } from './BackHome'
 import { Card } from './Card'
 import { chaiIcon } from './ChaiIcon'

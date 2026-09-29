@@ -7,6 +7,7 @@ import { Feed } from 'feed'
 import type { Plugin } from 'vite'
 import { blogPage, colophonPage, links, logPage, myButtons, notFound, nowPage, offlineNote, site } from './src/data.ts'
 import { feedLink, ldJson, meta } from './src/lib/head.ts'
+import { postCard } from './blog.ts'
 import type { Post } from './src/lib/posts.ts'
 
 export function seo(buildDate: string, posts: Post[]): Plugin {
@@ -163,11 +164,12 @@ ${posts.map((p) => `- [${p.title}](${blogUrl}/${p.slug}): ${p.description}`).joi
       if (!page) throw new Error(`seo: no head for ${ctx.filename}`)
       return html.replace('<!-- seo -->', page.join('\n    '))
     },
-    generateBundle() {
+    async generateBundle() {
       this.emitFile({ type: 'asset', fileName: 'robots.txt', source: robots })
       this.emitFile({ type: 'asset', fileName: 'sitemap.xml', source: sitemap })
       this.emitFile({ type: 'asset', fileName: 'llms.txt', source: llms })
       if (posts.length) this.emitFile({ type: 'asset', fileName: 'blog/rss.xml', source: rss() })
+      for (const p of posts) this.emitFile({ type: 'asset', fileName: `og/blog/${p.slug}.png`, source: await postCard(p) })
       this.emitFile({ type: 'asset', fileName: '.well-known/button.json', source: buttonJson() })
     },
   }

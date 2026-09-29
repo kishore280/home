@@ -1,7 +1,7 @@
 import type { MDXContent } from 'mdx/types'
 import { PostPage } from './components/Blog'
 import { mount } from './lib/mount'
-import { posts } from './lib/posts'
+import { posts } from './lib/post-list'
 
 // One page for every post (dist/blog/<slug>.html, pre-rendered from post.html): find this post by
 // its address, load only its body (one small file per post), then hydrate.

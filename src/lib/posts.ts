@@ -1,5 +1,5 @@
-// The blog's posts: posts/<slug>.md. The list comes from their front matter at build time (blog.ts,
-// through `__POSTS__` in vite.config.ts), newest first; each body is compiled by MDX.
+// The blog's posts: posts/<slug>.md, each body compiled by MDX. The list is in post-list.ts; this
+// file also runs in Node at build time (blog.ts, src/lib/head.ts).
 export type Post = {
   slug: string
   title: string
@@ -10,8 +10,6 @@ export type Post = {
   tags: string[]
   minutes: number
 }
-
-export const posts: Post[] = __POSTS__
 
 export const postPath = (slug: string) => `/blog/${slug}`
 

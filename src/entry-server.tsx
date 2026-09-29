@@ -11,7 +11,7 @@ import { OfflinePage } from './components/OfflinePage'
 import { TextPage } from './components/TextPage'
 import { colophonPage, nowPage } from './data'
 import { postHead } from './lib/head'
-import { posts } from './lib/posts'
+import { posts } from './lib/post-list'
 
 const html = (page: ReactNode) => () => renderToString(<StrictMode>{page}</StrictMode>)
 

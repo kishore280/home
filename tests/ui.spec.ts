@@ -778,6 +778,13 @@ test.describe('blog', () => {
     expect(ld.datePublished).toMatch(/^\d{4}-\d{2}-\d{2}$/)
     expect(html).toContain(`<link rel="canonical" href="https://kichoow.com${post}">`)
     expect(html).toContain('application/rss+xml')
+    // Its own share card: a 1200×630 PNG drawn at build time (blog.ts).
+    const card = `/og/blog/building-this-site-with-coding-agents.png`
+    expect(html).toContain(`<meta property="og:image" content="https://kichoow.com${card}">`)
+    expect(ld.image).toBe(`https://kichoow.com${card}`)
+    const png = Buffer.from(await (await request.get(`http://127.0.0.1:8787${card}`)).body())
+    expect(png.subarray(1, 4).toString()).toBe('PNG')
+    expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([1200, 630])
     // The text is in the served HTML (pre-rendered), not only after JavaScript.
     const { items } = mf2(html, { baseUrl: 'https://kichoow.com/' })
     const entry = items.find((i) => i.type?.includes('h-entry'))
