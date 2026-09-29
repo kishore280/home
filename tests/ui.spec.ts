@@ -799,6 +799,38 @@ test.describe('blog', () => {
     expect(errors).toEqual([])
   })
 
+  test('every page for search is ready for AI tools: long snippets, a Markdown copy, llms.txt from any page', async ({ request }) => {
+    const get = (path: string) => request.get(`http://127.0.0.1:8787${path}`)
+    const post = '/blog/show-what-you-listen-to-with-pano-scrobbler'
+    for (const [path, md] of [['/', '/index.md'], ['/now', '/now.md'], ['/colophon', '/colophon.md'], ['/blog', '/blog.md'], [post, `${post}.md`]]) {
+      const res = await get(path)
+      const html = await res.text()
+      // Google may show long quotes and large images from it (AI Overviews quote from snippets).
+      expect(html, path).toContain('<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">')
+      expect(html, path).toContain(`<link rel="alternate" type="text/markdown" href="https://kichoow.com${md}">`)
+      expect(res.headers()['link'], path).toBe('</llms.txt>; rel="describedby"; type="text/plain"')
+      // The Markdown copy: readable, kept out of search, and it names the page to cite.
+      const copy = await get(md)
+      expect(copy.headers()['content-type'], md).toBe('text/markdown; charset=utf-8')
+      expect(copy.headers()['x-robots-tag'], md).toBe('noindex')
+      expect(await copy.text(), md).toContain(`canonical: https://kichoow.com${path === '/' ? '/' : path}\n`)
+    }
+    // Private and secret pages stay out of search.
+    expect(await (await get('/offline')).text()).not.toContain('max-snippet')
+    // llms.txt lists every page's copy; llms-full.txt has them all.
+    const llms = await (await get('/llms.txt')).text()
+    for (const md of ['/index.md', '/now.md', '/colophon.md', '/blog.md']) expect(llms).toContain(`(https://kichoow.com${md})`)
+    expect(await (await get('/llms-full.txt')).text()).toContain('canonical: https://kichoow.com/now\n')
+    // /blog is a CollectionPage listing every post; a post says its length and section.
+    const list = jsonLd(await (await get('/blog')).text())
+    const items = list('CollectionPage')?.mainEntity.itemListElement.map((i: { url: string }) => i.url)
+    expect(items).toContain(`https://kichoow.com${post}`)
+    expect(list('CollectionPage')?.mainEntity.numberOfItems).toBe(items.length)
+    const one = await (await get(post)).text()
+    expect(jsonLd(one)('BlogPosting')).toMatchObject({ articleSection: 'writing', wordCount: expect.any(Number) })
+    expect(one).toContain('<meta property="article:author" content="https://kichoow.com/">')
+  })
+
   test('a post is for search engines, feed readers and IndieWeb tools: BlogPosting, canonical, RSS, h-entry, sitemap', async ({ request }) => {
     const post = '/blog/show-what-you-listen-to-with-pano-scrobbler'
     const html = await (await request.get(`http://127.0.0.1:8787${post}`)).text()
@@ -1003,8 +1035,13 @@ test.describe('photos (shared Google Photos album)', () => {
     const more = card.getByRole('button', { name: '+4 more' })
     await expect(more).toBeVisible()
     // Polaroids in 1 row on a wide screen, 2 rows of 3 on a phone.
-    const tops = await card.locator('li').evaluateAll((els) => new Set(els.map((e) => Math.round(e.getBoundingClientRect().top / 20))).size)
-    expect(tops).toBe(isMobile ? 2 : 1)
+    // A new row starts where a polaroid's top is more than half a polaroid below the one before
+    // (tilted polaroids in one row differ by a few pixels, so rounding can split a row).
+    const rows = await card.locator('li').evaluateAll((els) => {
+      const boxes = els.map((e) => e.getBoundingClientRect()).sort((a, b) => a.top - b.top)
+      return boxes.filter((b, i) => i === 0 || b.top - boxes[i - 1].top > b.height / 2).length
+    })
+    expect(rows).toBe(isMobile ? 2 : 1)
     await more.click()
     const viewer = page.getByRole('dialog')
     await expect(viewer).toContainText('6 / 9')

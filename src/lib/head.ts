@@ -71,6 +71,15 @@ export const breadcrumbLd = (...crumbs: [name: string, url: string][]) => ({
 })
 export const graph = (...nodes: object[]) => ldJson({ '@context': 'https://schema.org', '@graph': nodes })
 
+// A page for search engines: its canonical address, permission for long text quotes and large images
+// in results (Google's max-snippet / max-image-preview; AI Overviews quote from snippets), and its
+// Markdown copy for AI tools (seo.ts writes it).
+export const indexable = (url: string, markdown: string) => [
+  `<link rel="canonical" href="${url}" />`,
+  `<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />`,
+  `<link rel="alternate" type="text/markdown" href="${markdown}" />`,
+]
+
 // Feed readers find the blog's RSS from any page that has this.
 export const feedLink = `<link rel="alternate" type="application/rss+xml" title="${esc(`${site.nickname}’s blog`)}" href="${site.url}/blog/rss.xml" />`
 
@@ -83,8 +92,9 @@ export function postHead(post: Post) {
     ...meta({ title: `${post.title} · ${site.nickname}`, description: post.description, url, type: 'article', image, imageAlt: `${post.title}, by kish` }),
     `<meta property="article:published_time" content="${post.date}" />`,
     ...(post.updated ? [`<meta property="article:modified_time" content="${post.updated}" />`] : []),
-    `<link rel="canonical" href="${url}" />`,
-    `<link rel="alternate" type="text/markdown" href="${url}.md" />`,
+    `<meta property="article:author" content="${home}" />`,
+    `<meta property="article:section" content="${blogPage.heading}" />`,
+    ...indexable(url, `${url}.md`),
     feedLink,
     graph(
       {
@@ -101,6 +111,8 @@ export function postHead(post: Post) {
         mainEntityOfPage: url,
         image,
         keywords: post.tags,
+        articleSection: blogPage.heading,
+        wordCount: post.words,
         inLanguage: 'en',
       },
       personLd,
