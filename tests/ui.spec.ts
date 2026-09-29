@@ -791,6 +791,10 @@ test.describe('blog', () => {
     // Code is coloured at build time (Shiki, Rosé Pine: Dawn in light, Moon in dark), and a button copies it.
     const code = page.locator('.prose .code').first()
     await expect(code.locator('pre.shiki')).toHaveClass(/rose-pine-dawn rose-pine-moon/)
+    // The copy button sits inside the block (no margin above it), and the scrollbar is thin and lavender.
+    const [pre, btn] = [(await code.locator('pre').boundingBox())!, (await code.locator('.copy').boundingBox())!]
+    expect(btn.y).toBeGreaterThan(pre.y)
+    expect(await code.locator('pre').evaluate((e) => [getComputedStyle(e).scrollbarWidth, getComputedStyle(e).scrollbarColor])).toEqual(['thin', expect.stringMatching(/^(rgb|color)/)])
     await press(code.getByRole('button', { name: 'copy' }))
     await expect(code.getByRole('button', { name: 'copied' })).toBeVisible()
     expect(await page.evaluate(() => window.__copies)).toEqual([await code.locator('pre').innerText()])

@@ -1601,7 +1601,11 @@ kbd {
 }
 /* Room for the copy button, so it never covers the code. */
 .code pre {
+  margin: 0;
   padding-right: 76px;
+  /* The page's colours for the sideways scrollbar (CSS Scrollbars: scrollbar-color). */
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--accent) 60%, transparent) transparent;
 }
 /* Shiki sets the colours and the background (Rosé Pine), for light and dark. */
 .prose pre {
@@ -1614,13 +1618,23 @@ kbd {
   position: absolute;
   top: 8px;
   right: 8px;
-  padding: 4px 10px;
-  border: 2px solid var(--line);
-  border-radius: 99px;
-  background: var(--card);
+  padding: 3px 9px;
+  border: 0;
+  border-radius: 8px;
+  /* A soft label that sits in the code block; stronger on hover and focus. */
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
   color: var(--accent-text);
   font: 700 12px var(--body);
   cursor: pointer;
+  transition: background-color 0.15s;
+}
+.copy:hover,
+.copy:focus-visible {
+  background: color-mix(in srgb, var(--accent) 26%, transparent);
+}
+.copy:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 .prose pre code {
   padding: 0;
