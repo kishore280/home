@@ -72,6 +72,15 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* No rubber-band bounce past the top or bottom with a mouse or trackpad (macOS). Touch screens keep it,
+   and so keep pull-to-refresh (MDN: overscroll-behavior; the (pointer: fine) gate as Vercel does). */
+@media (pointer: fine) {
+  html,
+  body {
+    overscroll-behavior: none;
+  }
+}
+
 /* Page spacing is on #root, not <body>: the menu's scroll lock (react-remove-scroll-bar) sets
    body padding to 0, which moved the whole page (theKashey/react-remove-scroll-bar#33). */
 #root {

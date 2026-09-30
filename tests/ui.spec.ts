@@ -756,6 +756,12 @@ test.describe('offline page', () => {
   })
 })
 
+test('no rubber-band bounce with a mouse or trackpad; touch screens keep pull-to-refresh', async ({ page, isMobile }) => {
+  await page.goto('/')
+  const overscroll = await page.evaluate(() => [getComputedStyle(document.documentElement).overscrollBehaviorY, getComputedStyle(document.body).overscrollBehaviorY])
+  expect(overscroll).toEqual(isMobile ? ['auto', 'auto'] : ['none', 'none'])
+})
+
 test.describe('blog', () => {
   test('the home card lists the newest posts; /blog lists them all by year; each opens its post', async ({ page, press }) => {
     const errors: string[] = []
