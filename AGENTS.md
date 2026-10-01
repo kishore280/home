@@ -12,7 +12,8 @@ kishore's personal site, live at **https://kichoow.com**. React 19 + TypeScript 
 | `src/` | The React app. Pages: `index.html` → `main.tsx` (home), `offline.html` → `offline.tsx`, `404.html` → `notfound.tsx`, `log.html` → `log.tsx` (private logging page), `now.html` → `now.tsx` and `colophon.html` → `colophon.tsx` (slash pages: short lists from `src/data.ts`, drawn by `TextPage.tsx`), `blog.html` → `blog.tsx` (/blog) and `post.html` → `post.tsx` (the template for each post, `components/Blog.tsx`). All start through `mount()` in `src/lib/mount.tsx`. |
 | `src/head.html` | Head tags shared by every page (icons, theme script, Umami). |
 | `worker/` | The Worker: `/api/counters` (D1), `/api/github`, `/api/now-playing` (D1), `/api/scrobble/` (ListenBrainz-compatible, the phone sends songs), `/api/log` (chai, parotta, beach days from the `/log` page; `/api/log/days?range=84|365` feeds the "my days" card, edge-cached 60 s), `/api/photos` (the newest photos and videos of the shared Google Photos album in `site.photosAlbum`, edge-cached 1 h), `/api/scroll` ("now scrolling" from the phone's Brainrot app, github.com/kishore280/brainRot: a heartbeat every 30 s with today's total, time in Reels and per reel; D1 `scroll_now` for the live beat, `scroll_binges` for every finished binge (kept for good, for a data story: #91); edge-cached 30 s). Everything else is a static file. |
-| `posts/` | **The blog**: one Markdown file per post (see "Write a blog post" below). `blog.ts` reads their front matter at build time. |
+| `posts/` | **The blog**: one Markdown file per post, `.mdx` when it uses `<Terminal>` (see "Write a blog post" below). `blog.ts` reads their front matter at build time. |
+| `public/casts/` | Terminal recordings (`asciinema rec`), played by `components/Terminal.tsx` on the home page ("at the terminal") and in posts. Real sessions only. |
 | `seo.ts` | Vite plugin: title, meta, Open Graph, JSON-LD, robots.txt, sitemap.xml, llms.txt and `/.well-known/button.json` (the 88×31 buttons for button-wall tools), all from `src/data.ts`. |
 | `scripts/prerender.mjs` | Pre-renders every page into `dist/`, inlines the CSS (Beasties), preloads the fonts. |
 | `scripts/sw.mjs` | Makes the service worker (Workbox) after the pre-render. |
@@ -55,7 +56,8 @@ kishore's personal site, live at **https://kichoow.com**. React 19 + TypeScript 
 
 1. Add `posts/<name>.md` (a-z, 0-9 and `-`; the name is the address `/blog/<name>`), with front matter: `title`, `description` (one or two sentences, for search and RSS), `date: 'YYYY-MM-DD'` in quotes, and `tags`. The README has an example.
 2. Follow `.claude/skills/blog-writing` (readable, no filler, every snippet run). The post is kish's words: draft it only when asked, and let kish read it before it ships. Code in ``` fences gets colours (Shiki, Rosé Pine) and a copy button; name the language (```ts, ```sh).
-3. `npm run build` checks the fields and makes the page, the list, the home card, its share card (`og/blog/<name>.png`), its Markdown copy (`/blog/<name>.md`), RSS, sitemap, llms.txt and llms-full.txt. Screenshot the post at 1280 px and 390 px wide.
+3. A terminal recording: record a real session with `asciinema rec --cols 92 --rows 20` (real commands and their real output, nothing made up), put the `.cast` in `public/casts/`, rename the post to `.mdx` and add `<Terminal src=… cols=… rows=… chapters=… label=… />` (the README has an example). Check that the box keeps its size while the player loads (the terminal test).
+4. `npm run build` checks the fields and makes the page, the list, the home card, its share card (`og/blog/<name>.png`), its Markdown copy (`/blog/<name>.md`), RSS, sitemap, llms.txt and llms-full.txt. Screenshot the post at 1280 px and 390 px wide.
 
 ### Other tips
 
@@ -107,7 +109,7 @@ Before you push, all of these must pass:
 
 **Speed (what a performance engineer checks):**
 - **No layout shift.** Anything that loads late keeps its exact place while it loads, and never collapses (web.dev "Optimize CLS"). The layout shift test runs with two data shapes (every kind logged, and only chai as live); add a shape when you add a data-driven part. Check a change with Lighthouse on a local `wrangler dev` whose D1 holds live-like data: `CHROME_PATH=/opt/pw-browsers/chromium npx lighthouse@12 http://127.0.0.1:<port>/ --only-categories=performance` (mobile profile by default). Use real-user data where it exists: Cloudflare Web Analytics shows Core Web Vitals from visitors.
-- **JavaScript budget.** The home page loads at most 410 KB of JavaScript (before compression); a test enforces it. Raise it only with a reason in the PR.
+- **JavaScript budget.** The home page loads at most 600 KB of JavaScript (before compression); a test enforces it. Raise it only with a reason in the PR.
 - **D1 rows.** Say how many rows a new request reads and writes, and cache what many visitors ask for (Workers Cache API).
 
 **Dead links:** `.github/workflows/links.yml` runs lychee every day, and on a pull request that changes `posts/`, `src/data.ts` or the README. Fix a dead link; add a site that blocks bots to `exclude` in `lychee.toml`, with the reason.

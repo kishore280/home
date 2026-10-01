@@ -144,6 +144,17 @@ song still plays, so one key would say "stopped" too early.
    with a `/` at the end (`https://music.you.workers.dev/`). Token: the same token.
 5. On your page, read `/now` like in way A: show `playing` if it is there, else `last`.
 
+Here is that Worker on `wrangler dev`, sent the same requests Pano sends. Every frame is text, so you
+can copy from it:
+
+<Terminal
+  src="/casts/pano-worker.cast"
+  cols={92}
+  rows={20}
+  chapters={[[0, 'a wrong token'], [5.7, 'the right token'], [11.8, 'a song starts'], [24.1, 'your page reads /now']]}
+  label="The Worker above on wrangler dev: a wrong token, the right one, a song, then /now."
+/>
+
 ## Tips
 
 - **Android Auto** plays through the phone, so it works in the car too.

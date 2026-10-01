@@ -762,6 +762,47 @@ test('no rubber-band bounce with a mouse or trackpad; touch screens keep pull-to
   expect(overscroll).toEqual(isMobile ? ['auto', 'auto'] : ['none', 'none'])
 })
 
+test.describe('terminal recordings (asciinema)', () => {
+  test('the home card loops a real check run, keeps its size while the player loads, and pauses on a tap', async ({ page, press }) => {
+    await page.goto('/')
+    const card = page.locator('.card', { has: page.getByRole('heading', { name: 'at the terminal' }) })
+    const box = card.locator('.terminal-box')
+    const before = (await box.boundingBox())!.height
+    expect(before).toBeGreaterThan(80) // its space is kept before the player loads
+    await card.scrollIntoViewIfNeeded()
+    await expect(box.locator('.ap-term')).toContainText('git log --oneline -3', { timeout: 15_000 })
+    expect((await box.boundingBox())!.height).toBe(before) // nothing moved
+    await expect(box.locator('.ap-player')).toHaveClass(/asciinema-player-theme-rose-pine-moon/)
+    expect(await box.locator('.ap-player').evaluate((e) => getComputedStyle(e).getPropertyValue('--term-color-background').trim())).toBe('#232136')
+    const pause = card.getByRole('button', { name: 'pause' })
+    await press(pause)
+    await expect(card.getByRole('button', { name: 'play' })).toBeVisible()
+  })
+
+  test('with reduced motion the home card waits for play', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.goto('/')
+    const card = page.locator('.card', { has: page.getByRole('heading', { name: 'at the terminal' }) })
+    await card.scrollIntoViewIfNeeded()
+    await expect(card.getByRole('button', { name: 'play' })).toBeVisible({ timeout: 15_000 })
+  })
+
+  test('a post plays a recording with chapter buttons; its Markdown copy links the recording', async ({ page, press, request }) => {
+    const post = '/blog/show-what-you-listen-to-with-pano-scrobbler'
+    await page.goto(post)
+    const fig = page.locator('figure.terminal')
+    await fig.scrollIntoViewIfNeeded()
+    await expect(fig.getByRole('button')).toHaveCount(4)
+    await expect(fig.locator('.ap-player')).toBeVisible({ timeout: 15_000 })
+    await press(fig.getByRole('button', { name: /your page reads/ }))
+    await expect(fig.locator('.ap-term')).toContainText('"playing"', { timeout: 10_000 })
+    const md = await (await request.get(`http://127.0.0.1:8787${post}.md`)).text()
+    expect(md).toContain('(https://kichoow.com/casts/pano-worker.cast)')
+    expect(md).not.toContain('<Terminal')
+    expect((await request.get('http://127.0.0.1:8787/casts/pano-worker.cast')).status()).toBe(200)
+  })
+})
+
 test.describe('blog', () => {
   test('the home card lists the newest posts; /blog lists them all by year; each opens its post', async ({ page, press }) => {
     const errors: string[] = []
@@ -945,9 +986,11 @@ test.describe('speed', () => {
   })
 
   // A performance budget, kept in the tests so a change that adds weight fails here and has to
-  // say why (web.dev "Performance budgets 101"). 410 KB is just above today's 403 KB of JavaScript
+  // say why (web.dev "Performance budgets 101"). 600 KB is just above today's 593 KB of JavaScript
   // (before compression) that the home page loads, the lazy chunks included. Raised from 400 KB for
-  // the blog's "writing" card (about 4 KB, 2026-09-29). The heatmap library's
+  // the blog's "writing" card (about 4 KB, 2026-09-29), and from 410 KB for the "at the terminal"
+  // card's player (asciinema-player, 186 KB, 65 KB gzipped, 2026-10-01; it loads when the browser is
+  // idle, after the first paint). The heatmap library's
   // tooltip chunk (Floating UI) must never load: the squares use an SVG <title>.
   test('the home page stays within its JavaScript budget', async ({ page }) => {
     await page.goto('/')
@@ -959,7 +1002,7 @@ test.describe('speed', () => {
         .map((e) => ({ name: e.name, bytes: e.decodedBodySize })),
     )
     const total = scripts.reduce((sum, e) => sum + e.bytes, 0)
-    expect(total, scripts.map((e) => `${e.name.split('/').pop()} ${e.bytes}`).join(', ')).toBeLessThan(410_000)
+    expect(total, scripts.map((e) => `${e.name.split('/').pop()} ${e.bytes}`).join(', ')).toBeLessThan(600_000)
     expect(scripts.filter((e) => e.name.includes('/assets/Tooltip'))).toEqual([])
   })
 
@@ -1317,7 +1360,11 @@ test.describe('now scrolling (the phone\'s Brainrot app)', () => {
   const iso = (ms: number) => new Date(ms).toISOString()
 
   test.beforeEach(({ isMobile }) => test.skip(isMobile, 'API only; one run is enough'))
-  test.beforeAll(() => {
+  // beforeAll runs even where every test is skipped: only the desktop run may empty the shared tables,
+  // or the mobile worker deletes binges in the middle of the desktop run.
+  // oxlint-disable-next-line no-empty-pattern -- Playwright passes fixtures first; testInfo is the second argument
+  test.beforeAll(({}, testInfo) => {
+    if (testInfo.project.name !== 'desktop') return
     wrangler('--command "DELETE FROM scroll_now; DELETE FROM scroll_binges"')
   })
 

@@ -64,7 +64,7 @@ export default defineConfig({
         ],
       }),
     },
-    react({ include: /\.(md|tsx?)$/ }),
+    react({ include: /\.(mdx?|tsx?)$/ }),
     seo(posts),
     // Content-Security-Policy as a <meta> tag; the plugin adds the hash of the inline theme script.
     csp({
@@ -72,7 +72,9 @@ export default defineConfig({
       policy: {
         'default-src': ["'self'"],
         // Cloudflare Web Analytics (Cloudflare adds its beacon) and Umami Cloud.
-        'script-src': ["'self'", 'https://static.cloudflareinsights.com', 'https://cloud.umami.is'],
+        // 'wasm-unsafe-eval': the terminal player (asciinema-player) runs its terminal in WebAssembly.
+        // It allows WebAssembly only, not eval().
+        'script-src': ["'self'", "'wasm-unsafe-eval'", 'https://static.cloudflareinsights.com', 'https://cloud.umami.is'],
         // React style props and sonner's injected styles.
         'style-src': ["'self'", "'unsafe-inline'"],
         // Photos from the shared Google Photos album (worker/photos.ts).
@@ -91,7 +93,12 @@ export default defineConfig({
   build: {
     // The home page, /offline, the 404 page, the private /log page, the slash pages and the blog
     // (post.html is the template the pre-render copies for each post).
-    rollupOptions: { input: ['index.html', 'offline.html', '404.html', 'log.html', 'now.html', 'colophon.html', 'blog.html', 'post.html'] },
+    rollupOptions: {
+      input: ['index.html', 'offline.html', '404.html', 'log.html', 'now.html', 'colophon.html', 'blog.html', 'post.html'],
+      // The terminal player gets a fixed name, so the service worker can leave it out of its
+      // precache (scripts/sw.mjs): it loads only when a recording comes near the screen.
+      output: { advancedChunks: { groups: [{ name: 'terminal-player', test: /node_modules[\\/]asciinema-player/ }] } },
+    },
   },
   define: {
     // Shown as "updated" in the stats card.
