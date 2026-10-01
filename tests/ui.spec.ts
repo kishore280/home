@@ -9,6 +9,7 @@ import { test as base, expect, type APIRequestContext, type Locator, type Page }
 declare global {
   interface Window {
     __copies: string[]
+    __copyFails?: boolean
     __buzz: (number | number[])[]
   }
 }
@@ -45,7 +46,15 @@ const test = base.extend<{ log: Log; press: (target: Locator) => Promise<void> }
       })
       await context.addInitScript(() => {
         window.__copies = []
-        Object.defineProperty(navigator, 'clipboard', { value: { writeText: async (t: string) => window.__copies.push(t) } })
+        // A test sets __copyFails to see what happens when the browser refuses (permission, old browser).
+        Object.defineProperty(navigator, 'clipboard', {
+          value: {
+            writeText: async (t: string) => {
+              if (window.__copyFails) throw new Error('denied')
+              window.__copies.push(t)
+            },
+          },
+        })
       })
       await use(log)
     },
@@ -842,12 +851,46 @@ test.describe('blog', () => {
     const [pre, btn] = [(await code.locator('pre').boundingBox())!, (await code.locator('.copy').boundingBox())!]
     expect(btn.y).toBeGreaterThan(pre.y)
     expect(await code.locator('pre').evaluate((e) => [getComputedStyle(e).scrollbarWidth, getComputedStyle(e).scrollbarColor])).toEqual(['thin', expect.stringMatching(/^(rgb|color)/)])
+    // The button says what it copies (its visible word first), and screen readers hear the result.
+    await expect(code.locator('.copy')).toHaveAccessibleName(/^copy the (text|\w+ code)$/)
     await press(code.getByRole('button', { name: 'copy' }))
     await expect(code.getByRole('button', { name: 'copied' })).toBeVisible()
+    await expect(code.getByRole('status')).toHaveText('Copied')
     expect(await page.evaluate(() => window.__copies)).toEqual([await code.locator('pre').innerText()])
     await page.getByRole('link', { name: 'writing', exact: false }).first().click()
     await expect(page).toHaveURL('/blog')
     expect(errors).toEqual([])
+  })
+
+  test('code in a post: a little smaller on a phone, then it scrolls; a failed copy selects the code', async ({ page, press, isMobile }) => {
+    await page.addInitScript(() => (window.__copyFails = true))
+    await page.goto('/blog/show-your-reels-count-on-your-site')
+    const code = page.locator('.prose .code').filter({ has: page.locator('pre[data-lang="js"]') }).first()
+    const size = await code.locator('pre code').evaluate((e) => parseFloat(getComputedStyle(e).fontSize))
+    // 0.9em of the post text on a wide screen; on a phone the long lines shrink it, never under 12.5px.
+    if (isMobile) expect(size).toBeGreaterThanOrEqual(12.5)
+    expect(size).toBeLessThan(isMobile ? 16 : 16.3)
+    if (!isMobile) expect(size).toBeGreaterThan(16)
+    // The copy button sits above the first line, so it never covers code.
+    const [line, btn] = [(await code.locator('pre .line').first().boundingBox())!, (await code.locator('.copy').boundingBox())!]
+    expect(btn.y + btn.height).toBeLessThanOrEqual(line.y)
+    await press(code.getByRole('button', { name: 'copy the js code' }))
+    await expect(code.getByRole('button', { name: /^press (⌘C|Ctrl\+C)$/ })).toBeVisible()
+    await expect(code.getByRole('status')).toContainText('Copy failed. The code is selected')
+    expect(await page.evaluate(() => getSelection()?.toString().trim())).toBe((await code.locator('pre').innerText()).trim())
+  })
+
+  test('the home cards rise softly into place, and never with reduced motion', async ({ page, browser }) => {
+    await page.goto('/')
+    const anim = (sel: string) => page.locator(sel).first().evaluate((e) => getComputedStyle(e).animationName)
+    // The first card of each column only slides (never hidden, so the page shows at once); the rest fade in too.
+    expect(await anim('.intro-area > .card')).toBe('slide')
+    expect(await anim('.side > :first-child')).toBe('slide')
+    expect(await anim('.main > :nth-child(2)')).toBe('rise')
+    const still = await browser.newPage({ reducedMotion: 'reduce' })
+    await still.goto('http://127.0.0.1:8787/')
+    expect(await still.locator('.main > :nth-child(2)').evaluate((e) => getComputedStyle(e).animationName)).toBe('none')
+    await still.close()
   })
 
   test('every page for search is ready for AI tools: long snippets, a Markdown copy, llms.txt from any page', async ({ request }) => {

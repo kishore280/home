@@ -8,25 +8,35 @@ import { Card } from './Card'
 import { chaiIcon } from './ChaiIcon'
 import { Terminal } from './Terminal'
 
-// A code block in a post (MDX's `pre`), with a button that copies its text.
-function CodeBlock(props: ComponentProps<'pre'>) {
+// A code block in a post (MDX's `pre`), with a button that copies its text. Like sofka.rs, the
+// button says what it copies, and when the clipboard fails (an old browser, or permission refused)
+// the code is selected for the reader to copy by hand. The status line reads the result out.
+function CodeBlock(props: ComponentProps<'pre'> & { 'data-lang'?: string }) {
   const pre = useRef<HTMLPreElement>(null)
-  const [copied, setCopied] = useState(false)
+  const [state, setState] = useState<'copy' | 'copied' | 'failed'>('copy')
+  const lang = props['data-lang']
   const copy = async () => {
+    const code = pre.current
+    if (!code) return
     try {
-      await navigator.clipboard.writeText(pre.current?.innerText ?? '')
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1500)
+      await navigator.clipboard.writeText(code.innerText)
+      setState('copied')
     } catch {
-      // No clipboard (an old browser, or permission refused): the text can still be selected.
+      getSelection()?.selectAllChildren(code)
+      setState('failed')
     }
+    setTimeout(() => setState('copy'), 2500)
   }
+  const keys = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘C' : 'Ctrl+C'
   return (
     <div className="code">
       <pre ref={pre} {...props} />
-      <button type="button" className="copy" onClick={copy} data-umami-event="Code copy">
-        {copied ? 'copied' : 'copy'}
+      <button type="button" className="copy" onClick={copy} aria-label={state === 'copy' ? `copy the ${!lang || lang === 'text' ? 'text' : `${lang} code`}` : undefined} data-umami-event="Code copy">
+        {state === 'copied' ? 'copied' : state === 'failed' ? `press ${keys}` : 'copy'}
       </button>
+      <span className="sr-only" role="status">
+        {state === 'copied' ? 'Copied' : state === 'failed' ? `Copy failed. The code is selected: press ${keys}.` : ''}
+      </span>
     </div>
   )
 }

@@ -127,6 +127,12 @@ a {
   top: 12px;
 }
 
+/* A jump to a heading or the content keeps a little space above it. */
+h2[id],
+main[id] {
+  scroll-margin-top: 16px;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -134,6 +140,58 @@ a {
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
+}
+
+/* The home cards rise softly into place when the page opens, one after another (an idea from
+   sofka.rs). Only transform and opacity move, so nothing shifts the layout. The first card in each
+   column (the intro, the cat) only slides and is never hidden, so the page still shows at once. */
+/* "backwards", not "both": an animation that stays in effect after it ends keeps the card a
+   containing block (like a transform), and a positioned child then sticks out of it. */
+@media (prefers-reduced-motion: no-preference) {
+  .layout > .intro-area > .card,
+  .side > *,
+  .main > * {
+    animation: rise 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+    animation-delay: calc(var(--i, 0) * 45ms);
+  }
+  .layout > .intro-area > .card,
+  .side > :first-child,
+  .main > :first-child {
+    animation-name: slide;
+  }
+  .side > :nth-child(2),
+  .main > :nth-child(1) {
+    --i: 1;
+  }
+  .side > :nth-child(3),
+  .main > :nth-child(2) {
+    --i: 2;
+  }
+  .side > :nth-child(4),
+  .main > :nth-child(3) {
+    --i: 3;
+  }
+  .side > :nth-child(n + 5),
+  .main > :nth-child(n + 4) {
+    --i: 4;
+  }
+  /* A moving card is the box for its fixed captions (the buttons', the binge note), so they would
+     move with it and stick out of the page: these cards stay still. */
+  .side > :has(.badge, .binge),
+  .main > :has(.badge, .binge) {
+    animation: none;
+  }
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+@keyframes slide {
+  from {
+    transform: translateY(6px);
+  }
 }
 
 /* layout */
@@ -1607,11 +1665,14 @@ kbd {
   position: relative;
   /* A grid item; without this, a long line would widen the page instead of scrolling the code. */
   min-width: 0;
+  /* The text size below follows this box's width (CSS container query units). */
+  container-type: inline-size;
 }
-/* Room for the copy button, so it never covers the code. */
-.code pre {
+/* Room above the code for the copy button, so it never covers a line and the code gets the full
+   width on a phone. (Two classes, so it wins over .prose pre's padding below.) */
+.prose .code pre {
   margin: 0;
-  padding-right: 76px;
+  padding-top: 38px;
   /* The page's colours for the sideways scrollbar (CSS Scrollbars: scrollbar-color). */
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--accent) 60%, transparent) transparent;
@@ -1646,8 +1707,18 @@ kbd {
   outline-offset: 2px;
 }
 .prose pre code {
+  /* A block, so its lines take their height from the code's own (smaller) text, not the post's. */
+  display: block;
   padding: 0;
   background: none;
+}
+/* On a narrow screen the code gets a little smaller so more of each line shows, then it scrolls
+   (sofka.rs's trick, gentler: never under 12.5px). --cols is the longest line (vite.config.ts);
+   a monospace letter is about 0.6em wide; 32px is the side padding. */
+@media (max-width: 720px) {
+  .code pre code {
+    font-size: clamp(12.5px, (100cqw - 32px) / (var(--cols, 80) * 0.6), 0.9em);
+  }
 }
 /* Long inline code and links wrap on a narrow phone instead of widening the page. */
 .prose :not(pre) > code,
@@ -1749,6 +1820,13 @@ kbd {
   --term-color-13: #c4a7e7;
   --term-color-14: #ea9a97;
   --term-color-15: #e0def4;
+}
+
+/* The player's text is a tab stop (so a keyboard can read and select it): give it the site's focus
+   ring, inside the box, which clips anything outside. */
+.terminal .ap-term-text:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
 }
 
 /* The home card: date, title, minutes; the title takes the room between. */
