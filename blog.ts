@@ -1,4 +1,4 @@
-// The blog's list, read at build time: the front matter of each posts/<slug>.md (vfile-matter, as the
+// The blog's list, read at build time: the front matter of each posts/<slug>.md or .mdx (vfile-matter, as the
 // MDX docs show for "data without compiling"). The bodies are compiled by MDX (@mdx-js/rollup in
 // vite.config.ts). A post with a missing or wrong field stops the build.
 import { readdirSync, readFileSync } from 'node:fs'
@@ -14,9 +14,9 @@ const DAY = /^\d{4}-\d{2}-\d{2}$/
 
 export function readPosts(dir = 'posts'): Post[] {
   return readdirSync(dir)
-    .filter((f) => f.endsWith('.md'))
+    .filter((f) => /\.mdx?$/.test(f))
     .map((f) => {
-      const slug = f.slice(0, -3)
+      const slug = f.replace(/\.mdx?$/, '')
       const file = readSync(`${dir}/${f}`)
       matter(file, { strip: true })
       const m = (file.data.matter ?? {}) as Record<string, unknown>
@@ -32,7 +32,7 @@ export function readPosts(dir = 'posts'): Post[] {
       // About 200 words a minute.
       const words = String(file).split(/\s+/).filter(Boolean).length
       const minutes = Math.max(1, Math.round(words / 200))
-      return { slug, title, description, date, ...(updated ? { updated } : {}), tags, minutes, words }
+      return { slug, file: f, title, description, date, ...(updated ? { updated } : {}), tags, minutes, words }
     })
     .sort((a, b) => b.date.localeCompare(a.date) || a.slug.localeCompare(b.slug))
 }
@@ -101,8 +101,10 @@ export async function postCard(post: Post): Promise<Buffer> {
 // A post as Markdown for AI tools (blog/<slug>.md and llms-full.txt, seo.ts), as llmstxt.org and
 // yagiz.co do: the facts in YAML front matter, then the text as kish wrote it.
 export function postMarkdown(post: Post, dir = 'posts'): string {
-  const file = readSync(`${dir}/${post.slug}.md`)
+  const file = readSync(`${dir}/${post.file}`)
   matter(file, { strip: true })
+  // A terminal recording (<Terminal src="/casts/x.cast" … />) becomes a link to the recording.
+  const text = String(file).replace(/<Terminal\b[^>]*\bsrc="([^"]+)"[^>]*\blabel="([^"]+)"[^>]*\/>/g, (_, src, label) => `[Terminal recording: ${label}](${site.url}${src})`)
   const url = `${site.url}/blog/${post.slug}`
   const yaml = [
     `title: ${JSON.stringify(post.title)}`,
@@ -112,5 +114,5 @@ export function postMarkdown(post: Post, dir = 'posts'): string {
     `author: ${site.fullName}`,
     `canonical: ${url}`,
   ]
-  return `---\n${yaml.join('\n')}\n---\n\n# ${post.title}\n\n${String(file).trim()}\n`
+  return `---\n${yaml.join('\n')}\n---\n\n# ${post.title}\n\n${text.trim()}\n`
 }

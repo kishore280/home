@@ -1677,6 +1677,80 @@ kbd {
   color: var(--accent-text);
   font: 700 12px var(--body);
 }
+/* A terminal recording (Terminal.tsx, asciinema-player). The box keeps the player's size before it
+   loads, so nothing moves: the terminal is 2.35 × rows ÷ cols of its width (measured at 390 and 1280
+   px), plus the 32 px control bar in posts. 100cqw is the figure's width (a size container). */
+.terminal {
+  margin: 0;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  container-type: inline-size;
+}
+.terminal-box {
+  height: calc(100cqw * var(--rows) * 2.35 / var(--cols) + 32px);
+  overflow: hidden;
+  border-radius: 10px;
+  background: #232136;
+}
+.terminal-loop .terminal-box {
+  height: calc(100cqw * var(--rows) * 2.35 / var(--cols));
+}
+.terminal-foot {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.terminal-pause,
+.chapters button {
+  padding: 4px 12px;
+  border: 0;
+  border-radius: 99px;
+  background: var(--chip);
+  color: var(--accent-text);
+  font: 700 13px var(--body);
+  cursor: pointer;
+}
+.terminal-pause:hover,
+.chapters button:hover,
+.terminal-pause:focus-visible,
+.chapters button:focus-visible {
+  background: color-mix(in srgb, var(--accent) 26%, transparent);
+}
+.chapters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.chapters time {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  margin-right: 2px;
+}
+/* The player's colours: Rosé Pine Moon, like the code blocks in posts. Two classes, so it wins over the
+   player's own stylesheet, which loads later and sets the same variables on .ap-player. */
+.ap-player.asciinema-player-theme-rose-pine-moon {
+  --term-color-foreground: #e0def4;
+  --term-color-background: #232136;
+  --term-color-0: #393552;
+  --term-color-1: #eb6f92;
+  --term-color-2: #9ccfd8;
+  --term-color-3: #f6c177;
+  --term-color-4: #3e8fb0;
+  --term-color-5: #c4a7e7;
+  --term-color-6: #ea9a97;
+  --term-color-7: #e0def4;
+  --term-color-8: #908caa;
+  --term-color-9: #eb6f92;
+  --term-color-10: #9ccfd8;
+  --term-color-11: #f6c177;
+  --term-color-12: #4595b6;
+  --term-color-13: #c4a7e7;
+  --term-color-14: #ea9a97;
+  --term-color-15: #e0def4;
+}
+
 /* The home card: date, title, minutes; the title takes the room between. */
 .post-rows li {
   display: grid;

@@ -256,6 +256,14 @@ tags: [agents, cloudflare]
 The text, in Markdown.
 ```
 
+**A terminal recording in a post:** record a real session with [asciinema](https://asciinema.org) (`asciinema rec --cols 92 --rows 20 my.cast`, then work, then `exit`), put the file in `public/casts/`, name the post `.mdx` instead of `.md`, and add:
+
+```mdx
+<Terminal src="/casts/my.cast" cols={92} rows={20} chapters={[[0, 'first part'], [12.5, 'second part']]} label="What the recording shows." />
+```
+
+`cols` and `rows` are the size you recorded at; `chapters` are buttons that jump to a time (seconds). It plays as text in the blog's colours (`Terminal.tsx`, `asciinema-player`), loads when it comes near the screen, and becomes a link in the post's Markdown copy. The home page's "at the terminal" card is the same player, looping `public/casts/checks.cast`.
+
 `npm run build` does the rest: [MDX](https://mdxjs.com) turns the text into the page, pre-rendered to `dist/blog/<name>.html`, with its own title, description, canonical and JSON-LD `BlogPosting`. The post also goes in `/blog` (by year), the "writing" card on the home page (the newest three), `/blog/rss.xml` ([feed](https://github.com/jpmonette/feed)), `sitemap.xml` and `llms.txt`. Each post gets its own share card, `og/blog/<name>.png` ([satori](https://github.com/vercel/satori) and [resvg](https://github.com/thx/resvg-js), no browser), and, for AI tools, a Markdown copy at `/blog/<name>.md` plus every post in `/llms-full.txt` ([llmstxt.org](https://llmstxt.org)); these two are `noindex` (`public/_headers`), so search shows the HTML page. A post with a missing field, or a date not written as `'YYYY-MM-DD'`, stops the build (`blog.ts`). Add `updated: 'YYYY-MM-DD'` when you change a post. No posts: no card and no link.
 
 ## Deploy (Cloudflare Workers)
@@ -333,6 +341,7 @@ Each item follows a documented method; the source is in the code comment.
 - [Shiki](https://shiki.style) (`@shikijs/rehype`): code in posts, coloured at build time (Rosé Pine Dawn / Moon)
 - [satori](https://github.com/vercel/satori) and [resvg-js](https://github.com/thx/resvg-js): each post's share card
 - [fontaine](https://github.com/unjs/fontaine): fallback fonts sized like the web fonts, so nothing moves when they load
+- [asciinema](https://asciinema.org) (`asciinema-player`): real terminal sessions, played back as text (the home card and posts)
 - [lychee](https://lychee.cli.rs): the daily dead link check (`.github/workflows/links.yml`, `lychee.toml`)
 - [Nunito](https://fonts.google.com/specimen/Nunito) and [Pixelify Sans](https://fonts.google.com/specimen/Pixelify+Sans), through Fontsource
 

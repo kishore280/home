@@ -10,6 +10,7 @@ import { Counts } from './components/Counts'
 import { Buttons, Stamps } from './components/Buttons'
 import { Photos } from './components/Photos'
 import { Writing } from './components/Blog'
+import { Terminal } from './components/Terminal'
 import { posts } from './lib/post-list'
 import type { MenuItem } from './components/CommandMenu'
 import { useCounters } from './hooks/useCounters'
@@ -117,6 +118,9 @@ export default function App() {
         <main className="main" id="main" tabIndex={-1}>
           <RightNow />
           <Writing />
+          <Card title="at the terminal">
+            <Terminal src="/casts/checks.cast" cols={72} rows={12} loop label="a real check run before a push: the last commits, the lint and a test" />
+          </Card>
           <YearHeatmap />
 
           {updates.length > 0 ? (

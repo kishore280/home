@@ -6,6 +6,7 @@ import { postDate, postPath, type Post } from '../lib/posts'
 import { BackHome } from './BackHome'
 import { Card } from './Card'
 import { chaiIcon } from './ChaiIcon'
+import { Terminal } from './Terminal'
 
 // A code block in a post (MDX's `pre`), with a button that copies its text.
 function CodeBlock(props: ComponentProps<'pre'>) {
@@ -44,7 +45,8 @@ export function PostPage({ post, Body }: { post: Post; Body: MDXContent }) {
         </p>
         <h1 className="p-name">{post.title}</h1>
         <div className="prose e-content">
-          <Body components={{ pre: CodeBlock }} />
+          {/* MDX's components map: posts/*.mdx can use <Terminal> without importing it. */}
+          <Body components={{ pre: CodeBlock, Terminal }} />
         </div>
         <footer className="post-foot">
           {post.tags.length ? (

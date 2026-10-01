@@ -2,6 +2,8 @@
 // file also runs in Node at build time (blog.ts, src/lib/head.ts).
 export type Post = {
   slug: string
+  // The file in posts/: <slug>.md, or <slug>.mdx for a post that uses a component (<Terminal>).
+  file: string
   title: string
   description: string
   // YYYY-MM-DD, the day it was published; `updated` the day it last changed, if it did.

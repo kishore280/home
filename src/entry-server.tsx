@@ -15,7 +15,7 @@ import { posts } from './lib/post-list'
 
 const html = (page: ReactNode) => () => renderToString(<StrictMode>{page}</StrictMode>)
 
-const bodies = import.meta.glob<MDXContent>('/posts/*.md', { import: 'default', eager: true })
+const bodies = import.meta.glob<MDXContent>('/posts/*.{md,mdx}', { import: 'default', eager: true })
 
 // HTML file in dist/ → its pre-rendered #root, the built page it starts from (default: itself) and
 // the head tags that go in place of <!-- page-head -->. /offline is built twice: online
@@ -33,7 +33,7 @@ export const pages: Record<string, { render: () => string; from?: string; head?:
   ...Object.fromEntries(
     posts.map((p) => [
       `blog/${p.slug}.html`,
-      { render: html(<PostPage post={p} Body={bodies[`/posts/${p.slug}.md`]} />), from: 'post.html', head: postHead(p) },
+      { render: html(<PostPage post={p} Body={bodies[`/posts/${p.file}`]} />), from: 'post.html', head: postHead(p) },
     ]),
   ),
 }
