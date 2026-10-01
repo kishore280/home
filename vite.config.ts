@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import mdx from '@mdx-js/rollup'
 import react from '@vitejs/plugin-react'
 import rehypeShiki from '@shikijs/rehype'
+import type { ShikiTransformer } from 'shiki'
 import remarkFrontmatter from 'remark-frontmatter'
 import { FontaineTransform } from 'fontaine'
 import { defineConfig, type Plugin } from 'vite'
@@ -59,6 +60,19 @@ export default defineConfig({
                 },
                 'rose-pine-moon': { '#6e6a86': '#8d89a6', '#3e8fb0': '#4595b6' },
               },
+              // Each block's longest line (--cols), so the CSS can shrink the text a little on a phone
+              // before it scrolls (an idea from sofka.rs), and its language for the copy button's
+              // label (Shiki docs: "Transformers").
+              transformers: [
+                {
+                  name: 'columns',
+                  pre(node) {
+                    const cols = Math.max(...this.source.split('\n').map((l) => l.length))
+                    node.properties.style = `${node.properties.style ?? ''};--cols:${cols}`
+                    node.properties['data-lang'] = this.options.lang
+                  },
+                } satisfies ShikiTransformer,
+              ],
             },
           ],
         ],
