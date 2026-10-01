@@ -38,7 +38,9 @@ export function Terminal({ src, cols, rows, chapters = [], loop = false, label }
         cols,
         rows,
         theme: 'rose-pine-moon',
-        fit: 'width',
+        // 'both', not 'width': the box's height is set by CSS, and a narrower font (Consolas on
+        // Windows) makes 72 columns taller than that; 'both' fits the whole terminal inside the box.
+        fit: 'both',
         terminalFontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
         markers: chapters,
         ...(loop ? { autoPlay: !still, loop: true, idleTimeLimit: 4, controls: false, ...(still ? { poster: 'npt:99:00' } : {}) } : { idleTimeLimit: 2, poster: 'npt:0:03' }),

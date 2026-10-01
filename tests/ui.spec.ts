@@ -796,6 +796,10 @@ test.describe('terminal (asciinema)', () => {
     await expect(box.locator('.ap-term')).toContainText('Kannukulla (Reprise) · Sai Abhyankkar', { timeout: 10_000 })
     await expect(box.locator('.ap-term')).toContainText(/played 1 hr\. ago/)
     expect((await box.boundingBox())!.height).toBe(before) // nothing moved
+    // The whole terminal fits inside the box, the last line too (fit: 'both').
+    const [outer, term] = [(await box.boundingBox())!, (await box.locator('.ap-term').boundingBox())!]
+    expect(term.y + term.height).toBeLessThanOrEqual(outer.y + outer.height + 0.5)
+    expect(term.x).toBeGreaterThanOrEqual(outer.x - 0.5)
     // One request for the song, the card's own (RightNow); the terminal read it from the cache.
     expect(asked.filter((u) => u.includes('/api/now-playing'))).toHaveLength(1)
     expect(asked.filter((u) => u.includes('/casts/'))).toEqual([])
