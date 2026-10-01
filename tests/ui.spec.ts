@@ -211,6 +211,10 @@ test.describe('home page', () => {
 
   test('mascot gets dizzy after very fast pats, and gets better', async ({ page, press }) => {
     await page.goto('/')
+    // The pats must come fast: wait until the page is done loading (the terminal's player loads when
+    // the browser is idle), or a busy page spreads them out.
+    await mascotReady(page)
+    await page.waitForLoadState('networkidle')
     const mascot = page.getByRole('button', { name: 'Pat the mascot' })
     for (let i = 0; i < 7; i++) await press(mascot)
     await expect(mascot.locator('.m-dizzy')).toHaveCount(2)
@@ -771,16 +775,30 @@ test('no rubber-band bounce with a mouse or trackpad; touch screens keep pull-to
   expect(overscroll).toEqual(isMobile ? ['auto', 'auto'] : ['none', 'none'])
 })
 
-test.describe('terminal recordings (asciinema)', () => {
-  test('the home card loops a real check run, keeps its size while the player loads, and pauses on a tap', async ({ page, press }) => {
+test.describe('terminal (asciinema)', () => {
+  // The home card writes its session from the data the other cards fetched (src/lib/live-cast.ts).
+  const song = (page: Page) => {
+    const at = new Date(Date.now() - 3_600_000).toISOString()
+    const asked: string[] = []
+    page.on('request', (r) => /\/api\/now-playing|\/casts\//.test(r.url()) && asked.push(r.url()))
+    return page.route('**/api/now-playing', (r) => r.fulfill({ json: { title: 'Kannukulla (Reprise)', artist: 'Sai Abhyankkar', at, until: at } })).then(() => asked)
+  }
+
+  test('the home card types out live data, keeps its size, sends no request of its own, and pauses on a tap', async ({ page, press }) => {
+    const asked = await song(page)
     await page.goto('/')
     const card = page.locator('.card', { has: page.getByRole('heading', { name: 'at the terminal' }) })
     const box = card.locator('.terminal-box')
     const before = (await box.boundingBox())!.height
     expect(before).toBeGreaterThan(80) // its space is kept before the player loads
     await card.scrollIntoViewIfNeeded()
-    await expect(box.locator('.ap-term')).toContainText('git log --oneline -3', { timeout: 15_000 })
+    await expect(box.locator('.ap-term')).toContainText('kish now', { timeout: 15_000 })
+    await expect(box.locator('.ap-term')).toContainText('Kannukulla (Reprise) · Sai Abhyankkar', { timeout: 10_000 })
+    await expect(box.locator('.ap-term')).toContainText(/played 1 hr\. ago/)
     expect((await box.boundingBox())!.height).toBe(before) // nothing moved
+    // One request for the song, the card's own (RightNow); the terminal read it from the cache.
+    expect(asked.filter((u) => u.includes('/api/now-playing'))).toHaveLength(1)
+    expect(asked.filter((u) => u.includes('/casts/'))).toEqual([])
     await expect(box.locator('.ap-player')).toHaveClass(/asciinema-player-theme-rose-pine-moon/)
     expect(await box.locator('.ap-player').evaluate((e) => getComputedStyle(e).getPropertyValue('--term-color-background').trim())).toBe('#232136')
     const pause = card.getByRole('button', { name: 'pause' })
@@ -788,12 +806,16 @@ test.describe('terminal recordings (asciinema)', () => {
     await expect(card.getByRole('button', { name: 'play' })).toBeVisible()
   })
 
-  test('with reduced motion the home card waits for play', async ({ page }) => {
+  test('with reduced motion the home card shows the end of the session and waits for play', async ({ page }) => {
+    await song(page)
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await page.goto('/')
     const card = page.locator('.card', { has: page.getByRole('heading', { name: 'at the terminal' }) })
     await card.scrollIntoViewIfNeeded()
     await expect(card.getByRole('button', { name: 'play' })).toBeVisible({ timeout: 15_000 })
+    // The last command, the cat, with the pats from /api/counters.
+    await expect(card.locator('.ap-term')).toContainText('kish cat', { timeout: 10_000 })
+    await expect(card.locator('.ap-term')).toContainText(/\d+ pats?/)
   })
 
   test('a post plays a recording with chapter buttons; its Markdown copy links the recording', async ({ page, press, request }) => {
