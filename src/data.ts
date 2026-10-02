@@ -188,6 +188,14 @@ export const colophonPage: TextPage = {
 
 // The 404 page, for addresses that do not exist.
 // The private /log page, where kish logs chai, parotta and beach days (kept out of search).
+// /p: the paste bin's page (worker/paste.ts; curl gets plain text instead). Kept out of search, so
+// spam bots do not find the form there.
+export const pastePage = {
+  title: 'paste · kish',
+  description: 'A tiny paste bin: paste text or code, get a link that lives for a day.',
+  heading: 'paste',
+}
+
 export const logPage = {
   title: 'log · kish',
   description: 'Where kish logs chai, parotta and beach days.',
