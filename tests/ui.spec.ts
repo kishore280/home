@@ -1788,7 +1788,7 @@ test.describe('404 and layout', () => {
   })
 
   for (const width of [320, 375]) {
-    for (const path of ['/', '/offline', '/nope', '/log', '/now', '/colophon', '/blog', '/blog/show-what-you-listen-to-with-pano-scrobbler']) {
+    for (const path of ['/', '/offline', '/nope', '/log', '/now', '/colophon', '/blog', '/blog/show-what-you-listen-to-with-pano-scrobbler', '/p']) {
       test(`${width} px wide, ${path}: no sideways scroll`, async ({ page, isMobile }) => {
         test.skip(isMobile, 'the width is set here')
         await page.setViewportSize({ width, height: 800 })
@@ -1829,6 +1829,7 @@ test.describe('accessibility (axe-core)', () => {
     ['404', '/nope', 'dark'],
     ['/now', '/now', 'light'],
     ['/colophon', '/colophon', 'dark'],
+    ['/p, the paste page', '/p', 'light'],
     ['/blog', '/blog', 'light'],
     ['a blog post', '/blog/show-what-you-listen-to-with-pano-scrobbler', 'dark'],
     ['/log, token form', '/log', 'light'],
@@ -1924,5 +1925,29 @@ test.describe('paste bin (/p)', () => {
     const codes = []
     for (let i = 0; i < 6; i++) codes.push((await request.post(`${base}/p?ttl=60s`, { data: `n${i}`, headers: from(4) })).status())
     expect(codes).toEqual([201, 201, 201, 201, 201, 429])
+  })
+})
+
+test.describe('paste page (/p in a browser)', () => {
+  test('type, paste, get a link that opens the text; curl at the same address gets help', async ({ page, press, request, isMobile }) => {
+    // Its own address per project and run, so the 5-a-minute limit never blocks it.
+    await page.setExtraHTTPHeaders({ 'cf-connecting-ip': `10.200.${isMobile ? 1 : 2}.${Math.floor(Math.random() * 250)}` })
+    await page.goto('/p')
+    await expect(page).toHaveTitle('paste · kish')
+    await expect(page.locator('meta[name=robots]')).toHaveAttribute('content', 'noindex')
+    const box = page.getByRole('textbox', { name: 'Text or code to paste' })
+    // On a phone the text is 16px, so iOS does not zoom in when it is tapped.
+    if (isMobile) expect(await box.evaluate((e) => getComputedStyle(e).fontSize)).toBe('16px')
+    await press(page.getByRole('button', { name: 'paste ⏎' }))
+    await expect(page.getByRole('status')).toHaveText('empty paste.')
+    await box.fill('const hi = 1\n  // keeps its spaces\n')
+    await press(page.getByRole('button', { name: 'paste ⏎' }))
+    const link = page.getByRole('status').getByRole('link')
+    await expect(link).toHaveText(/\/p\/[A-Za-z0-9]{6}$/)
+    const path = new URL((await link.textContent())!).pathname
+    expect(await (await request.get(`http://127.0.0.1:8787${path}`)).text()).toBe('const hi = 1\n  // keeps its spaces\n')
+    await press(page.getByRole('button', { name: 'copy' }))
+    await expect(page.getByRole('button', { name: 'copied' })).toBeVisible()
+    expect(await (await request.get('http://127.0.0.1:8787/p')).text()).toContain('curl --data-binary @file.txt')
   })
 })

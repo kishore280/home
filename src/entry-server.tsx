@@ -8,6 +8,7 @@ import { BlogIndex, PostPage } from './components/Blog'
 import { LogPage } from './components/LogPage'
 import { NotFoundPage } from './components/NotFoundPage'
 import { OfflinePage } from './components/OfflinePage'
+import { PastePage } from './components/PastePage'
 import { TextPage } from './components/TextPage'
 import { colophonPage, nowPage } from './data'
 import { postHead } from './lib/head'
@@ -30,6 +31,7 @@ export const pages: Record<string, { render: () => string; from?: string; head?:
   'now.html': { render: html(<TextPage page={nowPage} />) },
   'colophon.html': { render: html(<TextPage page={colophonPage} />) },
   'blog.html': { render: html(<BlogIndex />) },
+  'p.html': { render: html(<PastePage />) },
   ...Object.fromEntries(
     posts.map((p) => [
       `blog/${p.slug}.html`,

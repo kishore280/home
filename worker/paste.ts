@@ -3,7 +3,7 @@
 //                       the answer is the link. ttl: 60s to 30d (s, m, h, d), 1d when left out.
 //   GET     /p/abc123   the text, as plain text.
 //   DELETE  /p/abc123   Bearer SCROBBLE_TOKEN: kish removes a paste.
-//   GET     /p          how to use it.
+//   GET     /p          a browser gets the paste form (p.html); curl gets how to use it.
 // Storage: Workers KV. Each paste is one key, written once with expirationTtl, so KV deletes it by
 // itself (KV docs: "Expiring keys"). The free plan allows 1,000 writes a day; past that a write
 // fails and the answer says to try tomorrow, so it never costs money.
@@ -62,7 +62,14 @@ function ttlOf(value: string | null): number | null {
 export async function paste(request: Request, env: Env, pathname: string): Promise<Response> {
   const url = new URL(request.url)
   if (pathname === '/p' || pathname === '/p/') {
-    if (request.method === 'GET') return text(usage(url.origin))
+    // A browser gets the form (p.html, src/components/PastePage.tsx); curl gets the help text.
+    if (request.method === 'GET') {
+      // A copy, so the headers can change (an asset response's headers cannot).
+      const asset = request.headers.get('accept')?.includes('text/html') ? await env.ASSETS.fetch(request) : null
+      const res = asset ? new Response(asset.body, asset) : text(usage(url.origin))
+      res.headers.set('vary', 'accept')
+      return res
+    }
     if (request.method === 'POST') return create(request, env, url)
     return text('Use GET or POST.', 405, { allow: 'GET, POST' })
   }

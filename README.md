@@ -268,7 +268,7 @@ The text, in Markdown.
 
 ## Paste bin (/p)
 
-A small paste bin, like [paste.rs](https://paste.rs). Anyone sends text and gets a short link that expires:
+A small paste bin, like [paste.rs](https://paste.rs). Anyone sends text and gets a short link that expires. In a browser, [kichoow.com/p](https://kichoow.com/p) is a text box styled like the home terminal (`src/components/PastePage.tsx`; pastes from it live 1 day). From a terminal:
 
 ```sh
 curl --data-binary @notes.txt https://kichoow.com/p            # lives 1 day

@@ -108,7 +108,7 @@ export default defineConfig({
     // The home page, /offline, the 404 page, the private /log page, the slash pages and the blog
     // (post.html is the template the pre-render copies for each post).
     rollupOptions: {
-      input: ['index.html', 'offline.html', '404.html', 'log.html', 'now.html', 'colophon.html', 'blog.html', 'post.html'],
+      input: ['index.html', 'offline.html', '404.html', 'log.html', 'now.html', 'colophon.html', 'blog.html', 'post.html', 'p.html'],
       // The terminal player gets a fixed name, so the service worker can leave it out of its
       // precache (scripts/sw.mjs): it loads only when a recording comes near the screen.
       output: { advancedChunks: { groups: [{ name: 'terminal-player', test: /node_modules[\\/]asciinema-player/ }] } },

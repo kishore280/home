@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { Feed } from 'feed'
 import type { Plugin } from 'vite'
-import { blogPage, colophonPage, links, logPage, myButtons, notFound, nowPage, offlineNote, site } from './src/data.ts'
+import { blogPage, colophonPage, links, logPage, myButtons, notFound, nowPage, offlineNote, pastePage, site } from './src/data.ts'
 import { blogLd, breadcrumbLd, feedLink, graph, ids, indexable, meta, personLd, websiteLd } from './src/lib/head.ts'
 import { postCard, postMarkdown } from './blog.ts'
 import type { Post } from './src/lib/posts.ts'
@@ -78,6 +78,8 @@ export function seo(posts: Post[]): Plugin {
       ),
     ],
     'post.html': [manifest, '<!-- page-head -->'],
+    // The paste bin's form: open to all, but not in search or the sitemap, so spam bots do not find it there.
+    'p.html': [manifest, ...meta({ ...pastePage, url: `${site.url}/p`, type: 'website' }), `<meta name="robots" content="noindex" />`],
     // Private: not in search or the sitemap.
     'log.html': [
       `<link rel="manifest" href="/log.webmanifest" />`,
