@@ -51,9 +51,8 @@ const { count, size, warnings } = await generateSW({
       options: { backgroundSync: { name: 'log', options: { maxRetentionTime: 24 * 60 } } },
     },
     // Other pages: the network, else the last copy seen, else the offline version of /offline.
-    // Not pastes (/p/…): they expire, so a kept copy must not outlive them.
     {
-      urlPattern: ({ request, url }) => request.mode === 'navigate' && !url.pathname.startsWith('/p/'),
+      urlPattern: ({ request }) => request.mode === 'navigate',
       handler: 'NetworkFirst',
       options: { cacheName: 'pages', networkTimeoutSeconds: 3, precacheFallback: { fallbackURL: 'offline-now.html' } },
     },
