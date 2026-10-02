@@ -15,7 +15,7 @@
 		"directory": "./dist",
 		"binding": "ASSETS",
 		"not_found_handling": "404-page",
-		"run_worker_first": ["/api/*"]
+		"run_worker_first": ["/api/*", "/p", "/p/*"]
 	},
 	// Serve on home.<account>.workers.dev; no per-version preview URLs.
 	"workers_dev": true,
@@ -49,6 +49,22 @@
 	},
 	"upload_source_maps": true,
 	// D1 database: view and pat counters, and the latest song (tables: migrations/).
+	// Pastes (worker/paste.ts): KV deletes each one by itself when its time is over (expirationTtl).
+	"kv_namespaces": [
+		{
+			"binding": "PASTES",
+			"id": "df1072fd0ac2419c96509665622ea392"
+		}
+	],
+	// 5 new pastes a minute per visitor (Workers Rate Limiting; namespace_id is any number unique in
+	// the account).
+	"ratelimits": [
+		{
+			"name": "PASTE_LIMIT",
+			"namespace_id": "1001",
+			"simple": { "limit": 5, "period": 60 }
+		}
+	],
 	"d1_databases": [
 		{
 			"binding": "DB",

@@ -136,7 +136,7 @@ export const colophonPage: TextPage = {
   description: 'How kichoow.com is made: React, Cloudflare Workers, hand-drawn SVG and free tiers.',
   heading: 'colophon',
   intro: 'How this site is made.',
-  updated: '2026-10-01',
+  updated: '2026-10-02',
   sections: [
     {
       title: 'code',
@@ -146,6 +146,7 @@ export const colophonPage: TextPage = {
         { text: '⌘K menu: cmdk; photo viewer: Yet Another React Lightbox; my days: react-activity-calendar' },
         { text: 'the blog: Markdown files, turned into pages by MDX at build time, with an RSS feed', href: '/blog' },
         { text: 'terminal recordings: asciinema, real sessions played back as text (an idea from sofka.rs)', href: 'https://asciinema.org' },
+        { text: 'kichoow.com/p: a paste bin on Workers KV, pastes expire (an idea from paste.rs)', href: 'https://paste.rs' },
       ],
     },
     {
