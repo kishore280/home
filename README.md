@@ -266,6 +266,22 @@ The text, in Markdown.
 
 `npm run build` does the rest: [MDX](https://mdxjs.com) turns the text into the page, pre-rendered to `dist/blog/<name>.html`, with its own title, description, canonical and JSON-LD `BlogPosting`. The post also goes in `/blog` (by year), the "writing" card on the home page (the newest three), `/blog/rss.xml` ([feed](https://github.com/jpmonette/feed)), `sitemap.xml` and `llms.txt`. Each post gets its own share card, `og/blog/<name>.png` ([satori](https://github.com/vercel/satori) and [resvg](https://github.com/thx/resvg-js), no browser), and, for AI tools, a Markdown copy at `/blog/<name>.md` plus every post in `/llms-full.txt` ([llmstxt.org](https://llmstxt.org)); these two are `noindex` (`public/_headers`), so search shows the HTML page. A post with a missing field, or a date not written as `'YYYY-MM-DD'`, stops the build (`blog.ts`). Add `updated: 'YYYY-MM-DD'` when you change a post. No posts: no card and no link.
 
+## Paste bin (/p)
+
+A small paste bin, like [paste.rs](https://paste.rs). Anyone sends text and gets a short link that expires:
+
+```sh
+curl --data-binary @notes.txt https://kichoow.com/p            # lives 1 day
+echo hello | curl --data-binary @- 'https://kichoow.com/p?ttl=1h'
+# → https://kichoow.com/p/x7Kq2a
+```
+
+- `ttl` is 60s to 30d (`s`, `m`, `h` or `d`). Workers KV deletes the paste by itself (`expirationTtl`).
+- Text only (UTF-8), at most 100 KB, 5 pastes a minute per address (Workers Rate Limiting).
+- A paste opens as plain text, never as a web page, and search engines are told not to index it.
+- Remove one: `curl -X DELETE -H "Authorization: Bearer $SCROBBLE_TOKEN" https://kichoow.com/p/x7Kq2a`.
+- Free plan: KV takes 1,000 new pastes a day; after that the answer is "full for today" until 00:00 UTC.
+
 ## Deploy (Cloudflare Workers)
 
 The Worker in `worker/` answers `/api/*` and serves the built site from `dist/`.

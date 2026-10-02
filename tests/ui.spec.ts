@@ -605,6 +605,10 @@ test.describe('⌘K menu', () => {
     const loaded = page.waitForResponse((r) => /CommandMenu-.*\.js$/.test(r.url()))
     await page.goto('/')
     await loaded
+    // Measure only once the page is done loading and the browser is idle (the terminal's player
+    // loads when idle), so a busy test machine does not count; the 300 ms hold would still show.
+    await page.waitForLoadState('networkidle')
+    await page.evaluate(() => new Promise((done) => requestIdleCallback(done, { timeout: 2000 })))
     const ms = await page.evaluate(
       () =>
         new Promise<number>((resolve) => {
@@ -1863,4 +1867,62 @@ test.describe('accessibility (axe-core)', () => {
       expect(violations.map((v) => `${v.id} (${v.impact})`)).toEqual([])
     })
   }
+})
+
+// The paste bin (worker/paste.ts). One project is enough (it is the Worker, not a page), and each
+// test sends from its own address, so the 5-a-minute limit of one test never blocks another.
+test.describe('paste bin (/p)', () => {
+  test.skip(({ isMobile }) => isMobile, 'one run is enough')
+  const base = 'http://127.0.0.1:8787'
+  // A new block of addresses each run, so a run right after another starts with fresh limits.
+  const block = Math.floor(Math.random() * 250)
+  const from = (n: number) => ({ 'cf-connecting-ip': `10.${block}.0.${n}` })
+
+  test('a paste is plain text at a 6-letter link, expires, and only kish can delete it', async ({ request }) => {
+    const made = await request.post(`${base}/p?ttl=1h`, { data: 'hello from kish\n', headers: from(1) })
+    expect(made.status()).toBe(201)
+    const link = (await made.text()).trim()
+    expect(link).toMatch(/^http:\/\/127\.0\.0\.1:8787\/p\/[A-Za-z0-9]{6}$/)
+    expect(made.headers()['location']).toBe(link)
+    const expires = Date.parse(made.headers()['x-expires'])
+    expect(expires - Date.now()).toBeGreaterThan(3_500_000)
+    expect(expires - Date.now()).toBeLessThanOrEqual(3_600_000)
+
+    const got = await request.get(link)
+    expect(got.status()).toBe(200)
+    expect(await got.text()).toBe('hello from kish\n')
+    // Never a web page: a paste cannot become a fake login page on this domain, nor a search result.
+    expect(got.headers()['content-type']).toBe('text/plain; charset=utf-8')
+    expect(got.headers()['x-content-type-options']).toBe('nosniff')
+    expect(got.headers()['content-security-policy']).toBe("default-src 'none'; sandbox")
+    expect(got.headers()['x-robots-tag']).toBe('noindex, nofollow')
+
+    expect((await request.delete(link, { headers: { authorization: 'Bearer wrong' } })).status()).toBe(401)
+    expect((await request.delete(link, { headers: { authorization: 'Bearer test-token-0123456789-abcdef' } })).status()).toBe(200)
+    expect((await request.get(link)).status()).toBe(404)
+  })
+
+  test('only text, at most 100 KB, with a sane ttl; GET /p says how to use it', async ({ request }) => {
+    const post = (data: string | Buffer, ttl = '', n = 2) => request.post(`${base}/p${ttl}`, { data, headers: { ...from(n), 'content-type': 'text/plain' } })
+    expect((await post('x', '?ttl=10s')).status()).toBe(400)
+    expect((await post('x', '?ttl=31d')).status()).toBe(400)
+    expect((await post('x', '?ttl=soon')).status()).toBe(400)
+    expect((await post(Buffer.from([0xff, 0xfe, 0x00, 0x01]), '', 3)).status()).toBe(415)
+    expect((await post('a'.repeat(100 * 1024 + 1), '', 3)).status()).toBe(413)
+    expect((await post('', '', 3)).status()).toBe(400)
+    expect((await request.get(`${base}/p/nope`)).status()).toBe(404)
+    const usage = await request.get(`${base}/p`)
+    expect(await usage.text()).toContain('curl --data-binary @file.txt')
+  })
+
+  test('a paste comes back exactly as sent (no newline added)', async ({ request }) => {
+    const link = (await (await request.post(`${base}/p`, { data: 'no newline · ünïcode ✓', headers: from(5) })).text()).trim()
+    expect(await (await request.get(link)).text()).toBe('no newline · ünïcode ✓')
+  })
+
+  test('5 pastes a minute from one address, then 429', async ({ request }) => {
+    const codes = []
+    for (let i = 0; i < 6; i++) codes.push((await request.post(`${base}/p?ttl=60s`, { data: `n${i}`, headers: from(4) })).status())
+    expect(codes).toEqual([201, 201, 201, 201, 201, 429])
+  })
 })
