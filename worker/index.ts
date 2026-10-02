@@ -1,10 +1,9 @@
-// Cloudflare Worker: serves the built site from dist/ and answers /api/* routes and /p (pastes).
+// Cloudflare Worker: serves the built site from dist/ and answers /api/* routes.
 import { counters } from './counters'
 import { fail, type Env } from './db'
 import { github } from './github'
 import { days, log, undo } from './log'
 import { nowPlaying } from './now-playing'
-import { paste } from './paste'
 import { photos } from './photos'
 import { scrobble } from './scrobble'
 import { scroll } from './scroll'
@@ -31,7 +30,6 @@ export default {
         return scroll(request, env, ctx)
     }
     if (pathname.startsWith('/api/scrobble/1/')) return scrobble(request, env, pathname.slice('/api/scrobble/1/'.length))
-    if (pathname === '/p' || pathname.startsWith('/p/')) return paste(request, env, pathname)
     if (pathname.startsWith('/api/')) return fail('Not found.', 404)
     return env.ASSETS.fetch(request)
   },
