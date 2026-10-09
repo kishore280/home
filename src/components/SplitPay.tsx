@@ -35,11 +35,8 @@ function Qr({ text }: { text: string }) {
   )
 }
 
-const AID = /^[\w-]{1,64}$/
-
 // `lab` (the link ends with &lab=1) shows the test mode: the same payment in several link styles.
-// `aid` (&aid=…, the field in Google Pay's own QR) adds the two styles that carry it.
-export function SplitPay({ id, lab, aid }: { id: string; lab: boolean; aid: string }) {
+export function SplitPay({ id, lab }: { id: string; lab: boolean }) {
   const { data, error } = useSWR(`/api/split?s=${id}`, fetcher<Split>, { revalidateOnFocus: false })
   const [shares, setShares] = useState<Record<number, string>>({})
   const [platform] = useState(platformOf)
@@ -58,7 +55,7 @@ export function SplitPay({ id, lab, aid }: { id: string; lab: boolean; aid: stri
   })
   const paise = parts.reduce((sum, p) => sum + (p.bad ? 0 : p.paise), 0)
   const ready = Boolean(data) && !parts.some((p) => p.bad) && paise > 0 && paise <= MAX_PAISE
-  const payment = data && ready ? { vpa: data.vpa, name: data.name, paise, note: noteFor(data.title, items.filter((_, i) => parts[i].paise > 0).map((item) => item.label)) } : null
+  const payment = data && ready ? { vpa: data.vpa, name: data.name, aid: data.aid, paise, note: noteFor(data.title, items.filter((_, i) => parts[i].paise > 0).map((item) => item.label)) } : null
   const link = payment && upiLink(payment)
 
   if (error) return <p role="alert">Could not load this split. Check your signal and open the link again.</p>
@@ -155,8 +152,8 @@ export function SplitPay({ id, lab, aid }: { id: string; lab: boolean; aid: stri
           <h2>link styles (testing)</h2>
           <p className="small">Tap one, pay a small amount, and see which styles your bank accepts. A style that fails is a useful answer too.</p>
           <ul>
-            {(Object.keys(STYLES) as Style[]).filter((style) => AID.test(aid) || (style !== 'aid' && style !== 'qr')).map((style) => {
-              const styled = upiLink({ ...payment, aid }, style, tr)
+            {(Object.keys(STYLES) as Style[]).map((style) => {
+              const styled = upiLink(payment, style, tr)
               return (
                 <li key={style}>
                   <span className="split-lab-line">

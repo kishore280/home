@@ -15,7 +15,7 @@ export function SplitPage() {
     <main className="narrow-page split-page" id="main">
       <Card>
         <h1>split</h1>
-        {!isClient ? <p className="small">Loading…</p> : id ? <SplitPay id={id} lab={query?.get('lab') === '1'} aid={query?.get('aid') ?? ''} /> : <SplitOwner />}
+        {!isClient ? <p className="small">Loading…</p> : id ? <SplitPay id={id} lab={query?.get('lab') === '1'} /> : <SplitOwner />}
       </Card>
       <BackHome />
     </main>

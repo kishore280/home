@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import useSWR from 'swr'
-import { MAX_ITEMS, money, parseRupees, total, VPA, clean, type Split } from '../lib/split'
+import { AID, MAX_ITEMS, money, parseRupees, readAid, total, VPA, clean, type Split } from '../lib/split'
 import { useCopy } from '../lib/copy'
 import { load, remove, save } from '../lib/storage'
 import { shortDate } from '../lib/time'
@@ -11,6 +11,7 @@ import { TokenForm } from './TokenForm'
 // and see, copy or delete the splits made before. It needs the same token as /log (worker/split.ts).
 const NAME_KEY = 'split-name'
 const VPA_KEY = 'split-vpa'
+const AID_KEY = 'split-aid'
 
 class Unauthorized extends Error {}
 
@@ -32,6 +33,7 @@ export function SplitOwner() {
   const [title, setTitle] = useState('')
   const [name, setName] = useState(() => load(NAME_KEY) ?? '')
   const [vpa, setVpa] = useState(() => load(VPA_KEY) ?? '')
+  const [aid, setAid] = useState(() => load(AID_KEY) ?? '')
   const [rows, setRows] = useState(() => [emptyRow(), emptyRow()])
   const [problem, setProblem] = useState('')
   const [busy, setBusy] = useState(false)
@@ -54,6 +56,7 @@ export function SplitOwner() {
     if (!token) return
     // The same rules as the Worker (src/lib/split.ts), so most mistakes are told here, at once.
     if (!VPA.test(vpa.trim())) return setProblem('Your UPI ID should look like name@bank.')
+    if (aid.trim() && !AID.test(readAid(aid))) return setProblem('The Google Pay id should be letters and digits, like uGICAgIDDiObocw. Or paste the whole QR text.')
     if (!clean(name, 40)) return setProblem('Add your name: people see it before they pay.')
     const items = []
     for (const [i, row] of rows.entries()) {
@@ -70,13 +73,14 @@ export function SplitOwner() {
       const res = await fetch('/api/split', {
         method: 'POST',
         headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
-        body: JSON.stringify({ title, name, vpa, items }),
+        body: JSON.stringify({ title, name, vpa, aid: readAid(aid) || undefined, items }),
       })
       if (res.status === 401) return forget()
       const reply = (await res.json().catch(() => ({}))) as { id?: string; error?: string }
       if (!res.ok || !reply.id) return setProblem(reply.error ?? 'Could not make the link. Try again.')
       save(NAME_KEY, clean(name, 40))
       save(VPA_KEY, vpa.trim())
+      save(AID_KEY, readAid(aid))
       setMade(linkTo(reply.id))
       setTitle('')
       setRows([emptyRow(), emptyRow()])
@@ -123,6 +127,10 @@ export function SplitOwner() {
             <input value={name} onChange={(e) => setName(e.target.value)} maxLength={40} autoComplete="name" placeholder="Kish" />
           </label>
         </div>
+        <label>
+          Google Pay QR id (optional)
+          <input value={aid} onChange={(e) => setAid(e.target.value)} maxLength={200} autoComplete="off" autoCapitalize="none" spellCheck={false} placeholder="aid from your QR, or the whole QR text" />
+        </label>
         <fieldset>
           <legend>items</legend>
           {rows.map((row, i) => (

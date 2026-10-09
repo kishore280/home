@@ -2124,21 +2124,6 @@ test.describe('split page: paying (Android)', () => {
     await expect(lab.getByRole('link', { name: 'without the amount' })).toHaveAttribute('href', `upi://pay?${base}&cu=INR`)
   })
 
-  test('with &aid=… the test mode adds two styles that copy the fields of Google Pay\'s own QR', async ({ page, request }) => {
-    const id = await newSplit({ request })
-    await page.goto(`/experiments/split?s=${id}&lab=1`)
-    await page.getByLabel('Pay all of Bus').check()
-    const lab = page.getByRole('region', { name: 'Link styles to test' })
-    await expect(lab.getByRole('link', { name: /Google Pay QR/ })).toHaveCount(0) // no aid, no styles
-    await page.goto(`/experiments/split?s=${id}&lab=1&aid=uGICAgIDDiObocw`)
-    await page.getByLabel('Pay all of Bus').check()
-    await expect(lab.getByRole('link', { name: 'like my Google Pay QR, with the amount' })).toHaveAttribute('href', 'upi://pay?pa=kish@okaxis&pn=Kish&am=100.00&cu=INR&aid=uGICAgIDDiObocw')
-    await expect(lab.getByRole('link', { name: 'exactly my Google Pay QR text' })).toHaveAttribute('href', 'upi://pay?pa=kish@okaxis&pn=Kish&aid=uGICAgIDDiObocw')
-    await page.goto(`/experiments/split?s=${id}&lab=1&aid=a%26b%23`) // not a plain id: ignored
-    await page.getByLabel('Pay all of Bus').check()
-    await expect(lab.getByRole('link', { name: /Google Pay QR/ })).toHaveCount(0)
-  })
-
   test('names and notes with & # or spaces cannot cut the link short', async ({ page, request }) => {
     const id = await newSplit({ request }, { name: 'Ravi & Co #1', vpa: 'ravi.k-1@ybl', title: '', items: [{ label: 'Tea & snacks', paise: 5_050 }] })
     await page.goto(`/experiments/split?s=${id}`)
