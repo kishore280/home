@@ -24,3 +24,16 @@ export async function tokenMatches(given: string | undefined, secret: string | u
   const b = encoder.encode(secret)
   return a.byteLength === b.byteLength ? crypto.subtle.timingSafeEqual(a, b) : !crypto.subtle.timingSafeEqual(a, a)
 }
+
+// A request's body as JSON, with a size limit (checked before and after reading it). A Response is
+// the error to send back: 413 for too big, 400 for not JSON.
+export async function jsonBody(request: Request, max: number): Promise<{ body: unknown } | Response> {
+  if (Number(request.headers.get('content-length')) > max) return fail('Body too large.', 413)
+  const text = await request.text()
+  if (text.length > max) return fail('Body too large.', 413)
+  try {
+    return { body: JSON.parse(text) }
+  } catch {
+    return fail('Body must be JSON.')
+  }
+}

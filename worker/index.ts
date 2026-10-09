@@ -7,6 +7,7 @@ import { nowPlaying } from './now-playing'
 import { photos } from './photos'
 import { scrobble } from './scrobble'
 import { scroll } from './scroll'
+import { split } from './split'
 
 export default {
   async fetch(request, env, ctx) {
@@ -28,6 +29,8 @@ export default {
         return photos(request, env, ctx)
       case '/api/scroll':
         return scroll(request, env, ctx)
+      case '/api/split':
+        return split(request, env)
     }
     if (pathname.startsWith('/api/scrobble/1/')) return scrobble(request, env, pathname.slice('/api/scrobble/1/'.length))
     if (pathname.startsWith('/api/')) return fail('Not found.', 404)

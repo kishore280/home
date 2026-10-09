@@ -10,7 +10,7 @@
 // an undo sent again changes nothing. Tables, and the triggers that keep the totals right:
 // migrations/0004_log.sql. This file only inserts, deletes and reads.
 import { site } from '../src/data'
-import { bearer, fail, json, tokenMatches, type Env } from './db'
+import { bearer, fail, json, jsonBody, tokenMatches, type Env } from './db'
 
 type Body = Record<string, unknown> & { id: string }
 
@@ -61,15 +61,9 @@ export async function undo(request: Request, env: Env): Promise<Response> {
 async function readPost(request: Request, env: Env): Promise<Body | Response> {
   if (!env.SCROBBLE_TOKEN) return notSetUp('add the SCROBBLE_TOKEN secret in the Cloudflare dashboard')
   if (!(await tokenMatches(bearer(request), env.SCROBBLE_TOKEN))) return fail('Invalid token.', 401)
-  if (Number(request.headers.get('content-length')) > MAX_BODY) return fail('Body too large.', 413)
-  const text = await request.text()
-  if (text.length > MAX_BODY) return fail('Body too large.', 413)
-  let body: unknown
-  try {
-    body = JSON.parse(text)
-  } catch {
-    return fail('Body must be JSON.')
-  }
+  const read = await jsonBody(request, MAX_BODY)
+  if (read instanceof Response) return read
+  const { body } = read
   const id = (body as { id?: unknown } | null)?.id
   if (typeof id !== 'string' || !/^[\w-]{1,64}$/.test(id)) return fail('id must be a UUID.')
   return body as Body
