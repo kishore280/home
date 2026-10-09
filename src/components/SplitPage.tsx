@@ -1,6 +1,7 @@
 import { useIsClient } from '../lib/client'
 import { BackHome } from './BackHome'
 import { Card } from './Card'
+import { SplitDebug } from './SplitDebug'
 import { SplitOwner } from './SplitOwner'
 import { SplitPay } from './SplitPay'
 
@@ -15,7 +16,7 @@ export function SplitPage() {
     <main className="narrow-page split-page" id="main">
       <Card>
         <h1>split</h1>
-        {!isClient ? <p className="small">Loading…</p> : id ? <SplitPay id={id} lab={query?.get('lab') === '1'} /> : <SplitOwner />}
+        {!isClient ? <p className="small">Loading…</p> : query?.get('u') ? <SplitDebug text={query.get('u')!} /> : id ? <SplitPay id={id} lab={query?.get('lab') === '1'} /> : <SplitOwner />}
       </Card>
       <BackHome />
     </main>
