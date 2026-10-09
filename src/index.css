@@ -2275,3 +2275,11 @@ kbd {
     display: none;
   }
 }
+
+.split-save {
+  margin: 0.75rem 0;
+}
+.split-save button {
+  display: block;
+  width: 100%;
+}
