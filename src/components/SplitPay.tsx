@@ -35,8 +35,11 @@ function Qr({ text }: { text: string }) {
   )
 }
 
-// `lab` (the link ends with &lab=1) shows the test mode: the same payment as five link styles.
-export function SplitPay({ id, lab }: { id: string; lab: boolean }) {
+const AID = /^[\w-]{1,64}$/
+
+// `lab` (the link ends with &lab=1) shows the test mode: the same payment in several link styles.
+// `aid` (&aid=…, the field in Google Pay's own QR) adds the two styles that carry it.
+export function SplitPay({ id, lab, aid }: { id: string; lab: boolean; aid: string }) {
   const { data, error } = useSWR(`/api/split?s=${id}`, fetcher<Split>, { revalidateOnFocus: false })
   const [shares, setShares] = useState<Record<number, string>>({})
   const [platform] = useState(platformOf)
@@ -152,8 +155,8 @@ export function SplitPay({ id, lab }: { id: string; lab: boolean }) {
           <h2>link styles (testing)</h2>
           <p className="small">Tap one, pay a small amount, and see which styles your bank accepts. A style that fails is a useful answer too.</p>
           <ul>
-            {(Object.keys(STYLES) as Style[]).map((style) => {
-              const styled = upiLink(payment, style, tr)
+            {(Object.keys(STYLES) as Style[]).filter((style) => AID.test(aid) || (style !== 'aid' && style !== 'qr')).map((style) => {
+              const styled = upiLink({ ...payment, aid }, style, tr)
               return (
                 <li key={style}>
                   <span className="split-lab-line">

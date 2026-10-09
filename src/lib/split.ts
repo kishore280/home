@@ -36,7 +36,7 @@ export const total = (items: SplitItem[]) => items.reduce((sum, item) => sum + i
 
 const enc = encodeURIComponent
 
-export type Payment = { vpa: string; name: string; paise: number; note: string }
+export type Payment = { vpa: string; name: string; paise: number; note: string; aid?: string }
 
 // Ways to write the same payment, to find out which one a UPI app and a bank accept (the test mode
 // of the pay page, "&lab=1"). 'full' is the normal link. The others change one thing:
@@ -45,6 +45,8 @@ export type Payment = { vpa: string; name: string; paise: number; note: string }
 //   bare      leaves out the note
 //   personal  the fields a person's own QR code carries (mc=0000 is "no merchant")
 //   open      leaves out the amount: the app opens and the payer types it
+//   aid       the fields of Google Pay's own QR with an amount (pa, pn, am, cu, aid); needs the `aid` of kish's QR
+//   qr        exactly the text of Google Pay's own QR: no amount (pa, pn, aid)
 export const STYLES = {
   full: 'as it is now',
   tr: 'with a reference (tr)',
@@ -52,6 +54,8 @@ export const STYLES = {
   bare: 'without the note',
   personal: 'like a personal QR code',
   open: 'without the amount',
+  aid: 'like my Google Pay QR, with the amount',
+  qr: 'exactly my Google Pay QR text',
 } as const
 export type Style = keyof typeof STYLES
 
@@ -59,12 +63,14 @@ export type Style = keyof typeof STYLES
 // required, cu is only INR, am has two decimals. Every value is URL-encoded, because an unencoded
 // "&" or "#" in a name would silently cut off the rest. A space is %20, not "+". The "@" of the UPI
 // ID stays as it is, as in the spec's own examples.
-export function upiQuery({ vpa, name, paise, note }: Payment, style: Style = 'full', tr = '') {
+export function upiQuery({ vpa, name, paise, note, aid }: Payment, style: Style = 'full', tr = '') {
   const parts = [`pa=${enc(vpa).replace('%40', '@')}`, `pn=${enc(name)}`]
+  if (aid && style === 'qr') return [...parts, `aid=${enc(aid)}`].join('&')
   if (style !== 'open') parts.push(`am=${(paise / 100).toFixed(2)}`)
   parts.push('cu=INR')
+  if (aid && style === 'aid') parts.push(`aid=${enc(aid)}`)
   if (style === 'personal') parts.push('mc=0000', 'mode=02', 'purpose=00')
-  if (style !== 'bare' && style !== 'open') parts.push(`tn=${enc(note)}`)
+  if (style !== 'bare' && style !== 'open' && style !== 'aid') parts.push(`tn=${enc(note)}`)
   if (style === 'tr' || style === 'spec') parts.push(`tr=${enc(tr)}`)
   if (style === 'spec') parts.push('mode=04')
   return parts.join('&')
