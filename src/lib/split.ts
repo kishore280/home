@@ -8,10 +8,14 @@ export const MAX_ITEMS = 20
 // UPI's limit for one payment to a person is ₹1,00,000.
 export const MAX_PAISE = 100_000 * 100
 // A UPI ID (VPA): a name, "@", and the bank or app handle. The same shape the NPCI spec uses.
+// The `aid` of a Google Pay QR code: a short id Google Pay adds to the text of the QR it makes for you.
+export const AID = /^[A-Za-z0-9_-]{1,64}$/
+// What kish may paste: the id alone, or the whole text of the QR ("upi://pay?pa=…&aid=…").
+export const readAid = (text: string) => (/[?&]aid=([^&\s]+)/.exec(text)?.[1] ?? text).trim()
 export const VPA = /^[a-zA-Z0-9._-]{2,64}@[a-zA-Z0-9]{2,32}$/
 
 export type SplitItem = { label: string; paise: number }
-export type Split = { id: string; title: string; name: string; vpa: string; items: SplitItem[]; created: number }
+export type Split = { id: string; title: string; name: string; vpa: string; aid?: string; items: SplitItem[]; created: number }
 
 // Visible text only: control characters become spaces, runs of spaces become one, and at most `max`
 // characters (counted as letters, so an emoji is not cut in half).
@@ -45,8 +49,6 @@ export type Payment = { vpa: string; name: string; paise: number; note: string; 
 //   bare      leaves out the note
 //   personal  the fields a person's own QR code carries (mc=0000 is "no merchant")
 //   open      leaves out the amount: the app opens and the payer types it
-//   aid       the fields of Google Pay's own QR with an amount (pa, pn, am, cu, aid); needs the `aid` of kish's QR
-//   qr        exactly the text of Google Pay's own QR: no amount (pa, pn, aid)
 export const STYLES = {
   full: 'as it is now',
   tr: 'with a reference (tr)',
@@ -54,8 +56,6 @@ export const STYLES = {
   bare: 'without the note',
   personal: 'like a personal QR code',
   open: 'without the amount',
-  aid: 'like my Google Pay QR, with the amount',
-  qr: 'exactly my Google Pay QR text',
 } as const
 export type Style = keyof typeof STYLES
 
@@ -65,12 +65,14 @@ export type Style = keyof typeof STYLES
 // ID stays as it is, as in the spec's own examples.
 export function upiQuery({ vpa, name, paise, note, aid }: Payment, style: Style = 'full', tr = '') {
   const parts = [`pa=${enc(vpa).replace('%40', '@')}`, `pn=${enc(name)}`]
-  if (aid && style === 'qr') return [...parts, `aid=${enc(aid)}`].join('&')
   if (style !== 'open') parts.push(`am=${(paise / 100).toFixed(2)}`)
   parts.push('cu=INR')
-  if (aid && style === 'aid') parts.push(`aid=${enc(aid)}`)
+  // A split with an `aid` is paid like Google Pay's own QR with an amount: pa, pn, am, cu, aid and no note.
+  // Only this was accepted on kish's phone; the same fields without the aid were refused.
+  const own = Boolean(aid) && style === 'full'
+  if (own) parts.push(`aid=${enc(aid!)}`)
   if (style === 'personal') parts.push('mc=0000', 'mode=02', 'purpose=00')
-  if (style !== 'bare' && style !== 'open' && style !== 'aid') parts.push(`tn=${enc(note)}`)
+  if (style !== 'bare' && style !== 'open' && !own) parts.push(`tn=${enc(note)}`)
   if (style === 'tr' || style === 'spec') parts.push(`tr=${enc(tr)}`)
   if (style === 'spec') parts.push('mode=04')
   return parts.join('&')

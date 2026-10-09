@@ -17,7 +17,7 @@ kishore's personal site, live at **https://kichoow.com**. React 19 + TypeScript 
 | `seo.ts` | Vite plugin: title, meta, Open Graph, JSON-LD, robots.txt, sitemap.xml, llms.txt and `/.well-known/button.json` (the 88×31 buttons for button-wall tools), all from `src/data.ts`. |
 | `scripts/prerender.mjs` | Pre-renders every page into `dist/`, inlines the CSS (Beasties), preloads the fonts. |
 | `scripts/sw.mjs` | Makes the service worker (Workbox) after the pre-render. |
-| `migrations/` | D1 tables (0005: `log_hours`, the chai clock; 0006: badminton days; 0007–0009: `scroll_now` and `scroll_binges`; 0010: `splits`). Apply new ones with `npx wrangler d1 migrations apply home --remote`. |
+| `migrations/` | D1 tables (0005: `log_hours`, the chai clock; 0006: badminton days; 0007–0009: `scroll_now` and `scroll_binges`; 0010: `splits`; 0011: its `aid`). Apply new ones with `npx wrangler d1 migrations apply home --remote`. |
 | `tests/ui.spec.ts` | UI tests (Playwright + axe-core). |
 | `.claude/skills/` | The skills listed below. |
 | `.claude/hooks/` | `session-start.sh`: sets up Claude Code on the web sessions (packages, test browser). |

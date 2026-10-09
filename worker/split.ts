@@ -10,8 +10,9 @@
 // (a page cannot even know if a payment went through: UPI tells a web page nothing).
 // Rows: a public GET reads 1 (the primary key); the list reads at most 50 (the index, then the
 // rows); a POST writes 1 (and reads 1 on an id clash, which is very rare); a DELETE writes 1.
-// Table: migrations/0010_splits.sql.
-import { MAX_ITEMS, MAX_PAISE, VPA, clean, type Split, type SplitItem } from '../src/lib/split'
+// Table: migrations/0010_splits.sql, and 0011_split_aid.sql (the optional `aid` of a Google Pay QR:
+// with it the pay link is built like that QR, which Google Pay accepts; without it, Google Pay refuses).
+import { AID, MAX_ITEMS, MAX_PAISE, VPA, clean, type Split, type SplitItem } from '../src/lib/split'
 import { bearer, fail, json, jsonBody, tokenMatches, type Env } from './db'
 
 const MAX_BODY = 4096
@@ -19,7 +20,7 @@ const LIST_LIMIT = 50
 const ID = /^[A-Za-z0-9]{8}$/
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
 
-type Row = { id: string; title: string; name: string; vpa: string; items: string; created: number }
+type Row = { id: string; title: string; name: string; vpa: string; aid: string | null; items: string; created: number }
 
 // The same "say what is missing" reply as /api/log, instead of a 500.
 const orNotSetUp = (reply: Promise<Response>) =>
@@ -49,17 +50,17 @@ function toSplit(row: Row): Split {
   } catch {
     // An unreadable row shows no items.
   }
-  return { id: row.id, title: row.title, name: row.name, vpa: row.vpa, items, created: row.created }
+  return { id: row.id, title: row.title, name: row.name, vpa: row.vpa, ...(row.aid ? { aid: row.aid } : {}), items, created: row.created }
 }
 
 async function one(env: Env, id: string) {
   if (!ID.test(id)) return fail('No such split.', 404)
-  const row = await env.DB.prepare('SELECT id, title, name, vpa, items, created FROM splits WHERE id = ?1').bind(id).first<Row>()
+  const row = await env.DB.prepare('SELECT id, title, name, vpa, aid, items, created FROM splits WHERE id = ?1').bind(id).first<Row>()
   return row ? json(toSplit(row)) : fail('No such split.', 404)
 }
 
 async function list(env: Env) {
-  const { results } = await env.DB.prepare('SELECT id, title, name, vpa, items, created FROM splits ORDER BY created DESC LIMIT ?1').bind(LIST_LIMIT).all<Row>()
+  const { results } = await env.DB.prepare('SELECT id, title, name, vpa, aid, items, created FROM splits ORDER BY created DESC LIMIT ?1').bind(LIST_LIMIT).all<Row>()
   return json(results.map(toSplit))
 }
 
@@ -77,12 +78,13 @@ function newId() {
 }
 
 // The body, checked field by field. A string is the error to send back.
-function readSplit(body: unknown): { title: string; name: string; vpa: string; items: SplitItem[] } | string {
+function readSplit(body: unknown): { title: string; name: string; vpa: string; aid: string | null; items: SplitItem[] } | string {
   if (typeof body !== 'object' || body === null) return 'Body must be a JSON object.'
-  const { title = '', name, vpa, items } = body as Record<string, unknown>
+  const { title = '', name, vpa, aid = null, items } = body as Record<string, unknown>
   if (typeof title !== 'string') return 'title must be text.'
   if (typeof name !== 'string' || !clean(name, 40)) return 'name is required.'
   if (typeof vpa !== 'string' || !VPA.test(vpa.trim())) return 'vpa must look like name@bank.'
+  if (aid !== null && (typeof aid !== 'string' || !AID.test(aid))) return 'aid must be letters and digits (the aid of a Google Pay QR).'
   if (!Array.isArray(items) || items.length < 1 || items.length > MAX_ITEMS) return `items: send 1 to ${MAX_ITEMS}.`
   const checked: SplitItem[] = []
   for (const item of items) {
@@ -91,7 +93,7 @@ function readSplit(body: unknown): { title: string; name: string; vpa: string; i
     if (!Number.isSafeInteger(paise) || (paise as number) < 1 || (paise as number) > MAX_PAISE) return 'Every amount must be 1 paise to ₹1,00,000.'
     checked.push({ label: clean(label, 40), paise: paise as number })
   }
-  return { title: clean(title, 60), name: clean(name, 40), vpa: vpa.trim(), items: checked }
+  return { title: clean(title, 60), name: clean(name, 40), vpa: vpa.trim(), aid, items: checked }
 }
 
 async function create(request: Request, env: Env) {
@@ -103,8 +105,8 @@ async function create(request: Request, env: Env) {
   // 62^8 ids: a clash is very unlikely, but one more try is cheap and a live split is never overwritten.
   for (let attempt = 0; attempt < 3; attempt++) {
     const id = newId()
-    const { meta } = await env.DB.prepare('INSERT OR IGNORE INTO splits (id, title, name, vpa, items, created) VALUES (?1, ?2, ?3, ?4, ?5, ?6)')
-      .bind(id, data.title, data.name, data.vpa, items, Date.now())
+    const { meta } = await env.DB.prepare('INSERT OR IGNORE INTO splits (id, title, name, vpa, aid, items, created) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)')
+      .bind(id, data.title, data.name, data.vpa, data.aid, items, Date.now())
       .run()
     if (meta.changes) return json({ id }, 201)
   }
