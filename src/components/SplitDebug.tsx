@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { encode } from 'uqr'
 import { useCopy } from '../lib/copy'
+import { qrPng } from '../lib/qr-png'
 import { Qr } from './SplitPay'
 
 // A test page for one payment link (/experiments/split?u=<the link, URL-encoded>): the same text sent
@@ -8,21 +8,6 @@ import { Qr } from './SplitPay'
 // Google Pay refuses links from a page that it accepts from its own QR scanner (README, "Split").
 // Not linked from anywhere; the link is typed or pasted by kish.
 const GPAY = 'com.google.android.apps.nbu.paisa.user'
-
-// The QR as a PNG, for "save the picture, then scan it from the gallery" in a UPI app.
-function qrPng(text: string) {
-  const { data, size } = encode(text, { ecc: 'M', border: 4 })
-  const scale = 10
-  const canvas = document.createElement('canvas')
-  canvas.width = canvas.height = size * scale
-  const ctx = canvas.getContext('2d')
-  if (!ctx) return ''
-  ctx.fillStyle = '#fff'
-  ctx.fillRect(0, 0, canvas.width, canvas.height)
-  ctx.fillStyle = '#000'
-  data.forEach((row, y) => row.forEach((on, x) => on && ctx.fillRect(x * scale, y * scale, scale, scale)))
-  return canvas.toDataURL('image/png')
-}
 
 export function SplitDebug({ text }: { text: string }) {
   const [log, setLog] = useState<string[]>(() => [`0.0s opened. ${navigator.userAgent}`, `referrer: ${document.referrer || '(none)'}`])

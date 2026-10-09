@@ -3,6 +3,7 @@ import useSWR from 'swr'
 import { encode } from 'uqr'
 import { fetcher } from '../lib/api'
 import { useCopy } from '../lib/copy'
+import { qrPng } from '../lib/qr-png'
 import { IOS_APPS, MAX_PAISE, STYLES, money, noteFor, parseRupees, upiLink, upiQuery, type Split, type Style } from '../lib/split'
 
 // The pay side of /experiments/split: whoever opens a split's link sees who they pay, types their
@@ -138,6 +139,28 @@ export function SplitPay({ id, lab }: { id: string; lab: boolean }) {
         <a className="split-go" href={link} data-umami-event="Split pay">
           Pay {money(paise)} with a UPI app
         </a>
+      ) : null}
+
+      {platform !== 'desktop' && link ? (
+        // Google Pay refuses a payment that starts from a link in a web page, but accepts the same
+        // payment read from a QR code (README, "Split"). So: one tap saves the QR as a picture (it is
+        // not shown), and the payer scans it from the gallery in their UPI app.
+        <div className="split-save">
+          <button
+            type="button"
+            className="split-other"
+            data-umami-event="Split pay: save QR"
+            onClick={() => {
+              const a = document.createElement('a')
+              a.href = qrPng(link)
+              a.download = `pay-${(paise / 100).toFixed(2)}.png`
+              a.click()
+            }}
+          >
+            Save QR picture
+          </button>
+          <p className="small">If the app refuses the button above: save this picture, open your UPI app, tap scan, and pick the picture from the gallery.</p>
+        </div>
       ) : null}
 
       {platform === 'desktop' && link ? (
