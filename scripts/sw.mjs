@@ -11,9 +11,10 @@ const { count, size, warnings } = await generateSW({
   // fonts, buttons and icons. CSS is inlined in each page. offline.html (the online version) is not
   // precached, so a cached copy can never stand in for the real check.
   globPatterns: ['offline-now.html', 'log.html', 'assets/*.js', 'assets/*-latin-wght-normal-*.woff2', '*.svg', '*.webmanifest'],
-  // The terminal player (about 185 KB) loads only when a recording comes near the screen; do not
-  // download it for every visitor.
-  globIgnores: ['assets/terminal-player-*.js'],
+  // The terminal player (about 185 KB) loads only when a recording comes near the screen, and the
+  // experiments' pages (/experiments, /experiments/split) are not linked from the site; do not
+  // download them for every visitor.
+  globIgnores: ['assets/terminal-player-*.js', 'assets/split-*.js', 'assets/experiments-*.js'],
   swDest: 'dist/sw.js',
   mode: 'production',
   inlineWorkboxRuntime: true,

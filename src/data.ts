@@ -187,6 +187,26 @@ export const colophonPage: TextPage = {
 
 // The 404 page, for addresses that do not exist.
 // The private /log page, where kish logs chai, parotta and beach days (kept out of search).
+// /experiments: small things kish tries here. Hidden from search and not linked from the home page.
+export const experimentsPage: TextPage = {
+  title: 'experiments · kish',
+  description: 'Small experiments on kichoow.com.',
+  heading: 'experiments',
+  intro: 'Small things I try here. They can change or go away.',
+  sections: [
+    {
+      title: 'split',
+      items: [{ text: 'a bill as a link: friends type their share and pay it in their UPI app', href: '/experiments/split' }],
+    },
+  ],
+}
+
+// /experiments/split: make a split, or pay one. Private: not in search or the sitemap.
+export const splitPage = {
+  title: 'split · kish',
+  description: 'Share a bill as a link and get paid in UPI apps.',
+}
+
 export const logPage = {
   title: 'log · kish',
   description: 'Where kish logs chai, parotta and beach days.',

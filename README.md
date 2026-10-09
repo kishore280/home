@@ -266,6 +266,27 @@ The text, in Markdown.
 
 `npm run build` does the rest: [MDX](https://mdxjs.com) turns the text into the page, pre-rendered to `dist/blog/<name>.html`, with its own title, description, canonical and JSON-LD `BlogPosting`. The post also goes in `/blog` (by year), the "writing" card on the home page (the newest three), `/blog/rss.xml` ([feed](https://github.com/jpmonette/feed)), `sitemap.xml` and `llms.txt`. Each post gets its own share card, `og/blog/<name>.png` ([satori](https://github.com/vercel/satori) and [resvg](https://github.com/thx/resvg-js), no browser), and, for AI tools, a Markdown copy at `/blog/<name>.md` plus every post in `/llms-full.txt` ([llmstxt.org](https://llmstxt.org)); these two are `noindex` (`public/_headers`), so search shows the HTML page. A post with a missing field, or a date not written as `'YYYY-MM-DD'`, stops the build (`blog.ts`). Add `updated: 'YYYY-MM-DD'` when you change a post. No posts: no card and no link.
 
+## Split (/experiments/split)
+
+An experiment, hidden from search and not linked from the home page: share a bill as a link, and friends pay their share in their UPI app. `/experiments` lists the experiments.
+
+**kish makes a split.** Open `/experiments/split` (it asks for the same token as `/log`, once per device), type your UPI ID and name, add the items (`Bus 100`, `Food 300`) and press "make the link". You get `kichoow.com/experiments/split?s=<8 letters>` to share. The page also lists your splits (copy, open, delete).
+
+**A friend pays.** They open the link, see who they pay (your name and UPI ID), type their share of each item (or tick an item to pay all of it) and tap Pay. The UPI app opens with the amount filled in:
+
+- **Android:** one button; the phone shows its UPI app chooser.
+- **iPhone:** no chooser exists, so there is a button per app (Google Pay, PhonePe, Paytm, BHIM) and "other UPI app".
+- **A computer:** a QR code to scan with a UPI app (drawn by [uqr](https://github.com/unjs/uqr)).
+- **Inside Instagram and similar apps** the link may not open an app; the page says so, and "pay by hand" shows the UPI ID to copy.
+
+The link is `upi://pay?pa=<UPI ID>&pn=<name>&am=<amount>&cu=INR&tn=<note>` (NPCI's UPI Linking Specification: `pa` and `pn` are required, `cu` is only INR). Every value is URL-encoded, because an unencoded `&` or `#` cuts off the rest. A web page cannot know if a payment went through (UPI tells it nothing), so the page never says "paid".
+
+**How it is built.** The rules (UPI ID, amounts in paise, the link) are in `src/lib/split.ts`, shared by the page and the Worker. `worker/split.ts` serves `/api/split`: a split is read by its id without a token (`GET ?s=<id>`); listing, making and deleting need kish's token. One D1 table, `splits` (`migrations/0010_splits.sql`). Nothing is paid through the site: it only keeps the UPI ID and name that kish chose to share.
+
+**To check on real phones** (I could not): the iPhone app links (`tez://upi/pay`, `phonepe://pay`, `paytmmp://pay`, `bhim://upi/pay`; the payment gateways' docs disagree on some paths), and whether your bank declines a payment to a personal UPI ID that comes from a link.
+
+How it was researched: [SplitUPI](https://github.com/Vedant571/SplitUPI), [Split-pay](https://github.com/Affancode1/Split-pay) and [UPIPE1/UPI](https://github.com/UPIPE1/UPI) (the same idea, with no server), the [NPCI deep link notes](https://github.com/bgagan911/RandomDocs/wiki/NPCI-UPI---Specifications-for-Deep-Linking), the iOS schemes in [Juspay's](https://juspay.io/in/docs/upi-merchant-stack/docs/transactions/register-intent) and [PayU's](https://docs.payu.in/docs/upi-smart-intent-non-sdk-flow) docs, and Chrome's [intent](https://developer.chrome.com/docs/android/intents) rules.
+
 ## Deploy (Cloudflare Workers)
 
 The Worker in `worker/` answers `/api/*` and serves the built site from `dist/`.
@@ -340,6 +361,7 @@ Each item follows a documented method; the source is in the code comment.
 - [MDX](https://mdxjs.com) (`@mdx-js/rollup`, `remark-frontmatter`, `vfile-matter`) and [feed](https://github.com/jpmonette/feed): the blog and its RSS feed
 - [Shiki](https://shiki.style) (`@shikijs/rehype`): code in posts, coloured at build time (Rosé Pine Dawn / Moon)
 - [satori](https://github.com/vercel/satori) and [resvg-js](https://github.com/thx/resvg-js): each post's share card
+- [uqr](https://github.com/unjs/uqr): the QR code on the split page, for a computer
 - [fontaine](https://github.com/unjs/fontaine): fallback fonts sized like the web fonts, so nothing moves when they load
 - [asciinema](https://asciinema.org) (`asciinema-player`): real terminal sessions, played back as text (the home card and posts)
 - [lychee](https://lychee.cli.rs): the daily dead link check (`.github/workflows/links.yml`, `lychee.toml`)
