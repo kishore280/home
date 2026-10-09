@@ -3,7 +3,7 @@ import useSWR from 'swr'
 import { encode } from 'uqr'
 import { fetcher } from '../lib/api'
 import { useCopy } from '../lib/copy'
-import { IOS_APPS, MAX_PAISE, money, noteFor, parseRupees, upiLink, upiQuery, type Split } from '../lib/split'
+import { IOS_APPS, MAX_PAISE, STYLES, money, noteFor, parseRupees, upiLink, upiQuery, type Split, type Style } from '../lib/split'
 
 // The pay side of /experiments/split: whoever opens a split's link sees who they pay, types their
 // share of each item, and taps Pay. The UPI app opens with the amount filled in (the "upi://pay"
@@ -35,12 +35,15 @@ function Qr({ text }: { text: string }) {
   )
 }
 
-export function SplitPay({ id }: { id: string }) {
+// `lab` (the link ends with &lab=1) shows the test mode: the same payment as five link styles.
+export function SplitPay({ id, lab }: { id: string; lab: boolean }) {
   const { data, error } = useSWR(`/api/split?s=${id}`, fetcher<Split>, { revalidateOnFocus: false })
   const [shares, setShares] = useState<Record<number, string>>({})
   const [platform] = useState(platformOf)
   const [inApp] = useState(() => IN_APP.test(navigator.userAgent))
   const [copied, copy] = useCopy()
+  // A reference for the 'tr' style, new on each visit (a reused one can be refused).
+  const [tr] = useState(() => `SPL${Math.random().toString(36).slice(2, 10).toUpperCase()}`)
 
   // Each share is a number up to its item's amount. Empty means "not this one".
   const items = data?.items ?? []
@@ -136,6 +139,26 @@ export function SplitPay({ id }: { id: string }) {
           <Qr text={link} />
           <p className="small">On a computer: scan this with any UPI app on your phone, or open this page on your phone.</p>
         </div>
+      ) : null}
+
+      {lab && link && payment ? (
+        <section className="split-lab" aria-label="Link styles to test">
+          <h2>link styles (testing)</h2>
+          <p className="small">Tap one, pay a small amount, and see which styles your bank accepts.</p>
+          <ul>
+            {(Object.keys(STYLES) as Style[]).map((style) => {
+              const styled = upiLink(payment, style, tr)
+              return (
+                <li key={style}>
+                  <a href={styled} data-umami-event={`Split lab: ${style}`}>
+                    {STYLES[style]}
+                  </a>
+                  <code>{styled.slice('upi://pay?'.length)}</code>
+                </li>
+              )
+            })}
+          </ul>
+        </section>
       ) : null}
 
       <details className="split-hand">

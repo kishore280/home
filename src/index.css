@@ -1800,6 +1800,38 @@ kbd {
   height: auto;
   border-radius: 8px;
 }
+.split-lab {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 2px dashed var(--line);
+  border-radius: 12px;
+}
+.split-lab h2,
+.split-lab p {
+  margin: 0;
+}
+.split-lab h2 {
+  font-size: 16px;
+}
+.split-lab ul {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.split-lab li {
+  display: grid;
+  gap: 2px;
+}
+.split-lab a {
+  font-weight: 700;
+}
+.split-lab code {
+  font: 12px ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--muted);
+}
 .split-hand summary {
   cursor: pointer;
   font: 700 14px var(--body);

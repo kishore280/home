@@ -9,12 +9,13 @@ import { SplitPay } from './SplitPay'
 // pre-rendered page is only the card, and the rest appears once the page is on the client.
 export function SplitPage() {
   const isClient = useIsClient()
-  const id = isClient ? new URLSearchParams(location.search).get('s') : null
+  const query = isClient ? new URLSearchParams(location.search) : null
+  const id = query?.get('s')
   return (
     <main className="narrow-page split-page" id="main">
       <Card>
         <h1>split</h1>
-        {!isClient ? <p className="small">Loading…</p> : id ? <SplitPay id={id} /> : <SplitOwner />}
+        {!isClient ? <p className="small">Loading…</p> : id ? <SplitPay id={id} lab={query?.get('lab') === '1'} /> : <SplitOwner />}
       </Card>
       <BackHome />
     </main>
