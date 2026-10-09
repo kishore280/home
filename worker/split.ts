@@ -3,6 +3,7 @@
 //   GET     ?s=<id>   public: one split (title, name, UPI ID, items). The id is 8 letters and digits.
 //   GET               kish's list, newest first (at most 50)                 Bearer SCROBBLE_TOKEN
 //   POST              { title?, name, vpa, items: [{ label, paise }] } → 201 { id }   Bearer
+//   PUT     ?s=<id>   replaces one (same body as POST); the link stays the same       Bearer
 //   DELETE  ?s=<id>   removes one                                             Bearer
 // Only kish makes and deletes splits: the same token as /api/log (the Worker secret SCROBBLE_TOKEN).
 // What a valid split is lives in src/lib/split.ts, which the page uses too. Money is in paise.
@@ -31,12 +32,13 @@ const orNotSetUp = (reply: Promise<Response>) =>
 export async function split(request: Request, env: Env): Promise<Response> {
   const id = new URL(request.url).searchParams.get('s')
   if (request.method === 'GET' && id) return orNotSetUp(one(env, id))
-  if (!['GET', 'POST', 'DELETE'].includes(request.method)) return fail('Use GET, POST or DELETE.', 405)
+  if (!['GET', 'POST', 'PUT', 'DELETE'].includes(request.method)) return fail('Use GET, POST, PUT or DELETE.', 405)
   // Everything else is kish's.
   if (!env.SCROBBLE_TOKEN) return fail('Splits are not set up yet: add the SCROBBLE_TOKEN secret in the Cloudflare dashboard.', 503)
   if (!(await tokenMatches(bearer(request), env.SCROBBLE_TOKEN))) return fail('Invalid token.', 401)
   if (request.method === 'GET') return orNotSetUp(list(env))
   if (request.method === 'DELETE') return orNotSetUp(remove(env, id))
+  if (request.method === 'PUT') return orNotSetUp(update(request, env, id))
   return orNotSetUp(create(request, env))
 }
 
@@ -111,4 +113,18 @@ async function create(request: Request, env: Env) {
     if (meta.changes) return json({ id }, 201)
   }
   return fail('Could not make an id. Try again.', 503)
+}
+
+// A PUT writes 1 row (the created time stays, so the list order does not change).
+async function update(request: Request, env: Env, id: string | null) {
+  if (!id || !ID.test(id)) return fail('Say which one: ?s=<id>.')
+  const read = await jsonBody(request, MAX_BODY)
+  if (read instanceof Response) return read
+  const data = readSplit(read.body)
+  if (typeof data === 'string') return fail(data)
+  const items = JSON.stringify(data.items.map((i) => [i.label, i.paise]))
+  const { meta } = await env.DB.prepare('UPDATE splits SET title = ?2, name = ?3, vpa = ?4, aid = ?5, items = ?6 WHERE id = ?1')
+    .bind(id, data.title, data.name, data.vpa, data.aid, items)
+    .run()
+  return meta.changes ? json({ id }) : fail('No such split.', 404)
 }
