@@ -24,7 +24,7 @@ const IN_APP = /Instagram|FBAN|FBAV|FB_IAB|Snapchat|MicroMessenger|; wv\)/
 
 // The QR code of a payment, for a computer: scan it with any UPI app. Drawn from the code's squares
 // (uqr), black on white with a quiet border, whatever the page's theme.
-function Qr({ text }: { text: string }) {
+export function Qr({ text }: { text: string }) {
   const { data, size } = encode(text, { ecc: 'M', border: 2 })
   const path = data.flatMap((row, y) => row.flatMap((on, x) => (on ? [`M${x} ${y}h1v1h-1z`] : []))).join('')
   return (
