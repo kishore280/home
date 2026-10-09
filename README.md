@@ -283,7 +283,12 @@ The link is `upi://pay?pa=<UPI ID>&pn=<name>&am=<amount>&cu=INR&tn=<note>` (NPCI
 
 **How it is built.** The rules (UPI ID, amounts in paise, the link) are in `src/lib/split.ts`, shared by the page and the Worker. `worker/split.ts` serves `/api/split`: a split is read by its id without a token (`GET ?s=<id>`); listing, making and deleting need kish's token. One D1 table, `splits` (`migrations/0010_splits.sql`). Nothing is paid through the site: it only keeps the UPI ID and name that kish chose to share.
 
-**To check on real phones** (I could not): the iPhone app links (`tez://upi/pay`, `phonepe://pay`, `paytmmp://pay`, `bhim://upi/pay`; the payment gateways' docs disagree on some paths), and whether your bank declines a payment to a personal UPI ID that comes from a link.
+**First real test (Google Pay, ICICI Bank, ₹1).** The app opened with the amount and the note, but the bank refused: "You've exceeded the bank limit for this payment". At ₹1 that cannot be the real reason, and no source gives the cause. [One open issue](https://github.com/drenther/upi_pay/issues/69) has the same message when a payment works by hand but fails from a link. Candidates: the link has an amount but no `tr` (NPCI's notes say `tr` is conditionally required for a link with an amount); a risk or new-payee rule of the bank; the payer's own account limits. To find out:
+
+1. Pay ₹1 by hand, in the same app, to the same UPI ID. If that fails too, it is the account, not the link.
+2. Add `&lab=1` to a split's link. The pay page then shows the same payment in five link styles (as now, with `tr`, without the note, like a personal QR code, without the amount). Pay a small amount with each and see which one the bank accepts.
+
+Still to check on real phones: the iPhone app links (`tez://upi/pay`, `phonepe://pay`, `paytmmp://pay`, `bhim://upi/pay`; the payment gateways' docs disagree on some paths).
 
 How it was researched: [SplitUPI](https://github.com/Vedant571/SplitUPI), [Split-pay](https://github.com/Affancode1/Split-pay) and [UPIPE1/UPI](https://github.com/UPIPE1/UPI) (the same idea, with no server), the [NPCI deep link notes](https://github.com/bgagan911/RandomDocs/wiki/NPCI-UPI---Specifications-for-Deep-Linking), the iOS schemes in [Juspay's](https://juspay.io/in/docs/upi-merchant-stack/docs/transactions/register-intent) and [PayU's](https://docs.payu.in/docs/upi-smart-intent-non-sdk-flow) docs, and Chrome's [intent](https://developer.chrome.com/docs/android/intents) rules.
 

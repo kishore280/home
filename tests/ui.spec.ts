@@ -2100,6 +2100,22 @@ test.describe('split page: paying (Android)', () => {
     expect(await page.evaluate(() => window.__copies)).toEqual(['kish@okaxis'])
   })
 
+  test('with &lab=1 the pay page shows the same payment in five link styles to test', async ({ page, request }) => {
+    const id = await newSplit({ request })
+    await page.goto(`/experiments/split?s=${id}`)
+    await page.getByLabel('Pay all of Bus').check()
+    await expect(page.getByRole('region', { name: 'Link styles to test' })).toHaveCount(0) // not for friends
+    await page.goto(`/experiments/split?s=${id}&lab=1`)
+    await page.getByLabel('Pay all of Bus').check()
+    const lab = page.getByRole('region', { name: 'Link styles to test' })
+    const base = 'pa=kish@okaxis&pn=Kish'
+    await expect(lab.getByRole('link', { name: 'as it is now' })).toHaveAttribute('href', `upi://pay?${base}&am=100.00&cu=INR&tn=Goa%20trip%3A%20Bus`)
+    await expect(lab.getByRole('link', { name: 'with a reference (tr)' })).toHaveAttribute('href', new RegExp(`^upi://pay\\?${base}&am=100\\.00&cu=INR&tn=Goa%20trip%3A%20Bus&tr=SPL[A-Z0-9]{1,8}$`))
+    await expect(lab.getByRole('link', { name: 'without the note' })).toHaveAttribute('href', `upi://pay?${base}&am=100.00&cu=INR`)
+    await expect(lab.getByRole('link', { name: 'like a personal QR code' })).toHaveAttribute('href', `upi://pay?${base}&am=100.00&cu=INR&mc=0000&mode=02&purpose=00&tn=Goa%20trip%3A%20Bus`)
+    await expect(lab.getByRole('link', { name: 'without the amount' })).toHaveAttribute('href', `upi://pay?${base}&cu=INR`)
+  })
+
   test('names and notes with & # or spaces cannot cut the link short', async ({ page, request }) => {
     const id = await newSplit({ request }, { name: 'Ravi & Co #1', vpa: 'ravi.k-1@ybl', title: '', items: [{ label: 'Tea & snacks', paise: 5_050 }] })
     await page.goto(`/experiments/split?s=${id}`)
