@@ -69,7 +69,13 @@ export function SplitPay({ id, lab }: { id: string; lab: boolean }) {
       <div className="split-payee">
         <span className="small">paying to</span>
         <b>{data.name}</b>
-        <code>{data.vpa}</code>
+        {/* The UPI ID is plain to see, with a copy button: it is also how to pay by hand in any UPI app. */}
+        <span className="split-id">
+          <code>{data.vpa}</code>
+          <button type="button" onClick={() => void copy(data.vpa)}>
+            {copied === data.vpa ? 'copied' : 'copy UPI ID'}
+          </button>
+        </span>
       </div>
 
       <ul className="split-items">
@@ -144,15 +150,20 @@ export function SplitPay({ id, lab }: { id: string; lab: boolean }) {
       {lab && link && payment ? (
         <section className="split-lab" aria-label="Link styles to test">
           <h2>link styles (testing)</h2>
-          <p className="small">Tap one, pay a small amount, and see which styles your bank accepts.</p>
+          <p className="small">Tap one, pay a small amount, and see which styles your bank accepts. A style that fails is a useful answer too.</p>
           <ul>
             {(Object.keys(STYLES) as Style[]).map((style) => {
               const styled = upiLink(payment, style, tr)
               return (
                 <li key={style}>
-                  <a href={styled} data-umami-event={`Split lab: ${style}`}>
-                    {STYLES[style]}
-                  </a>
+                  <span className="split-lab-line">
+                    <a href={styled} data-umami-event={`Split lab: ${style}`}>
+                      {STYLES[style]}
+                    </a>
+                    <button type="button" aria-label={copied === styled ? 'Copied' : `Copy the link: ${STYLES[style]}`} onClick={() => void copy(styled)}>
+                      {copied === styled ? 'copied' : 'copy'}
+                    </button>
+                  </span>
                   <code>{styled.slice('upi://pay?'.length)}</code>
                 </li>
               )
@@ -163,12 +174,17 @@ export function SplitPay({ id, lab }: { id: string; lab: boolean }) {
 
       <details className="split-hand">
         <summary>pay by hand</summary>
+        {/* A link with an amount may be refused by a bank or app that cannot verify where it came from;
+            typing the amount in the app works like a payment made by hand. */}
         <p className="small">
-          If the app does not open: send {ready ? money(paise) : 'your share'} to <code>{data.vpa}</code> in any UPI app.
+          If the payment does not work, open your UPI app with {data.name}’s UPI ID filled in, then type {ready ? money(paise) : 'your share'} there:
         </p>
-        <button type="button" onClick={() => void copy(data.vpa)}>
-          {copied === data.vpa ? 'copied' : 'copy UPI ID'}
-        </button>
+        <a href={upiLink({ vpa: data.vpa, name: data.name, paise: 0, note: '' }, 'open')} data-umami-event="Split pay: no amount">
+          open my UPI app (no amount)
+        </a>
+        <p className="small">
+          Or send {ready ? money(paise) : 'your share'} to <code>{data.vpa}</code> in any UPI app (the copy button is above).
+        </p>
       </details>
 
       <p className="small">Check that this UPI ID belongs to the person who sent you the link. This page cannot tell if you paid.</p>

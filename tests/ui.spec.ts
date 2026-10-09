@@ -2095,12 +2095,14 @@ test.describe('split page: paying (Android)', () => {
     // If the app does not open, the UPI ID can be copied.
     await page.getByLabel('Your share of Bus in rupees').fill('')
     await press(page.getByText('pay by hand'))
+    // The way round a bank that refuses a link with an amount: the app opens with the payee, and the payer types the amount.
+    await expect(page.getByRole('link', { name: 'open my UPI app (no amount)' })).toHaveAttribute('href', 'upi://pay?pa=kish@okaxis&pn=Kish&cu=INR')
     await press(page.getByRole('button', { name: 'copy UPI ID' }))
     await expect(page.getByRole('button', { name: 'copied' })).toBeVisible()
     expect(await page.evaluate(() => window.__copies)).toEqual(['kish@okaxis'])
   })
 
-  test('with &lab=1 the pay page shows the same payment in five link styles to test', async ({ page, request }) => {
+  test('with &lab=1 the pay page shows the same payment in six link styles to test', async ({ page, request }) => {
     const id = await newSplit({ request })
     await page.goto(`/experiments/split?s=${id}`)
     await page.getByLabel('Pay all of Bus').check()
@@ -2111,6 +2113,12 @@ test.describe('split page: paying (Android)', () => {
     const base = 'pa=kish@okaxis&pn=Kish'
     await expect(lab.getByRole('link', { name: 'as it is now' })).toHaveAttribute('href', `upi://pay?${base}&am=100.00&cu=INR&tn=Goa%20trip%3A%20Bus`)
     await expect(lab.getByRole('link', { name: 'with a reference (tr)' })).toHaveAttribute('href', new RegExp(`^upi://pay\\?${base}&am=100\\.00&cu=INR&tn=Goa%20trip%3A%20Bus&tr=SPL[A-Z0-9]{1,8}$`))
+    await expect(lab.getByRole('link', { name: 'like the spec (tr, mode=04)' })).toHaveAttribute('href', new RegExp(`^upi://pay\\?${base}&am=100\\.00&cu=INR&tn=Goa%20trip%3A%20Bus&tr=SPL[A-Z0-9]{1,8}&mode=04$`))
+    await expect(lab.getByRole('link')).toHaveCount(6)
+    // Each style has its own copy button, which copies the whole link.
+    await lab.getByRole('button', { name: 'Copy the link: without the note' }).click()
+    await expect(lab.getByRole('button', { name: 'copied' })).toBeVisible()
+    expect(await page.evaluate(() => window.__copies)).toEqual([`upi://pay?${base}&am=100.00&cu=INR`])
     await expect(lab.getByRole('link', { name: 'without the note' })).toHaveAttribute('href', `upi://pay?${base}&am=100.00&cu=INR`)
     await expect(lab.getByRole('link', { name: 'like a personal QR code' })).toHaveAttribute('href', `upi://pay?${base}&am=100.00&cu=INR&mc=0000&mode=02&purpose=00&tn=Goa%20trip%3A%20Bus`)
     await expect(lab.getByRole('link', { name: 'without the amount' })).toHaveAttribute('href', `upi://pay?${base}&cu=INR`)

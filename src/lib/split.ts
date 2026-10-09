@@ -41,12 +41,14 @@ export type Payment = { vpa: string; name: string; paise: number; note: string }
 // Ways to write the same payment, to find out which one a UPI app and a bank accept (the test mode
 // of the pay page, "&lab=1"). 'full' is the normal link. The others change one thing:
 //   tr        adds a transaction reference (the spec asks for one when a link has an amount)
+//   spec      the same, and mode=04 (an intent): what NPCI's linking spec lists as required
 //   bare      leaves out the note
 //   personal  the fields a person's own QR code carries (mc=0000 is "no merchant")
 //   open      leaves out the amount: the app opens and the payer types it
 export const STYLES = {
   full: 'as it is now',
   tr: 'with a reference (tr)',
+  spec: 'like the spec (tr, mode=04)',
   bare: 'without the note',
   personal: 'like a personal QR code',
   open: 'without the amount',
@@ -63,7 +65,8 @@ export function upiQuery({ vpa, name, paise, note }: Payment, style: Style = 'fu
   parts.push('cu=INR')
   if (style === 'personal') parts.push('mc=0000', 'mode=02', 'purpose=00')
   if (style !== 'bare' && style !== 'open') parts.push(`tn=${enc(note)}`)
-  if (style === 'tr') parts.push(`tr=${enc(tr)}`)
+  if (style === 'tr' || style === 'spec') parts.push(`tr=${enc(tr)}`)
+  if (style === 'spec') parts.push('mode=04')
   return parts.join('&')
 }
 

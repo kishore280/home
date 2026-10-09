@@ -1675,9 +1675,15 @@ kbd {
 }
 /* The small pill buttons share the terminal's look (below); these are a little taller to tap. */
 .split-actions button:not(.link-button),
-.split-hand button {
+.split-id button {
   min-height: 36px;
   padding-inline: 14px;
+}
+.split-id {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  align-items: center;
 }
 .split-made .split-actions button:not(.link-button) {
   background: var(--card);
@@ -1827,6 +1833,13 @@ kbd {
 }
 .split-lab a {
   font-weight: 700;
+}
+.split-lab-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  align-items: center;
+  justify-content: space-between;
 }
 .split-lab code {
   font: 12px ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -2055,7 +2068,8 @@ kbd {
 .terminal-pause,
 .chapters button,
 .split-actions button:not(.link-button),
-.split-hand button {
+.split-id button,
+.split-lab button {
   padding: 4px 12px;
   border: 0;
   border-radius: 99px;
@@ -2067,7 +2081,8 @@ kbd {
 .terminal-pause:hover,
 .chapters button:hover,
 .split-actions button:not(.link-button):hover,
-.split-hand button:hover,
+.split-id button:hover,
+.split-lab button:hover,
 .terminal-pause:focus-visible,
 .chapters button:focus-visible {
   background: color-mix(in srgb, var(--accent) 26%, transparent);
