@@ -39,6 +39,7 @@ export function SplitOwner() {
   const [busy, setBusy] = useState(false)
   const [made, setMade] = useState<string | null>(null)
   const [confirming, setConfirming] = useState<string | null>(null)
+  const [editing, setEditing] = useState<string | null>(null)
   const [copied, copy] = useCopy()
 
   const forget = () => {
@@ -70,8 +71,8 @@ export function SplitOwner() {
     setProblem('')
     setBusy(true)
     try {
-      const res = await fetch('/api/split', {
-        method: 'POST',
+      const res = await fetch(editing ? `/api/split?s=${editing}` : '/api/split', {
+        method: editing ? 'PUT' : 'POST',
         headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
         body: JSON.stringify({ title, name, vpa, aid: readAid(aid) || undefined, items }),
       })
@@ -82,8 +83,7 @@ export function SplitOwner() {
       save(VPA_KEY, vpa.trim())
       save(AID_KEY, readAid(aid))
       setMade(linkTo(reply.id))
-      setTitle('')
-      setRows([emptyRow(), emptyRow()])
+      reset()
       void mutate()
     } catch {
       setProblem('No signal. Try again.')
@@ -92,9 +92,29 @@ export function SplitOwner() {
     }
   }
 
+  const reset = () => {
+    setEditing(null)
+    setTitle('')
+    setRows([emptyRow(), emptyRow()])
+  }
+
+  // Puts a split back in the form; saving replaces it and its link stays the same.
+  function edit(s: Split) {
+    setEditing(s.id)
+    setMade(null)
+    setProblem('')
+    setTitle(s.title)
+    setName(s.name)
+    setVpa(s.vpa)
+    setAid(s.aid ?? '')
+    setRows(s.items.map((i) => ({ key: nextRow++, label: i.label, amount: String(i.paise / 100) })))
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   async function deleteSplit(id: string) {
     if (!token) return
     setConfirming(null)
+    if (editing === id) reset()
     const res = await fetch(`/api/split?s=${id}`, { method: 'DELETE', headers: { authorization: `Bearer ${token}` } }).catch(() => null)
     if (res?.status === 401) return forget()
     void mutate()
@@ -152,8 +172,13 @@ export function SplitOwner() {
           {problem}
         </p>
         <button type="submit" className="split-go" disabled={busy}>
-          {busy ? 'making the link…' : 'make the link'}
+          {busy ? 'saving…' : editing ? 'save changes' : 'make the link'}
         </button>
+        {editing ? (
+          <button type="button" className="link-button" onClick={reset}>
+            cancel the edit
+          </button>
+        ) : null}
       </form>
 
       {made ? (
@@ -197,6 +222,9 @@ export function SplitOwner() {
                       {copied === link ? 'copied' : 'copy link'}
                     </button>
                     <a href={link}>open</a>
+                    <button type="button" className="link-button" onClick={() => edit(s)}>
+                      edit
+                    </button>
                     {confirming === s.id ? (
                       <>
                         <button type="button" className="split-danger" onClick={() => void deleteSplit(s.id)}>
