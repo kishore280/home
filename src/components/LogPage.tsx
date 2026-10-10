@@ -1,15 +1,13 @@
-import { useEffect, useEffectEvent, useState } from 'react'
+import { useEffect, useEffectEvent, useState, type FormEvent } from 'react'
 import useSWR, { mutate } from 'swr'
 import { logPage } from '../data'
 import { fetcher, type LogKind, type LogSummary, type PhotoAlbum } from '../lib/api'
 import { useIsClient } from '../lib/client'
-import { load, remove } from '../lib/storage'
-import { TOKEN_KEY } from '../lib/token'
+import { load, remove, save } from '../lib/storage'
 import { toast, useToastRequested } from '../lib/toast'
 import { BackHome } from './BackHome'
 import { Card } from './Card'
 import { Counts } from './Counts'
-import { TokenForm } from './TokenForm'
 import { KindIcon } from './KindIcon'
 // Part of this page's bundle, not lazy: the page must work with no signal (the service worker
 // precaches it), and a lazy chunk may not load then.
@@ -19,6 +17,8 @@ import Toasts from './Toasts'
 // the way anonrig/adamvsyagiz.com logs check-ins). With no signal, the service worker keeps the
 // request and sends it later (Workbox background sync, scripts/sw.mjs).
 // The buttons come from the kinds in the database (log_kinds): a new kind needs no code change.
+const TOKEN_KEY = 'log-token'
+
 const post = (token: string, path: string, body: object) =>
   fetch(path, {
     method: 'POST',
@@ -126,6 +126,14 @@ export function LogPage() {
     if (kind && matchMedia('(display-mode: standalone)').matches) void sendLog(token, kind, 1).then(onShortcutResult)
   }, [token, kinds])
 
+  function saveToken(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    const value = new FormData(e.currentTarget).get('token')?.toString().trim()
+    if (!value) return
+    save(TOKEN_KEY, value)
+    setToken(value)
+  }
+
   return (
     <main className="narrow-page" id="main">
       <Card>
@@ -164,7 +172,16 @@ export function LogPage() {
             </div>
           </>
         ) : (
-          <TokenForm onSaved={setToken} />
+          // A real sign-in form, so the phone's password manager offers to save the token.
+          <form className="log-token" onSubmit={saveToken}>
+            <input type="text" name="username" autoComplete="username" value="kishore" readOnly hidden />
+            <label>
+              token
+              {/* spellcheck off: the keyboard never learns or suggests the token. */}
+              <input name="token" type="password" autoComplete="current-password" spellCheck={false} required minLength={20} />
+            </label>
+            <button type="submit">save</button>
+          </form>
         )}
       </Card>
       <Counts />
