@@ -266,40 +266,6 @@ The text, in Markdown.
 
 `npm run build` does the rest: [MDX](https://mdxjs.com) turns the text into the page, pre-rendered to `dist/blog/<name>.html`, with its own title, description, canonical and JSON-LD `BlogPosting`. The post also goes in `/blog` (by year), the "writing" card on the home page (the newest three), `/blog/rss.xml` ([feed](https://github.com/jpmonette/feed)), `sitemap.xml` and `llms.txt`. Each post gets its own share card, `og/blog/<name>.png` ([satori](https://github.com/vercel/satori) and [resvg](https://github.com/thx/resvg-js), no browser), and, for AI tools, a Markdown copy at `/blog/<name>.md` plus every post in `/llms-full.txt` ([llmstxt.org](https://llmstxt.org)); these two are `noindex` (`public/_headers`), so search shows the HTML page. A post with a missing field, or a date not written as `'YYYY-MM-DD'`, stops the build (`blog.ts`). Add `updated: 'YYYY-MM-DD'` when you change a post. No posts: no card and no link.
 
-## Split (/experiments/split)
-
-An experiment, hidden from search and not linked from the home page: share a bill as a link, and friends pay their share in their UPI app. `/experiments` lists the experiments.
-
-**kish makes a split.** Open `/experiments/split` (it asks for the same token as `/log`, once per device), type your UPI ID and name, add the items (`Bus 100`, `Food 300`) and press "make the link". You get `kichoow.com/experiments/split?s=<8 letters>` to share. The page also lists your splits (copy, open, delete).
-
-**A friend pays.** They open the link, see who they pay (your name and UPI ID), type their share of each item (or tick an item to pay all of it) and tap Pay. The UPI app opens with the amount filled in:
-
-- **Android:** one button; the phone shows its UPI app chooser.
-- **iPhone:** no chooser exists, so there is a button per app (Google Pay, PhonePe, Paytm, BHIM) and "other UPI app".
-- **A computer:** a QR code to scan with a UPI app (drawn by [uqr](https://github.com/unjs/uqr)).
-- **Inside Instagram and similar apps** the link may not open an app; the page says so, and "pay by hand" shows the UPI ID to copy.
-
-The link is `upi://pay?pa=<UPI ID>&pn=<name>&am=<amount>&cu=INR&tn=<note>` (NPCI's UPI Linking Specification: `pa` and `pn` are required, `cu` is only INR). Every value is URL-encoded, because an unencoded `&` or `#` cuts off the rest. A web page cannot know if a payment went through (UPI tells it nothing), so the page never says "paid". **The `aid`:** Google Pay refused every link we made ("exceeded the bank limit", even for ₹1), but accepted one written like its own QR code, `upi://pay?pa=…&pn=…&am=…&cu=INR&aid=…`. The `aid` is a short id in the QR text Google Pay makes for your account. When a split has one (the owner page asks for it, or the whole QR text), the link has exactly those fields and no note.
-
-**How it is built.** The rules (UPI ID, amounts in paise, the link) are in `src/lib/split.ts`, shared by the page and the Worker. `worker/split.ts` serves `/api/split`: a split is read by its id without a token (`GET ?s=<id>`); listing, making and deleting need kish's token. One D1 table, `splits` (`migrations/0010_splits.sql`). Nothing is paid through the site: it only keeps the UPI ID and name that kish chose to share.
-
-**First real test (Google Pay, ICICI Bank, ₹1).** The app opened with the amount and the note, but the bank refused: "You've exceeded the bank limit for this payment". At ₹1 that cannot be the real reason, and **a payment typed by hand in the same app works**, so the difference is the link. No source gives the cause ([one open issue](https://github.com/drenther/upi_pay/issues/69) has the same message and no answer). What NPCI's [UPI Linking Specification](https://www.labnol.org/files/linking.pdf) (v1.6, 2017, so the rules may have changed) says:
-
-- `pa` and `pn` are required; `tr` (a transaction reference) is required for a link with an amount; `mode`, `sign` and `orgid` are listed as required too.
-- A link with no signature is allowed, but the payer's app must warn "source of intent could not be verified" and ask for the UPI PIN.
-- A person's own QR code is signed by the payee's own payment app (the spec's "customer initiated" case), so a third-party page like this one **cannot sign** a link to a personal UPI ID. Banks and apps may treat such a link more strictly than a payment typed by hand.
-
-So there are two ways round it, both in the pay page:
-
-1. **"pay by hand" → "open my UPI app (no amount)":** the app opens with the payee filled in and no amount (like a static QR code); the payer types the amount the page shows. This works like a payment made by hand.
-2. **Test mode:** add `&lab=1` to a split's link. The page then shows the same payment in six link styles (as it is, with `tr`, like the spec with `tr` and `mode=04`, without the note, like a personal QR code, without the amount). Pay a small amount with each and see which one the bank accepts. A style that fails is a useful answer too.
-
-**How other apps do it.** The bill-splitting apps that support UPI (for example [splitmybills.in](https://www.splitmybills.in/) and [FairShare](https://fairshareapp.co.in/blog/best-bill-splitting-apps-india-2026.html), by their own descriptions) do the same: the owner types a UPI ID, and the app builds a `upi://pay` link with the amount. Splitwise has [no UPI support](https://feedback.splitwise.com/forums/162446-general/suggestions/15872739-is-it-possible-to-integrate-upi-unified-payment-s?page=3&per_page=20). A request pushed to the friend's own app is gone: NPCI ended person-to-person "collect" requests from 1 October 2025 ([Business Standard](https://www.business-standard.com/finance/personal-finance/upi-collect-requests-to-end-from-october-here-s-how-it-will-affect-you-125081500774_1.html); written before the date, so the final state is unconfirmed). Trusted links come from merchants: a payment gateway signs the link for a verified merchant account, which needs onboarding (KYC) and, from 15 October 2026, may carry a UPI merchant fee, so it is not a free option for this site.
-
-Still to check on real phones: the iPhone app links (`tez://upi/pay`, `phonepe://pay`, `paytmmp://pay`, `bhim://upi/pay`; the payment gateways' docs disagree on some paths).
-
-How it was researched: [SplitUPI](https://github.com/Vedant571/SplitUPI), [Split-pay](https://github.com/Affancode1/Split-pay) and [UPIPE1/UPI](https://github.com/UPIPE1/UPI) (the same idea, with no server), the [NPCI deep link notes](https://github.com/bgagan911/RandomDocs/wiki/NPCI-UPI---Specifications-for-Deep-Linking), the iOS schemes in [Juspay's](https://juspay.io/in/docs/upi-merchant-stack/docs/transactions/register-intent) and [PayU's](https://docs.payu.in/docs/upi-smart-intent-non-sdk-flow) docs, and Chrome's [intent](https://developer.chrome.com/docs/android/intents) rules.
-
 ## Deploy (Cloudflare Workers)
 
 The Worker in `worker/` answers `/api/*` and serves the built site from `dist/`.
@@ -374,7 +340,6 @@ Each item follows a documented method; the source is in the code comment.
 - [MDX](https://mdxjs.com) (`@mdx-js/rollup`, `remark-frontmatter`, `vfile-matter`) and [feed](https://github.com/jpmonette/feed): the blog and its RSS feed
 - [Shiki](https://shiki.style) (`@shikijs/rehype`): code in posts, coloured at build time (Rosé Pine Dawn / Moon)
 - [satori](https://github.com/vercel/satori) and [resvg-js](https://github.com/thx/resvg-js): each post's share card
-- [uqr](https://github.com/unjs/uqr): the QR code on the split page, for a computer
 - [fontaine](https://github.com/unjs/fontaine): fallback fonts sized like the web fonts, so nothing moves when they load
 - [asciinema](https://asciinema.org) (`asciinema-player`): real terminal sessions, played back as text (the home card and posts)
 - [lychee](https://lychee.cli.rs): the daily dead link check (`.github/workflows/links.yml`, `lychee.toml`)
